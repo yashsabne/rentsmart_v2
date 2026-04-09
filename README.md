@@ -1,4 +1,4 @@
-RentSmart v2 is a scalable property rental platform currently under development, 
+**RentSmart v2** is a scalable property rental platform currently under development, 
 focused on microservices architecture and containerized deployment using Docker.
 
 The initial version (v1) was built as a monolithic application.
@@ -29,3 +29,6 @@ Use cases:
 
 The system is designed with scalability and fault isolation in mind, 
 ensuring that failure in one service does not impact others.
+
+
+old repo for reference: https://github.com/yashsabne/rentSmart
