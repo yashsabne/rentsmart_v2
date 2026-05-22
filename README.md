@@ -7,16 +7,14 @@ focused on microservices architecture and containerized deployment using Docker.
 RentSmart v2 is a modern property rental platform built using a microservices-based architecture. The project is a complete redesign of RentSmart v1, which was originally developed as a monolithic application.
 
 The goal of v2 is to improve scalability, maintainability, deployment flexibility, and service isolation while providing a better developer experience through independent service deployment and containerization.
-
----
+ 
 
 ## Overview
 
 RentSmart enables users to discover, list, and manage rental properties through a scalable service-oriented architecture.
 
 The application has been restructured from a monolithic system into multiple independent services, allowing better maintainability, fault isolation, and future scalability.
-
----
+ 
 
 ## Current Features
 
