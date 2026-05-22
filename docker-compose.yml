@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "5000:5000"
+    env_file: ./services/auth-service/.env
+    depends_on:
+      mongo:
+        condition: service_started
+
+  property-service:
+    build: ./services/property-service
+    ports:
+      - "5001:5001"
+    env_file: ./services/property-service/.env
+    depends_on:
+      mongo:
+        condition: service_started
+
+  payment-service:
+    build: ./services/payment-service
+    ports:
+      - "5002:5002"
+    env_file: ./services/payment-service/.env
+    depends_on:
+      mongo:
+        condition: service_started
+
+  notification-service:
+    build: ./services/notification-service
+    ports:
+      - "5003:5003"
+    env_file: ./services/notification-service/.env
+    depends_on:
+      mongo:
+        condition: service_started
+
+  activity-service:
+    build: ./services/activity-service
+    ports:
+      - "5004:5004"
+    env_file: ./services/activity-service/.env
+    depends_on:
+      mongo:
+        condition: service_started
+
+  mongo:
+    image: mongo
+    container_name: rentsmart-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
