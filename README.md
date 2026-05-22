@@ -64,7 +64,7 @@ The application has been restructured from a monolithic system into multiple ind
 - Environment-based Configuration
 - Modular Component Architecture
 
----
+
 
 ## Architecture
 
@@ -88,7 +88,7 @@ Benefits of the Architecture:
 - Flexible deployment options
 - Clear separation of concerns
 
----
+
 
 ## Technology Stack
 
@@ -113,7 +113,7 @@ Benefits of the Architecture:
 - Socket.IO (Planned)
 - Razorpay Integration
 
----
+
 
 ## Docker Support
 
@@ -133,7 +133,7 @@ Planned Docker Components:
 - Docker Compose orchestration
 - Container networking between services
 
----
+
 
 ## Redis Integration (Planned)
 
@@ -148,7 +148,7 @@ Potential Use Cases:
 - Chat Pub/Sub messaging
 - Frequently accessed data caching
 
----
+
 ## Security & Trust Features
 
 RentSmart is being developed with a strong focus on user safety, trust, and platform accountability.
@@ -196,7 +196,7 @@ The objective is to create a secure rental ecosystem where users can confidently
 - Docker Compose Deployment
 - CI/CD Pipeline
 
----
+
 
 ## Environment Configuration
 
@@ -244,7 +244,7 @@ ACTIVITY_SERVICE_URL=http://activity-service:5004
 CHAT_SERVICE_URL=http://chat-service:5005
 ```
 
----
+
 
 ## Project Status
 
