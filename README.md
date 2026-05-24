@@ -1,6 +1,6 @@
-<<<<<<< HEAD
-# RentSmart v2
-=======
+ 
+# RentSmart v2 
+
 **RentSmart v2** is a scalable property rental platform currently under development, 
 focused on microservices architecture and containerized deployment using Docker.
 >>>>>>> 015d73c7186e8b7acaebe232fc0599bec15067ec
