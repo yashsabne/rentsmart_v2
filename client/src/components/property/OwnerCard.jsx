@@ -1,6 +1,12 @@
 // src/components/property/OwnerCard.jsx
+import { useNavigate } from "react-router-dom";
 
-const OwnerCard = ({ owner, C }) => {
+
+const OwnerCard = ({ owner, C, property_id }) => {
+
+  const navigate = useNavigate();
+
+
   return (
  <div style={{ marginBottom: 24, borderRadius: 28, overflow: "hidden", background: "#fff", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 10px 35px rgba(0,0,0,0.06)" }}>
 
@@ -50,7 +56,11 @@ const OwnerCard = ({ owner, C }) => {
         Promote Listing
       </button>
 
-      <button style={{ padding: "13px 18px", borderRadius: 16, border: "1px solid rgba(0,0,0,0.08)", background: "#fff", color: "#111827", fontWeight: 700, cursor: "pointer" }}>
+      <button 
+       onClick={() =>
+    navigate(`/edit-property/${property_id}`)
+  }
+      style={{ padding: "13px 18px", borderRadius: 16, border: "1px solid rgba(0,0,0,0.08)", background: "#fff", color: "#111827", fontWeight: 700, cursor: "pointer" }}>
         Edit Property
       </button>
 

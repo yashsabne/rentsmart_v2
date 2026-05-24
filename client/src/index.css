@@ -1,6 +1,6 @@
  
-
-       @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+ 
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: 'DM Sans', sans-serif !important; }
       .playfair { font-family: 'Playfair Display', serif !important; }
@@ -161,3 +161,6 @@
           background-size: 600px 100%;
           animation: shimmer 1.4s infinite linear;
         }
+
+
+        

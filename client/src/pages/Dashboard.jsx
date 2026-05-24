@@ -2,30 +2,38 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SavedPropertiesPage from "./SavedList";
 import VerifyEmailButton from "../components/VerifyEmailButton";
-import { activityConfig,C,navItems } from "../constants";
-import { Avatar,StatusBadge,formatPrice,fullLocation,userInitials } from "../const_func/dashFunction.jsx";
+import { activityConfig, C, navItems } from "../constants";
+import { Avatar, StatusBadge, formatPrice, fullLocation, userInitials } from "../const_func/dashFunction.jsx";
 import { API } from "../../apis.js";
-
+import "./styles/dashboard.css"
 
 const todayStr = () =>
-  new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-
-export default function Dashboard() {
-  const [activeNav, setActiveNav] = useState(() => {
-    return localStorage.getItem("activeNav") || "overview";
+  new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 
+export default function Dashboard() {
+  const [activeNav, setActiveNav] = useState(
+    () => localStorage.getItem("activeNav") || "overview"
+  );
   const [sidebarHover, setSidebarHover] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ── Data state ──
   const [user, setUser] = useState(null);
   const [userLoading, setUserLoading] = useState(true);
   const [properties, setProperties] = useState([]);
   const [propsLoading, setPropsLoading] = useState(true);
-  const [statsData, setStatsData] = useState({ total: 0, active: 0, totalViews: 0, totalInquiries: 0 });
-  
-  const [activities, setActivities] =useState([]);
-
+  const [statsData, setStatsData] = useState({
+    total: 0,
+    active: 0,
+    totalViews: 0,
+    totalInquiries: 0,
+  });
+  const [activities, setActivities] = useState([]);
 
   const navigate = useNavigate();
 
@@ -37,7 +45,10 @@ export default function Dashboard() {
         const res = await fetch(`${API.AUTH}/api/auth/me`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        if (!res.ok) { navigate("/login"); return; }
+        if (!res.ok) {
+          navigate("/login");
+          return;
+        }
         const data = await res.json();
         setUser(data);
       } catch (err) {
@@ -50,7 +61,6 @@ export default function Dashboard() {
     fetchUser();
   }, []);
 
-
   // ── Fetch properties ──
   useEffect(() => {
     const fetchProperties = async () => {
@@ -62,25 +72,14 @@ export default function Dashboard() {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
         setProperties(list);
-
         setStatsData({
           total: list.length,
-
-          active: list.filter((p) => p.promoted)
-            .length,
-
+          active: list.filter((p) => p.promoted).length,
           rent: list.filter(
-            (p) =>
-              p.buyOrSell &&
-              p.buyOrSell.trim().toLowerCase() ===
-              "rent"
+            (p) => p.buyOrSell && p.buyOrSell.trim().toLowerCase() === "rent"
           ).length,
-
           buy: list.filter(
-            (p) =>
-              p.buyOrSell &&
-              p.buyOrSell.trim().toLowerCase() ===
-              "sell"
+            (p) => p.buyOrSell && p.buyOrSell.trim().toLowerCase() === "sell"
           ).length,
         });
       } catch (err) {
@@ -92,48 +91,27 @@ export default function Dashboard() {
     fetchProperties();
   }, []);
 
-
   useEffect(() => {
-    const currentNav = navItems.find(item => item.id === activeNav);
-
+    const currentNav = navItems.find((item) => item.id === activeNav);
     if (!currentNav?.tab) {
       localStorage.setItem("activeNav", activeNav);
     }
   }, [activeNav]);
 
-
   useEffect(() => {
-
-    const fetchActivities =
-      async () => {
-
-        try {
-
-          const res =
-            await fetch(
-              `${API.ACTIVITY}/api/activities/${user._id}`
-            );
-
-          const data =
-            await res.json();
-
-          setActivities(
-            data.activities || []
-          );
-
-        } catch (error) {
-
-          console.error(error);
-
-        }
-      };
-
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch(`${API.ACTIVITY}/api/activities/${user._id}`);
+        const data = await res.json();
+        setActivities(data.activities || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
     if (user?._id) {
       fetchActivities();
     }
-
   }, [user]);
-
 
   // ── Logout ──
   const handleLogout = () => {
@@ -143,288 +121,280 @@ export default function Dashboard() {
 
   const initials = userInitials(user);
 
-  return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", background: C.cream }}>
-   
-      {/* ── SIDEBAR ── */}
-      <aside style={{ width: 240, background: C.sidebar, display: "flex", flexDirection: "column", padding: "28px 0", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50 }}>
+  const handleNavClick = (item) => {
+    setActiveNav(item.id);
+    setSidebarOpen(false);
+    if (item.link) navigate(`/${item.link}`);
+  };
 
+  return (
+    <div className="dashboard-root">
+      {/* ── MOBILE OVERLAY ── */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* ── SIDEBAR ── */}
+      <aside className={`dashboard-sidebar${sidebarOpen ? " sidebar-open" : ""}`} aria-label="Main navigation">
         {/* Logo */}
-        <div className="playfair" style={{ fontSize: 20, fontWeight: 700, color: "#FFFFFF", padding: "0 24px 28px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          Rent<span style={{ color: C.gold }}>Smart</span>
+        <div className="sidebar-logo playfair">
+          Rent<span className="sidebar-logo-accent">Smart</span>
         </div>
 
         {/* User info */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "20px 24px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        <div className="sidebar-user">
           {userLoading ? (
             <>
-              <div className="sk" style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
+              <div className="sk sidebar-avatar-sk" />
+              <div className="sidebar-user-text">
                 <div className="sk" style={{ height: 13, width: "70%", marginBottom: 6 }} />
                 <div className="sk" style={{ height: 11, width: "90%" }} />
               </div>
             </>
           ) : (
             <>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", background: C.goldLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: C.gold, flexShrink: 0 }}>
-                {initials}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#FFFFFF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div className="sidebar-avatar">{initials}</div>
+              <div className="sidebar-user-text">
+                <div className="sidebar-user-name">
                   {user?.firstName} {user?.lastName}
                 </div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user?.email}
-                </div>
+                <div className="sidebar-user-email">{user?.email}</div>
               </div>
             </>
           )}
         </div>
 
         {/* Nav items */}
-        <nav style={{ flex: 1, padding: "16px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
+        <nav className="sidebar-nav" aria-label="Dashboard sections">
           {navItems.map((item) => {
             const isActive = activeNav === item.id;
-            const isHovered = sidebarHover === item.id;
             return (
-
-              <button key={item.id}
-                onClick={() => {
-                  setActiveNav(item.id);
-
-                  if (item.link) {
-                    navigate(`/${item.link}`);
-                  }
-                }}
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item)}
                 onMouseEnter={() => setSidebarHover(item.id)}
                 onMouseLeave={() => setSidebarHover(null)}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, border: "none", background: isActive ? "rgba(200,169,110,0.15)" : isHovered ? "rgba(255,255,255,0.05)" : "transparent", color: isActive ? C.gold : "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: isActive ? 600 : 400, width: "100%", textAlign: "left", transition: "all .2s", position: "relative" }}>
-                <span style={{ fontSize: 16 }}>{item.icon}</span>
-                {item.label}
-
-                {isActive && <span style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: 3, borderRadius: "0 3px 3px 0", background: C.gold }} />}
+                className={`sidebar-nav-item${isActive ? " active" : ""}`}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {isActive && <span className="sidebar-nav-indicator" aria-hidden="true" />}
+                <span className="sidebar-nav-icon" aria-hidden="true">{item.icon}</span>
+                <span className="sidebar-nav-label">{item.label}</span>
               </button>
             );
           })}
         </nav>
 
         {/* Bottom: Add Listing + Logout */}
-        <div style={{ padding: "16px 16px 0", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="sidebar-bottom">
           <button
             onClick={() => navigate("/create")}
-            style={{ width: "100%", padding: "11px", borderRadius: 12, border: "none", background: C.gold, color: C.ink, fontSize: 13, fontWeight: 600, transition: "opacity .2s" }}
-            onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
-            onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+            className="btn-add-listing"
+          >
             + Add New Listing
           </button>
-          <button
-            onClick={handleLogout}
-            style={{ width: "100%", padding: "10px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "rgba(255,255,255,0.45)", fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, transition: "all .2s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(192,57,43,0.15)"; e.currentTarget.style.color = "#e57373"; e.currentTarget.style.borderColor = "rgba(192,57,43,0.3)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}>
-            <span style={{ fontSize: 14 }}>→</span> Log Out
+          <button onClick={handleLogout} className="btn-logout">
+            <span aria-hidden="true">→</span> Log Out
           </button>
         </div>
       </aside>
 
       {/* ── MAIN ── */}
-      <main style={{ marginLeft: 240, flex: 1, display: "flex", flexDirection: "column" }}>
-
+      <main className="dashboard-main">
         {/* Top bar */}
-        <header style={{
-          background: C.white,
-          borderBottom: `1px solid ${C.border}`,
-          padding: "0 36px",
-          height: 64,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          position: "sticky",
-          top: 0,
-          zIndex: 40
-        }}>
+        <header className="dashboard-topbar">
+          {/* Mobile hamburger */}
+          <button
+            className="topbar-hamburger"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-label="Toggle navigation menu"
+            aria-expanded={sidebarOpen}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
 
           {/* LEFT: Page title + date */}
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 600, color: C.ink }}>
+          <div className="topbar-title-group">
+            <h1 className="topbar-title">
               {navItems.find((n) => n.id === activeNav)?.label || "Overview"}
             </h1>
-            <p style={{ fontSize: 12, color: C.inkMuted, marginTop: 1 }}>{todayStr()}</p>
+            <p className="topbar-date">{todayStr()}</p>
           </div>
 
-          {/* RIGHT: Verify email + bell + avatar */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-
-            {/* Email verification — only renders when needed */}
+          {/* RIGHT: Verify email + avatar */}
+          <div className="topbar-right">
             <VerifyEmailButton
               user={user}
               token={localStorage.getItem("token")}
             />
-
-
-
-            {/* Avatar chip */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "6px 14px 6px 6px",
-              borderRadius: 100,
-              border: `1.5px solid ${C.border}`,
-              cursor: "pointer"
-            }}>
-              <div style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                background: C.goldLight,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 11,
-                fontWeight: 700,
-                color: C.gold
-              }}>
-                {initials}
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 500, color: C.ink }}>
+            <div className="topbar-avatar-chip">
+              <div className="topbar-avatar">{initials}</div>
+              <span className="topbar-username">
                 {userLoading ? "..." : user?.firstName}
               </span>
             </div>
-
           </div>
         </header>
 
-        <div style={{ padding: "32px 36px", flex: 1 }}>
-
-          <div className="fu" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+        {/* ── CONTENT ── */}
+        <div className="dashboard-content">
+          {/* Stats grid */}
+          <div className="stats-grid">
             {[
-              { label: "Total Listings", value: statsData.total, icon: "🏠", color: C.blue, bg: C.blueBg },
-              { label: "Featured", value: statsData.active, icon: "⭐", color: C.gold, bg: C.goldLight },
-              { label: "For Rent", value: statsData.rent, icon: "🔑", color: C.green, bg: C.greenBg },
-              { label: "For Sale", value: statsData.buy, icon: "💰", color: C.red, bg: C.redBg },
+              { label: "Total Listings", value: statsData.total, icon: "🏠", colorVar: "--color-blue", bgVar: "--color-blue-bg" },
+              { label: "Featured", value: statsData.active, icon: "⭐", colorVar: "--color-gold", bgVar: "--color-gold-light" },
+              { label: "For Rent", value: statsData.rent, icon: "🔑", colorVar: "--color-green", bgVar: "--color-green-bg" },
+              { label: "For Sale", value: statsData.buy, icon: "💰", colorVar: "--color-red", bgVar: "--color-red-bg" },
             ].map((s) => (
-              <div key={s.label} style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, padding: "20px 22px", boxShadow: C.cardShadow }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: C.inkMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>{s.label}</span>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{s.icon}</div>
+              <div key={s.label} className="stat-card">
+                <div className="stat-card-header">
+                  <span className="stat-card-label">{s.label}</span>
+                  <div
+                    className="stat-card-icon"
+                    style={{ background: `var(${s.bgVar})` }}
+                  >
+                    {s.icon}
+                  </div>
                 </div>
                 {propsLoading ? (
-                  <div className="sk-light" style={{ height: 28, width: "50%" }} />
+                  <div className="sk-light stat-skeleton" />
                 ) : (
-                  <div style={{ fontSize: 28, fontWeight: 700, color: C.ink, fontFamily: "'Playfair Display', serif" }}>{s.value ?? 0}</div>
+                  <div className="stat-value playfair">{s.value ?? 0}</div>
                 )}
               </div>
             ))}
           </div>
 
-
-
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 320px",
-            gap: 22,
-            padding: "32px 36px"
-          }}>
-
-            <div>
-
+          {/* Main two-column grid */}
+          <div className="dashboard-grid">
+            {/* LEFT column */}
+            <div className="dashboard-col-main">
               {(activeNav === "listings" || activeNav === "overview") && (
                 <>
-                  {/* MY LISTINGS CONTENT */}
-
-                  {/* My Listings */}
-                  <div style={{ background: C.white, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.cardShadow, maxHeight: 520, display: "flex", flexDirection: "column" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+                  {/* My Listings Card */}
+                  <div className="card listings-card">
+                    <div className="card-header">
                       <div>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: C.ink }}>My Listings</div>
-                        <div style={{ fontSize: 12, color: C.inkMuted, marginTop: 2 }}>
-                          Total: <b>{propsLoading ? "..." : properties.length}</b>
+                        <div className="card-title">My Listings</div>
+                        <div className="card-subtitle">
+                          Total:{" "}
+                          <b>{propsLoading ? "..." : properties.length}</b>
                         </div>
                       </div>
                       <button
                         onClick={() => navigate("/create")}
-                        style={{ fontSize: 12, fontWeight: 500, padding: "7px 16px", borderRadius: 100, border: `1.5px solid ${C.border}`, background: "none", color: C.ink, transition: "all .2s" }}
-                        onMouseEnter={e => { e.currentTarget.style.background = C.ink; e.currentTarget.style.color = "#fff"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.ink; }}>
+                        className="btn-outline-sm"
+                      >
                         + Add New
                       </button>
                     </div>
 
                     {/* Scrollable list */}
-                    <div style={{ overflowY: "auto", flex: 1 }}>
+                    <div className="listings-scroll">
                       {propsLoading ? (
-                        // Skeleton rows
                         Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 24px", borderBottom: `1px solid ${C.border}` }}>
-                            <div className="sk-light" style={{ width: 56, height: 56, borderRadius: 12, flexShrink: 0 }} />
-                            <div style={{ flex: 1 }}>
+                          <div key={i} className="listing-row listing-row-sk">
+                            <div className="sk-light listing-thumb-sk" />
+                            <div className="listing-info">
                               <div className="sk-light" style={{ height: 13, width: "60%", marginBottom: 7 }} />
                               <div className="sk-light" style={{ height: 11, width: "40%" }} />
                             </div>
-                            <div style={{ textAlign: "right" }}>
+                            <div className="listing-meta">
                               <div className="sk-light" style={{ height: 13, width: 80, marginBottom: 7 }} />
                               <div className="sk-light" style={{ height: 20, width: 56, borderRadius: 100 }} />
                             </div>
                           </div>
                         ))
                       ) : properties.length === 0 ? (
-                        <div style={{ padding: "48px 24px", textAlign: "center" }}>
-                          <div style={{ fontSize: 36, marginBottom: 12 }}>🏠</div>
-                          <div style={{ fontSize: 14, fontWeight: 500, color: C.ink, marginBottom: 6 }}>No listings yet</div>
-                          <div style={{ fontSize: 12, color: C.inkMuted }}>Add your first property to get started</div>
+                        <div className="empty-state">
+                          <div className="empty-icon">🏠</div>
+                          <div className="empty-title">No listings yet</div>
+                          <div className="empty-sub">
+                            Add your first property to get started
+                          </div>
                         </div>
                       ) : (
                         properties.map((p, i) => {
-                          const isRent = p.buyOrSell?.toLowerCase() === "rent";
+                          const isRent =
+                            p.buyOrSell?.toLowerCase() === "rent";
                           return (
-                            <div key={p._id}
+                            <div
+                              key={p._id}
                               onClick={() => navigate(`/details/${p._id}`)}
-                              style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 24px", borderBottom: i < properties.length - 1 ? `1px solid ${C.border}` : "none", transition: "background .2s", cursor: "pointer" }}
-                              onMouseEnter={e => e.currentTarget.style.background = C.cream}
-                              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-
+                              className="listing-row"
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) =>
+                                e.key === "Enter" &&
+                                navigate(`/details/${p._id}`)
+                              }
+                              style={{
+                                borderBottom:
+                                  i < properties.length - 1
+                                    ? `1px solid var(--color-border)`
+                                    : "none",
+                              }}
+                            >
                               {/* Thumbnail */}
-                              <div style={{ width: 56, height: 56, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: C.border }}>
+                              <div className="listing-thumb">
                                 {p.listingPhotos?.[0] ? (
-                                  <img src={p.listingPhotos[0]} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  <img
+                                    src={p.listingPhotos[0]}
+                                    alt={p.title}
+                                    className="listing-thumb-img"
+                                  />
                                 ) : (
-                                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>🏠</div>
+                                  <div className="listing-thumb-placeholder">
+                                    🏠
+                                  </div>
                                 )}
                               </div>
 
                               {/* Info */}
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {p.title}
-                                </div>
-                                <div style={{ fontSize: 11, color: C.inkMuted }}>
+                              <div className="listing-info">
+                                <div className="listing-title">{p.title}</div>
+                                <div className="listing-location">
                                   📍 {fullLocation(p.address)}
                                 </div>
-                                <div style={{ display: "flex", gap: 6, marginTop: 5 }}>
-                                  <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: isRent ? C.greenBg : C.redBg, color: isRent ? C.green : C.red }}>
+                                <div className="listing-tags">
+                                  <span
+                                    className="tag"
+                                    style={{
+                                      background: isRent
+                                        ? `var(--color-green-bg)`
+                                        : `var(--color-red-bg)`,
+                                      color: isRent
+                                        ? `var(--color-green)`
+                                        : `var(--color-red)`,
+                                    }}
+                                  >
                                     {p.buyOrSell}
                                   </span>
-                                  <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: C.border, color: C.inkMuted }}>
+                                  <span className="tag tag-muted">
                                     {p.category}
                                   </span>
                                 </div>
                               </div>
 
                               {/* Price + details */}
-                              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 5 }}>
+                              <div className="listing-meta">
+                                <div className="listing-price">
                                   {formatPrice(p.price, p.paymentType)}
                                 </div>
-                                <div style={{ fontSize: 11, color: C.inkMuted }}>
-                                  🛏 {p.details?.bedroomCount ?? 0} &nbsp; 🚿 {p.details?.bathroomCount ?? 0}
+                                <div className="listing-details-text">
+                                  🛏 {p.details?.bedroomCount ?? 0} &nbsp; 🚿{" "}
+                                  {p.details?.bathroomCount ?? 0}
                                 </div>
                                 {p.promoted && (
-                                  <div style={{ marginTop: 4 }}>
-                                    <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: C.goldLight, color: C.gold }}>
-                                      ⭐ Featured
-                                    </span>
-                                  </div>
+                                  <span className="tag tag-gold">
+                                    ⭐ Featured
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -432,235 +402,274 @@ export default function Dashboard() {
                         })
                       )}
                     </div>
-
                   </div>
-
-
-
                 </>
               )}
 
-              {activeNav === "saved" && (
-                <SavedPropertiesPage embedded />
-              )}
+              {activeNav === "saved" && <SavedPropertiesPage embedded />}
 
               {activeNav === "payments" && (
-                <div style={{
-                  background: C.white,
-                  borderRadius: 20,
-                  border: `1px solid ${C.border}`,
-                  padding: 32
-                }}>
-                  Payments Coming Soon
+                <div className="card placeholder-card">
+                  <div className="placeholder-icon">💳</div>
+                  <div className="placeholder-title">Payments Coming Soon</div>
+                  <div className="placeholder-sub">
+                    Payment history and billing will appear here.
+                  </div>
                 </div>
               )}
 
               {activeNav === "settings" && (
-                <div style={{
-                  background: C.white,
-                  borderRadius: 20,
-                  border: `1px solid ${C.border}`,
-                  padding: 32
-                }}>
-                  Settings Coming Soon
+                <div className="card placeholder-card">
+                  <div className="placeholder-icon">⚙️</div>
+                  <div className="placeholder-title">Settings Coming Soon</div>
+                  <div className="placeholder-sub">
+                    Account settings and preferences will appear here.
+                  </div>
                 </div>
               )}
-
             </div>
-         <div style={{ background: C.white, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.cardShadow, display: "flex", flexDirection: "column" }}>
 
-  {/* Header */}
-  <div style={{ padding: "18px 20px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-    <div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>Recent Activity</div>
-      <div style={{ fontSize: 11, color: C.inkMuted, marginTop: 2 }}>Last 7 days</div>
-    </div>
-    <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 10px", borderRadius: 100, background: C.goldLight, color: C.gold }}>
-      {activities.length} events
-    </span>
-  </div>
+            {/* RIGHT column: Activity + Profile */}
+            <aside className="dashboard-col-side" aria-label="Activity and profile">
+              <div className="card activity-card">
+                {/* Header */}
+                <div className="card-header">
+                  <div>
+                    <div className="card-title">Recent Activity</div>
+                    <div className="card-subtitle">Last 7 days</div>
+                  </div>
+                  <span className="tag tag-gold">{activities.length} events</span>
+                </div>
 
-  {/* Activity list */}
- <div style={{ overflowY: "auto", maxHeight: 340 }}>
-  {activities.length === 0 ? (
-    <div style={{ padding: "32px 20px", textAlign: "center" }}>
-      <div style={{ fontSize: 28, marginBottom: 8 }}>📭</div>
-      <div style={{ fontSize: 13, fontWeight: 500, color: C.ink }}>No activity yet</div>
-      <div style={{ fontSize: 11, color: C.inkMuted, marginTop: 4 }}>Actions you take will show up here</div>
-    </div>
-  ) : (
-    activities.map((activity, i) => {
-      const config = activityConfig[activity.type];
-      if (!config) return null;
+                {/* Activity list */}
+                <div className="activity-scroll">
+                  {activities.length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">📭</div>
+                      <div className="empty-title">No activity yet</div>
+                      <div className="empty-sub">
+                        Actions you take will show up here
+                      </div>
+                    </div>
+                  ) : (
+                    activities.map((activity, i) => {
+                      const config = activityConfig[activity.type];
+                      if (!config) return null;
+                      const isLast = i === activities.length - 1;
+                      return (
+                        <div
+                          key={activity._id}
+                          className="activity-row"
+                          style={{
+                            borderBottom: isLast
+                              ? "none"
+                              : `1px solid var(--color-border)`,
+                          }}
+                        >
+                          <div
+                            className="activity-icon"
+                            style={{
+                              background: `${config.color}18`,
+                            }}
+                          >
+                            {config.icon}
+                          </div>
+                          <div className="activity-info">
+                            <span
+                              className="tag"
+                              style={{
+                                background: `${config.color}18`,
+                                color: config.color,
+                                marginBottom: 4,
+                                display: "inline-block",
+                              }}
+                            >
+                              {config.label}
+                            </span>
+                            <div className="activity-text">
+                              {config.text(activity.meta)}
+                            </div>
+                            <div className="activity-time">
+                              {new Date(activity.createdAt).toLocaleString(
+                                "en-IN",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
 
-      const isLast = i === activities.length - 1;
-
-      return (
-        <div
-          key={activity._id}
-          style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 20px", borderBottom: isLast ? "none" : `1px solid ${C.border}`, transition: "background .15s", cursor: "default" }}
-          onMouseEnter={e => e.currentTarget.style.background = C.cream}
-          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-        >
-          {/* Icon bubble */}
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: `${config.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0, marginTop: 1 }}>
-            {config.icon}
+                {/* Profile quick view */}
+                {!userLoading && user && (
+                  <div className="profile-quickview">
+                    <div className="profile-quickview-title">Your Profile</div>
+                    {[
+                      ["📍", "City", user.city || "Not set"],
+                      ["📞", "Phone", user.phone || "Not set"],
+                      ["✉️", "Email", user.email],
+                      [
+                        "🏷️",
+                        "Prefs",
+                        user.preferences?.join(", ") || "None set",
+                      ],
+                    ].map(([icon, label, val]) => (
+                      <div key={label} className="profile-row">
+                        <span className="profile-row-icon" aria-hidden="true">
+                          {icon}
+                        </span>
+                        <div className="profile-row-text">
+                          <span className="profile-row-label">{label}: </span>
+                          <span className="profile-row-val">{val}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {user.premiumMember && (
+                      <div className="premium-badge">
+                        <span>⭐</span>
+                        <span>Premium Member</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </aside>
           </div>
 
-          {/* Text */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 100, background: `${config.color}15`, color: config.color }}>
-                {config.label}
-              </span>
-            </div>
-            <div style={{ fontSize: 12,fontWeight:"450", color: C.ink, lineHeight: 1.5, wordBreak: "break-word", overflowWrap: "anywhere", whiteSpace: "normal", }}>
-              {config.text(activity.meta)}
-            </div>
-            <div style={{ fontSize: 11, color: C.inkMuted, marginTop: 3 }}>
-              {new Date(activity.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-            </div>
-          </div>
-        </div>
-      );
-    })
-  )}
-</div>
-
-  {/* Profile quick view */}
-  {!userLoading && user && (
-    <div style={{ margin: "12px 14px 14px", padding: "14px 16px", background: C.cream, borderRadius: 14, border: `1px solid ${C.border}` }}>
-      <div style={{ fontSize: 10, fontWeight: 600, color: C.inkMuted, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 10 }}>Your Profile</div>
-
-      {[
-        ["📍", "City",    user.city  || "Not set"],
-        ["📞", "Phone",   user.phone || "Not set"],
-        ["✉️", "Email",   user.email],
-        ["🏷️", "Prefs",   user.preferences?.join(", ") || "None set"],
-      ].map(([icon, label, val]) => (
-        <div key={label} style={{ display: "flex", gap: 8, marginBottom: 5, alignItems: "flex-start" }}>
-          <span style={{ fontSize: 11, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-          <div style={{ minWidth: 0 }}>
-            <span style={{ fontSize: 11, color: C.inkMuted }}>{label}: </span>
-            <span style={{ fontSize: 11, fontWeight: 500, color: C.ink, wordBreak: "break-all" }}>{val}</span>
-          </div>
-        </div>
-      ))}
-
-      {user.premiumMember && (
-        <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, background: C.goldLight, border: `1px solid rgba(200,169,110,0.3)`, borderRadius: 100, padding: "3px 10px" }}>
-          <span style={{ fontSize: 11 }}>⭐</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: C.gold }}>Premium Member</span>
-        </div>
-      )}
-    </div>
-  )}
-</div>
-
-          </div>
           {/* ── PROPERTY DETAILS TABLE ── */}
-          <div style={{ background: C.white, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.cardShadow, overflow: "hidden" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
+          <div className="card table-card">
+            <div className="card-header">
               <div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: C.ink }}>All Properties — Detail View</div>
-                <div style={{ fontSize: 12, color: C.inkMuted, marginTop: 2 }}>
-                  {propsLoading ? "Loading..." : `${properties.length} listing${properties.length !== 1 ? "s" : ""} total`}
+                <div className="card-title">All Properties — Detail View</div>
+                <div className="card-subtitle">
+                  {propsLoading
+                    ? "Loading..."
+                    : `${properties.length} listing${
+                        properties.length !== 1 ? "s" : ""
+                      } total`}
                 </div>
               </div>
-              <button style={{ fontSize: 12, fontWeight: 500, color: C.gold, border: "none", background: "none" }}>
-                Export →
-              </button>
+              <button className="btn-text-gold">Export →</button>
             </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+
+            <div className="table-scroll-wrapper">
+              <table className="properties-table">
                 <thead>
-                  <tr style={{ background: C.cream }}>
-                    {["Property", "Location", "Type", "Price", "Bedrooms", "Bathrooms", "Amenities", "Actions"].map((h) => (
-                      <th key={h} style={{ padding: "11px 20px", fontSize: 11, fontWeight: 600, color: C.inkMuted, textAlign: "left", letterSpacing: "0.5px", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                        {h}
-                      </th>
+                  <tr>
+                    {[
+                      "Property",
+                      "Location",
+                      "Type",
+                      "Price",
+                      "Beds",
+                      "Baths",
+                      "Amenities",
+                      "Actions",
+                    ].map((h) => (
+                      <th key={h}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {propsLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
-                      <tr key={i} style={{ borderTop: `1px solid ${C.border}` }}>
+                      <tr key={i} className="table-row-sk">
                         {Array.from({ length: 8 }).map((__, j) => (
-                          <td key={j} style={{ padding: "14px 20px" }}>
-                            <div className="sk-light" style={{ height: 13, width: j === 0 ? 140 : 80 }} />
+                          <td key={j}>
+                            <div
+                              className="sk-light"
+                              style={{
+                                height: 13,
+                                width: j === 0 ? 140 : 80,
+                              }}
+                            />
                           </td>
                         ))}
                       </tr>
                     ))
                   ) : properties.length === 0 ? (
                     <tr>
-                      <td colSpan={8} style={{ padding: "48px 24px", textAlign: "center", color: C.inkMuted, fontSize: 14 }}>
+                      <td colSpan={8} className="table-empty">
                         No properties found. Add your first listing!
                       </td>
                     </tr>
                   ) : (
                     properties.map((p) => (
-                      <tr key={p._id}
-                        style={{ borderTop: `1px solid ${C.border}`, transition: "background .15s" }}
-                        onMouseEnter={e => e.currentTarget.style.background = C.cream}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-
+                      <tr key={p._id} className="table-data-row">
                         {/* Property */}
-                        <td style={{ padding: "14px 20px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div style={{ width: 40, height: 40, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: C.border }}>
+                        <td>
+                          <div className="table-property-cell">
+                            <div className="table-thumb">
                               {p.listingPhotos?.[0] ? (
-                                <img src={p.listingPhotos[0]} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                <img
+                                  src={p.listingPhotos[0]}
+                                  alt={p.title}
+                                  className="table-thumb-img"
+                                />
                               ) : (
-                                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>🏠</div>
+                                <div className="table-thumb-placeholder">
+                                  🏠
+                                </div>
                               )}
                             </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>
+                            <div className="table-property-info">
+                              <div className="table-property-title">
                                 {p.title}
                               </div>
-                              <div style={{ fontSize: 11, color: C.inkMuted }}>{p.category}</div>
+                              <div className="table-property-cat">
+                                {p.category}
+                              </div>
                             </div>
                           </div>
                         </td>
 
                         {/* Location */}
-                        <td style={{ padding: "14px 20px", fontSize: 13, color: C.inkMuted, whiteSpace: "nowrap" }}>
+                        <td className="table-location">
                           {fullLocation(p.address)}
                         </td>
 
                         {/* Type */}
-                        <td style={{ padding: "14px 20px" }}>
-                          <StatusBadge status={p.buyOrSell === "Rent" ? "Active" : "Paused"} />
-                          <div style={{ fontSize: 11, color: C.inkMuted, marginTop: 4 }}>{p.type}</div>
+                        <td>
+                          <StatusBadge
+                            status={
+                              p.buyOrSell === "Rent" ? "Active" : "Paused"
+                            }
+                          />
+                          <div className="table-type-sub">{p.type}</div>
                         </td>
 
                         {/* Price */}
-                        <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 700, color: C.ink, whiteSpace: "nowrap" }}>
+                        <td className="table-price">
                           {formatPrice(p.price, p.paymentType)}
                         </td>
 
                         {/* Bedrooms */}
-                        <td style={{ padding: "14px 20px", fontSize: 13, color: C.ink, textAlign: "center" }}>
+                        <td className="table-center">
                           {p.details?.bedroomCount ?? "—"}
                         </td>
 
                         {/* Bathrooms */}
-                        <td style={{ padding: "14px 20px", fontSize: 13, color: C.ink, textAlign: "center" }}>
+                        <td className="table-center">
                           {p.details?.bathroomCount ?? "—"}
                         </td>
 
                         {/* Amenities */}
-                        <td style={{ padding: "14px 20px" }}>
-                          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxWidth: 160 }}>
+                        <td>
+                          <div className="amenities-wrap">
                             {p.amenities?.slice(0, 2).map((a) => (
-                              <span key={a} style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 100, background: C.border, color: C.inkMuted }}>
+                              <span key={a} className="tag tag-muted">
                                 {a}
                               </span>
                             ))}
                             {(p.amenities?.length ?? 0) > 2 && (
-                              <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 100, background: C.goldLight, color: C.gold }}>
+                              <span className="tag tag-gold">
                                 +{p.amenities.length - 2}
                               </span>
                             )}
@@ -668,20 +677,20 @@ export default function Dashboard() {
                         </td>
 
                         {/* Actions */}
-                        <td style={{ padding: "14px 20px" }}>
-                          <div style={{ display: "flex", gap: 6 }}>
+                        <td>
+                          <div className="table-actions">
                             <button
-                              onClick={() => navigate(`/property/${p._id}`)}
-                              style={{ fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 100, border: `1.5px solid ${C.green}`, color: C.green, background: "none", transition: "all .2s" }}
-                              onMouseEnter={e => { e.currentTarget.style.background = C.green; e.currentTarget.style.color = "#fff"; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.green; }}>
+                              onClick={() => navigate(`/details/${p._id}`)}
+                              className="btn-action btn-action-green"
+                            >
                               View
                             </button>
                             <button
-                              onClick={() => navigate(`/edit-listing/${p._id}`)}
-                              style={{ fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 100, border: `1.5px solid ${C.border}`, color: C.inkMuted, background: "none", transition: "all .2s" }}
-                              onMouseEnter={e => { e.currentTarget.style.background = C.ink; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = C.ink; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.inkMuted; e.currentTarget.style.borderColor = C.border; }}>
+                              onClick={() =>
+                                navigate(`/edit-property/${p._id}`)
+                              }
+                              className="btn-action btn-action-neutral"
+                            >
                               Edit
                             </button>
                           </div>
@@ -693,7 +702,6 @@ export default function Dashboard() {
               </table>
             </div>
           </div>
-
         </div>
       </main>
     </div>

@@ -84,6 +84,20 @@ const listingSchema = new mongoose.Schema(
     paymentType: {
       type: String,
     },
+    deposit: {
+      type: Number,
+      default: null,
+    },
+
+    maintenance: {
+      type: Number,
+      default: null,
+    },
+
+    available: {
+      type: Date,
+      default: null,
+    },
     negotiable: {
       type: Boolean,
       default: false,

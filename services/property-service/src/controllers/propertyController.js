@@ -1,42 +1,46 @@
 import Listing from "../models/Listings.js";
-import cloudinary from "../config/cloudinary.js";
+import {cloudinary} from "../config/cloudinary.js";
 import { logActivity } from "../utils/activityLogger.js";
 
 
+
+/* ── UPLOAD PHOTOS ── */
+export const uploadPhotos = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No files uploaded",
+      });
+    }
+
+    const urls = req.files.map((file) => file.path);
+
+    return res.status(200).json({
+      success: true,
+      urls,
+    });
+  } catch (err) {
+    console.error("UPLOAD PHOTOS ERROR:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Photo upload failed",
+    });
+  }
+};
 /* CREATE LISTING */
 export const createListing = async (req, res) => {
   try {
- 
+
     const creatorId = req.user.id;
-
+    // NEW
     const {
-      type,
-      purpose,
-
-      title,
-      description,
-
-      address,
-      city,
-      locality,
-      pincode,
-
-      beds,
-      baths,
- 
-      area,
-      balconies,
-      floors,
-      totalFloors,
-      furnishing,
-      facing,
-      propertyAge,
- 
-      parking,
-
-      amenities,
-      price,
-      photos,
+      type, purpose, title, description,
+      address, city, locality, pincode,
+      beds, baths, area, balconies, floors, totalFloors,
+      furnishing, facing, propertyAge, parking,
+      amenities, price, photos,
+      deposit, maintenance, available, negotiable,
     } = req.body;
 
     const newListing = new Listing({
@@ -83,15 +87,7 @@ export const createListing = async (req, res) => {
       amenities: amenities || [],
 
       // TEMPORARY IMAGES
-      listingPhotos:
-        photos?.length > 0
-          ? photos.map(
-              () =>
-                "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2"
-            )
-          : [
-              "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2",
-            ],
+      listingPhotos: Array.isArray(photos) && photos.length > 0 ? photos : [],
 
       // CONTENT
       title,
@@ -104,6 +100,10 @@ export const createListing = async (req, res) => {
       // PRICE
       price,
 
+      deposit: deposit || null,
+      maintenance: maintenance || null,
+      available: available || null,
+      negotiable: negotiable || false,
       // PAYMENT
       paymentType:
         purpose === "Sell" ? "one-time" : "monthly",
@@ -112,15 +112,15 @@ export const createListing = async (req, res) => {
     await newListing.save();
 
     await logActivity(
-  creatorId,
-  "PROPERTY_CREATED",
-  {
-    propertyId: newListing._id,
-    propertyTitle: newListing.title,
-    purpose: newListing.buyOrSell,
-    price: newListing.price
-  }
-);
+      creatorId,
+      "PROPERTY_CREATED",
+      {
+        propertyId: newListing._id,
+        propertyTitle: newListing.title,
+        purpose: newListing.buyOrSell,
+        price: newListing.price
+      }
+    );
 
     res.status(201).json({
       success: true,
@@ -364,8 +364,6 @@ export const getListingById = async (req, res) => {
   try {
 
     const listing = await Listing.findById(req.params.id);
-
-   
     if (!listing) {
       return res.status(404).json({
         message: "Listing not found"
@@ -403,18 +401,23 @@ export const updateListing = async (req, res) => {
     );
 
     await logActivity(
-  req.user.id,
-  "PROPERTY_UPDATED",
-  {
-    propertyId: updated._id,
-    propertyTitle: updated.title
-  }
-);
+      req.user.id,
+      "PROPERTY_UPDATED",
+      {
+        propertyId: updated._id,
+        propertyTitle: updated.title
+      }
+    );
 
     res.json(updated);
 
   } catch (err) {
-    res.status(500).json({ message: "Update failed" });
+    console.error("UPDATE ERROR:", err);
+
+    res.status(500).json({
+      message: "Update failed",
+      error: err.message,
+    });
   }
 };
 
@@ -434,12 +437,12 @@ export const deleteListing = async (req, res) => {
     await Listing.findByIdAndDelete(req.params.id);
 
     await logActivity(
-  req.user.id,
-  "PROPERTY_DELETED",
-  {
-    propertyTitle
-  }
-);
+      req.user.id,
+      "PROPERTY_DELETED",
+      {
+        propertyTitle
+      }
+    );
 
     res.json({ message: "Listing deleted successfully" });
 
@@ -460,7 +463,7 @@ export const getMyListings = async (req, res) => {
     res.status(500).json({ message: "Error fetching listings" });
   }
 };
- 
+
 export const getRecommended = async (req, res) => {
   try {
     const { city, preferences, limit = 10 } = req.query;
@@ -470,7 +473,7 @@ export const getRecommended = async (req, res) => {
       : [];
 
     const query = {};
- 
+
     if (city) {
       const cityArray = city.split(",").map(c => c.trim());
 
@@ -478,7 +481,7 @@ export const getRecommended = async (req, res) => {
         $in: cityArray.map(c => new RegExp(c, "i"))
       };
     }
- 
+
     if (prefArray.length > 0) {
       query["$or"] = [
         { type: { $in: prefArray } },

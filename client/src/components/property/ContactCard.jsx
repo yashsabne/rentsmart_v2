@@ -18,18 +18,16 @@ const ContactCard = ({
   return (
     <div> 
       {isOwner ? (
-        <OwnerCard owner={owner} C={C} />
+        <OwnerCard owner={owner} C={C} property_id={property._id} />
       ) : (
+        <>
         <PaymentUnlockCard
           owner={owner}
           property={property}
           currentUser={currentUser}
           C={C}
         />
-      )}
-
-      {/* MESSAGE SECTION */}
-      <MessageBox
+        <MessageBox
         owner={owner}
         property={property}
         message={message}
@@ -38,6 +36,11 @@ const ContactCard = ({
         handleSend={handleSend}
         C={C}
       />
+
+      </>
+      )}
+
+   
     </div>
   );
 };

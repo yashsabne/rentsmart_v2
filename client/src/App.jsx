@@ -10,6 +10,7 @@ import CreateListing from './pages/CreateListing';
 import SavedPropertiesPage from './pages/SavedList';
 import RentSmartDev from './pages/Developer';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import EditListing from './pages/EditListing';
 
 
 function App() {
@@ -28,10 +29,8 @@ function App() {
         <Route path='/details/:id' element={<ListingDetails /> } />
         <Route path='/search-for-property/:type' element={<PropertyBuyPage />} />
         <Route path='/create' element={<CreateListing />} />
-        <Route
- path="/verify-email/:token"
- element={<VerifyEmailPage/>}
-/>
+        <Route path="/edit-property/:id" element={<EditListing />} />
+        <Route path="/verify-email/:token" element={<VerifyEmailPage/>} />
         <Route path='/developer' element={<RentSmartDev />} />
 
       </Routes>

@@ -1,10 +1,9 @@
 import express from "express";
-import multer from "multer";
-
+import { upload } from "../config/cloudinary.js";
 import authMiddleware from "../middleware/authMiddleware.js";
-
+import requireVerifiedEmail from "../middleware/requireVerifiedEmail.js";
 import {
-  createListing, 
+  createListing,
   searchListings,
   getListingById,
   updateListing,
@@ -12,29 +11,33 @@ import {
   getMyListings,
   getRecommended,
   getFilteredListings,
+  uploadPhotos,
 } from "../controllers/propertyController.js";
-import requireVerifiedEmail from "../middleware/requireVerifiedEmail.js";
 
 const router = express.Router();
 
-// MULTER (for Cloudinary upload)
-const storage = multer.diskStorage({});
-const upload = multer({ storage });
+// PHOTO UPLOAD — standalone endpoint
+// POST /api/property/upload-photos
+router.post(
+  "/upload-photos",
+  authMiddleware,
+  requireVerifiedEmail,
+  upload.array("photos", 8),
+  uploadPhotos
+);
 
-// ROUTES
+// CREATE LISTING
+router.post("/", authMiddleware, requireVerifiedEmail, createListing);
 
-router.post("/", authMiddleware,requireVerifiedEmail, createListing);
- 
-
-// IMPORTANT: specific routes first
-router.get("/filter", getFilteredListings);
-router.get("/search", searchListings);
+// PUBLIC ROUTES 
+router.get("/filter",      getFilteredListings);
+router.get("/search",      searchListings);
 router.get("/recommended", getRecommended);
-router.get("/my", authMiddleware, getMyListings);
+router.get("/my",          authMiddleware, getMyListings);
 router.get("/details/:id", getListingById);
 
 // PROTECTED ROUTES
-router.put("/:id", authMiddleware, updateListing);
+router.put("/:id",    authMiddleware, updateListing);
 router.delete("/:id", authMiddleware, deleteListing);
 
 export default router;

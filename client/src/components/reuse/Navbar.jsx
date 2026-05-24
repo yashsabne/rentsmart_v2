@@ -7,14 +7,14 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [loggedIn, setLoggedIn] = useState(false);
-  
+
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -23,7 +23,6 @@ const Navbar = () => {
   }, []);
 
 
-  // Close menu on resize to desktop
   useEffect(() => {
     const onResize = () => { if (window.innerWidth > 768) setMenuOpen(false); };
     window.addEventListener("resize", onResize);
@@ -129,72 +128,72 @@ const Navbar = () => {
           Rent<span style={{ color: C.gold }}>Smart</span>
         </a>
 
-     <ul
-  className="nb-links"
-  style={{
-    gap: 32,
-    listStyle: "none",
-    margin: 0,
-    padding: 0,
-    display: "flex"
-  }}
->
-{["sell", "rent", "help"].map((item) => (
+        <ul
+          className="nb-links"
+          style={{
+            gap: 32,
+            listStyle: "none",
+            margin: 0,
+            padding: 0,
+            display: "flex"
+          }}
+        >
+          {["sell", "rent", "help"].map((item) => (
 
-  <li key={item}>
+            <li key={item}>
 
-    <Link
-      to={
-        item === "help"
-          ? "/help"
-          : `/search-for-property/${item}`
-      }
-      style={{
-        fontSize: 14,
-        fontWeight: 500,
-        color: C.inkMuted,
-        transition: "color .2s",
-        textDecoration: "none",
-        textTransform: "capitalize"
-      }}
-      onMouseEnter={(e) => (e.target.style.color = C.ink)}
-      onMouseLeave={(e) => (e.target.style.color = C.inkMuted)}
-    >
-      {item}
-    </Link>
+              <Link
+                to={
+                  item === "help"
+                    ? "/help"
+                    : `/search-for-property/${item}`
+                }
+                style={{
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: C.inkMuted,
+                  transition: "color .2s",
+                  textDecoration: "none",
+                  textTransform: "capitalize"
+                }}
+                onMouseEnter={(e) => (e.target.style.color = C.ink)}
+                onMouseLeave={(e) => (e.target.style.color = C.inkMuted)}
+              >
+                {item}
+              </Link>
 
-  </li>
+            </li>
 
-))}
-</ul>
+          ))}
+        </ul>
 
         {/* Desktop action buttons */}
         <div className="nb-actions" style={{ gap: 10, alignItems: "center" }}>
-        
-        { loggedIn? (  <Link to="/dashboard" >
-          <button style={{ fontSize: 13, fontWeight: 500, padding: "8px 20px", borderRadius: 100, border: `1.5px solid ${C.border}`, background: "none", color: C.ink, cursor: "pointer", transition: "all .2s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = C.ink; e.currentTarget.style.color = "#fff"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.ink; }}>
-            Dashboard
-          </button>
-          </Link>
-        )
-          :
-          (
-           <Link to="/login" >
-          <button style={{ fontSize: 13, fontWeight: 500, padding: "8px 20px", borderRadius: 100, border: `1.5px solid ${C.border}`, background: "none", color: C.ink, cursor: "pointer", transition: "all .2s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = C.ink; e.currentTarget.style.color = "#fff"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.ink; }}>
-            Login
-          </button>
-          </Link>
-)
-        
-          
-            }
 
-     
-         <Link to="/create" > <button style={{ fontSize: 13, fontWeight: 500, padding: "9px 22px", borderRadius: 100, border: "none", background: C.ink, color: "#fff", cursor: "pointer", transition: "all .2s" }}
+          {loggedIn ? (<Link to="/dashboard" >
+            <button style={{ fontSize: 13, fontWeight: 500, padding: "8px 20px", borderRadius: 100, border: `1.5px solid ${C.border}`, background: "none", color: C.ink, cursor: "pointer", transition: "all .2s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.ink; e.currentTarget.style.color = "#fff"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.ink; }}>
+              Dashboard
+            </button>
+          </Link>
+          )
+            :
+            (
+              <Link to="/login" >
+                <button style={{ fontSize: 13, fontWeight: 500, padding: "8px 20px", borderRadius: 100, border: `1.5px solid ${C.border}`, background: "none", color: C.ink, cursor: "pointer", transition: "all .2s" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = C.ink; e.currentTarget.style.color = "#fff"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.ink; }}>
+                  Login
+                </button>
+              </Link>
+            )
+
+
+          }
+
+
+          <Link to="/create" > <button style={{ fontSize: 13, fontWeight: 500, padding: "9px 22px", borderRadius: 100, border: "none", background: C.ink, color: "#fff", cursor: "pointer", transition: "all .2s" }}
             onMouseEnter={e => e.currentTarget.style.background = C.gold}
             onMouseLeave={e => e.currentTarget.style.background = C.ink}>
             List Property
@@ -215,10 +214,19 @@ const Navbar = () => {
 
       {/* Mobile drawer */}
       <div className={`nb-drawer ${menuOpen ? "open" : ""}`}>
-        {["Buy", "Rent", "Sell", "Commercial", "Help"].map((item) => (
-          <a key={item} href="#" className="nb-drawer-link" onClick={() => setMenuOpen(false)}>
-            {item}
-          </a>
+        {["sell", "rent", "help"].map((item) => (
+          <Link
+            key={item}
+            to={
+              item === "help"
+                ? "/help"
+                : `/search-for-property/${item}`
+            }
+            className="nb-drawer-link"
+            onClick={() => setMenuOpen(false)}
+          >
+            {item.charAt(0).toUpperCase() + item.slice(1)}
+          </Link>
         ))}
         <div className="nb-drawer-actions">
           <button style={{ border: `1.5px solid ${C.border}`, background: "none", color: C.ink }}
