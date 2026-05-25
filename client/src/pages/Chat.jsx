@@ -139,8 +139,6 @@ export default function Chat() {
         a { text-decoration: none; color: inherit; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .fu { animation: fadeUp .3s both; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
         textarea:focus { outline: none; }
         .contact-row:hover { background: ${C.cream} !important; }
 

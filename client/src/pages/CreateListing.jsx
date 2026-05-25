@@ -675,8 +675,6 @@ export default function CreateListing() {
         .fu { animation: fadeUp .4s both; }
         input::placeholder, textarea::placeholder { color: #C0C0C0; }
         textarea:focus, input:focus { outline: none; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
         .form-grid-2  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         .form-grid-3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
         .counter-row  { display: flex; gap: 12px; }

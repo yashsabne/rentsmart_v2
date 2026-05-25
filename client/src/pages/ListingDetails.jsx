@@ -278,9 +278,7 @@ const highlights = [
         a { text-decoration: none; color: inherit; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         .fu { animation: fadeUp .5s both; }
-        img { display: block; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 10px; }
+        img { display: block; } 
       `}</style>
 
       {/* ── NAVBAR ── */}

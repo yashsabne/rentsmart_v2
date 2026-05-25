@@ -492,9 +492,7 @@ export default function RentSmartDev() {
         @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
         @keyframes gradient-shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
         @keyframes pulse-ring { 0%{transform:scale(0.8);opacity:1} 100%{transform:scale(2);opacity:0} }
-        .glow-text { background: linear-gradient(135deg, #a5b4fc, #67e8f9, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .section-divider { width: 60px; height: 2px; background: linear-gradient(90deg, #6366f1, transparent); border-radius: 2px; margin: 0 auto 24px; }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050508; } ::-webkit-scrollbar-thumb { background: #1e1e3a; border-radius: 3px; }
         a { color: inherit; text-decoration: none; }
         .nav-link:hover { color: #a5b4fc !important; }
       `}</style>

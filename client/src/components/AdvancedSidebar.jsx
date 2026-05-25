@@ -179,8 +179,6 @@ export default function AdvancedSidebar({ onFiltersChange }) {
       <style>{`
         @keyframes sidebarIn { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
         .adv-sidebar { animation: sidebarIn .4s both;margin-top:20px }
-        .adv-sidebar::-webkit-scrollbar { width: 3px; }
-        .adv-sidebar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 10px; }
         .adv-input { outline:none; transition: border-color .2s; }
         .adv-input:focus { border-color: ${C.gold} !important; }
         .adv-amenity:hover { border-color: ${C.ink} !important; background: ${C.cream} !important; }

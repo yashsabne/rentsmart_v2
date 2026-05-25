@@ -188,8 +188,6 @@ const Navbar = () => {
                 </button>
               </Link>
             )
-
-
           }
 
 
@@ -229,11 +227,25 @@ const Navbar = () => {
           </Link>
         ))}
         <div className="nb-drawer-actions">
-          <button style={{ border: `1.5px solid ${C.border}`, background: "none", color: C.ink }}
-            onMouseEnter={e => { e.currentTarget.style.background = C.ink; e.currentTarget.style.color = "#fff"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.ink; }}>
-            Login
-          </button>
+            {loggedIn ? (<Link to="/dashboard" >
+            <button style={{ fontSize: 13, fontWeight: 500, padding: "8px 20px", borderRadius: 100, border: `1.5px solid ${C.border}`, background: "none", color: C.ink, cursor: "pointer", transition: "all .2s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.ink; e.currentTarget.style.color = "#fff"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.ink; }}>
+              Dashboard
+            </button>
+          </Link>
+          )
+            :
+            (
+              <Link to="/login" >
+                <button style={{ fontSize: 13, fontWeight: 500, padding: "8px 20px", borderRadius: 100, border: `1.5px solid ${C.border}`, background: "none", color: C.ink, cursor: "pointer", transition: "all .2s" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = C.ink; e.currentTarget.style.color = "#fff"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.ink; }}>
+                  Login
+                </button>
+              </Link>
+            )
+          }
           <button style={{ border: "none", background: C.ink, color: "#fff" }}
             onMouseEnter={e => e.currentTarget.style.background = C.gold}
             onMouseLeave={e => e.currentTarget.style.background = C.ink}>

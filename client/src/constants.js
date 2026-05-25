@@ -579,7 +579,7 @@ export const navItems = [
   { icon: "🏠", label: "My Listings", id: "listings" },
   { icon: "❤️", label: "Saved", id: "saved" },
   { icon: "🔎", label: "Search For Rent", id: "rent", link: "/search-for-property/rent", tab: true },
-  { icon: "🔎", label: "Search For Buy", id: "buy", link: "/search-for-property/rent", tab: true },
+  { icon: "🔎", label: "Search For Buy", id: "buy", link: "/search-for-property/sell", tab: true },
   { icon: "💳", label: "Payments", id: "payments" },
   { icon: "⚙️", label: "Settings", id: "settings" },
 ];
