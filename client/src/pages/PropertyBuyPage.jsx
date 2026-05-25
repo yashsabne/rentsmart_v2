@@ -493,7 +493,6 @@ export default function PropertyBuyPage() {
           </>
         )}
       </div>
-
     </div>
   );
 }
