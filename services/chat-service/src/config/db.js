@@ -3,9 +3,9 @@ const mongoose = require("mongoose");
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`[chat-service] MongoDB connected: ${conn.connection.host}`);
+    console.log(`[chaat MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`[chat-service] MongoDB connection error: ${error.message}`);
+    console.error(`chat MongoDB connection error: ${error.message}`);
     process.exit(1);
   }
 };

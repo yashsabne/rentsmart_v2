@@ -8,9 +8,7 @@ const {
 
 const PAGE_SIZE = 30;
 
-/**
- * POST /messages/send
- */
+ 
 const sendMessage = async (req, res) => {
   const errors = validationResult(req);
 
@@ -88,9 +86,7 @@ const sendMessage = async (req, res) => {
   }
 };
 
-/**
- * GET /messages/:slug
- */
+ 
 const getMessages = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -156,10 +152,7 @@ const getMessages = async (req, res) => {
     });
   }
 };
-
-/**
- * PATCH /messages/read
- */
+ 
 const markMessagesRead = async (req, res) => {
   try {
     const { conversationSlug } = req.body;

@@ -1,47 +1,37 @@
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const { generateConversationSlug } = require("../utils/slugGenerator");
-
-// ─── findOrCreateConversation ─────────────────────────────────────────────────
-// The core "send first message" logic.
-// Checks if a conversation already exists for (propertyId, buyerId, ownerId).
-// If yes — reuses it (returns existing slug).
-// If no  — creates new conversation + stores first message.
+ 
 const findOrCreateConversation = async ({
     propertyId,
     propertyTitle,
     propertyImage,
     propertyLocation,
     propertyPrice,
-    buyer,   // { userId, publicId, fullName, email, avatar }
-    owner,   // { userId, publicId, fullName, email, avatar }
+    buyer,    
+    owner,    
     text,
     iv,
 }) => {
-    // Look for existing conversation between these two users on this property
-    const existing = await Conversation.findOne({
+     const existing = await Conversation.findOne({
         propertyId,
         "participants.userId": { $all: [buyer.userId, owner.userId] },
     });
 
     if (existing) {
-        // Conversation already exists — just return the slug for redirect
-        return { conversation: existing, isNew: false };
+         return { conversation: existing, isNew: false };
     }
 
-    // Build participants array [buyer, owner]
-    const participants = [
+     const participants = [
         { ...buyer, role: "buyer" },
         { ...owner, role: "owner" },
     ];
 
-    // Initialise unread counts — buyer sent first message so owner has 1 unread
-    const unreadCounts = new Map();
+     const unreadCounts = new Map();
     unreadCounts.set(owner.publicId, 1);
     unreadCounts.set(buyer.publicId, 0);
 
-    // Create conversation
-    const conversation = await Conversation.create({
+     const conversation = await Conversation.create({
         conversationSlug: generateConversationSlug(),
         propertyId,
         propertyTitle,
@@ -54,8 +44,7 @@ const findOrCreateConversation = async ({
         unreadCounts,
     });
 
-    // Store the first message
-    await Message.create({
+     await Message.create({
         conversationId: conversation._id,
         senderPublicId: buyer.publicId,
         text,
@@ -65,17 +54,13 @@ const findOrCreateConversation = async ({
 
     return { conversation, isNew: true };
 };
-
-// ─── getConversationsForUser ──────────────────────────────────────────────────
-// Returns all conversations where the user is a participant,
-// sorted newest first, excluding archived ones.
+ 
 const getConversationsForUser = async (userId, filter = "all") => {
     const query = {
         "participants.userId": userId,
         isActive: true,
     };
 
-    
 
     console.log("userId", userId);
 
@@ -89,8 +74,7 @@ const getConversationsForUser = async (userId, filter = "all") => {
         console.log(JSON.stringify(conversations[0], null, 2));
     }
 
-    // Apply client-side filters after fetching (small dataset per user)
-    const userPublicId = conversations[0]?.participants.find(
+     const userPublicId = conversations[0]?.participants.find(
         (p) => p.userId.toString() === userId.toString()
     )?.publicId;
 
@@ -106,28 +90,21 @@ const getConversationsForUser = async (userId, filter = "all") => {
                 : (conv.unreadCounts || {})[userPublicId];
             return !isArchived && (unread || 0) > 0;
         }
-        return !isArchived; // "all" — exclude archived
+        return !isArchived;  
     });
-};
-
-// ─── getConversationBySlug ────────────────────────────────────────────────────
-// Returns a single conversation by slug, verifying the requesting user
-// is a participant (access control).
+}; 
 const getConversationBySlug = async (slug, userId) => {
     const conversation = await Conversation.findOne({
         conversationSlug: slug,
         "participants.userId": userId,
     }).lean();
 
-    return conversation; // null if not found or not a participant
+    return conversation;  
 };
-
-// ─── sanitiseConversation ─────────────────────────────────────────────────────
-// Strips internal Mongo ObjectIds from the response sent to the client.
-// Only publicIds and slug-based identifiers are exposed.
+ 
 const sanitiseConversation = (conv) => ({
     conversationSlug: conv.conversationSlug,
-    propertyId: undefined,          // never expose
+    propertyId: undefined,           
     propertyTitle: conv.propertyTitle,
     propertyImage: conv.propertyImage,
     propertyLocation: conv.propertyLocation,
@@ -138,8 +115,7 @@ const sanitiseConversation = (conv) => ({
         email: p.email,
         avatar: p.avatar,
         role: p.role,
-        // userId intentionally omitted
-    })),
+     })),
     lastMessageAt: conv.lastMessageAt,
     lastMessagePreview: conv.lastMessagePreview,
     unreadCounts: conv.unreadCounts,

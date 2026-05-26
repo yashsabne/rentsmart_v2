@@ -3,12 +3,9 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const { logMessageReceived } = require("../services/activityService");
 
-// Map<userId, socketId>
-const onlineUsers = new Map();
+ const onlineUsers = new Map();
 
-/**
- * Registers all Socket.IO event handlers.
- */
+ 
 const registerChatHandlers = (io, socket) => {
   const user = socket.user;
   const userId = user.id || user._id;
@@ -19,10 +16,7 @@ const registerChatHandlers = (io, socket) => {
     return;
   }
 
-  // --------------------------------------------------
-  // USER CONNECTED
-  // --------------------------------------------------
-
+ 
   onlineUsers.set(String(userId), socket.id);
 
   io.emit(SOCKET_EVENTS.USER_ONLINE, {
@@ -33,10 +27,7 @@ const registerChatHandlers = (io, socket) => {
     `[socket] User connected: ${userId} (${socket.id})`
   );
 
-  // --------------------------------------------------
-  // JOIN CONVERSATION
-  // --------------------------------------------------
-
+ 
   socket.on(
     SOCKET_EVENTS.JOIN_CONVERSATION,
     async ({ conversationSlug }) => {
@@ -102,10 +93,7 @@ const registerChatHandlers = (io, socket) => {
     }
   );
 
-  // --------------------------------------------------
-  // LEAVE CONVERSATION
-  // --------------------------------------------------
-
+ 
   socket.on(
     SOCKET_EVENTS.LEAVE_CONVERSATION,
     ({ conversationSlug }) => {
@@ -117,10 +105,7 @@ const registerChatHandlers = (io, socket) => {
     }
   );
 
-  // --------------------------------------------------
-  // SEND MESSAGE (Realtime Only)
-  // --------------------------------------------------
-
+ 
   socket.on(
     SOCKET_EVENTS.SEND_MESSAGE,
     async ({ conversationSlug, messageData }) => {
@@ -171,10 +156,7 @@ const registerChatHandlers = (io, socket) => {
     }
   );
 
-  // --------------------------------------------------
-  // TYPING
-  // --------------------------------------------------
-
+ 
   socket.on(
     SOCKET_EVENTS.TYPING,
     ({ conversationSlug }) => {
@@ -201,10 +183,7 @@ const registerChatHandlers = (io, socket) => {
     }
   );
 
-  // --------------------------------------------------
-  // MESSAGE READ
-  // --------------------------------------------------
-
+ 
   socket.on(
     SOCKET_EVENTS.MESSAGE_READ,
     async ({ conversationSlug }) => {
@@ -225,11 +204,7 @@ const registerChatHandlers = (io, socket) => {
       }
     }
   );
-
-  // --------------------------------------------------
-  // DISCONNECT
-  // --------------------------------------------------
-
+  
   socket.on(SOCKET_EVENTS.DISCONNECT, () => {
     onlineUsers.delete(String(userId));
 
@@ -242,16 +217,10 @@ const registerChatHandlers = (io, socket) => {
     );
   });
 };
-
-/**
- * Check if user is online
- */
+ 
 const isUserOnline = (userId) =>
   onlineUsers.has(String(userId));
-
-/**
- * Get all online users
- */
+ 
 const getOnlineUsers = () =>
   Array.from(onlineUsers.keys());
 

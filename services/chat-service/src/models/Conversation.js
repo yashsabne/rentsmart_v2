@@ -78,8 +78,7 @@ const conversationSchema = new mongoose.Schema(
       },
     },
 
-    // Last message preview for conversation list
-    lastMessage: {
+     lastMessage: {
       type: String,
       default: "",
     },

@@ -1,9 +1,6 @@
 const { ACTIVITY_EVENTS } = require("../constants/events");
 
-/**
- * Logs an activity event to the activity-service.
- * Fire-and-forget — chat flow is never blocked by activity logging.
- */
+ 
 const logActivity = async (eventType, userId, metadata = {}) => {
   try {
     const response = await fetch(
@@ -26,13 +23,11 @@ const logActivity = async (eventType, userId, metadata = {}) => {
       );
     }
   } catch (error) {
-    // Non-critical — log warning but don't crash chat service
-    console.warn(`[activity-service] Could not reach activity-service:`, error.message);
+     console.warn(`[activity-service] Could not reach activity-service:`, error.message);
   }
 };
 
-// Convenience wrappers for each chat activity type
-const logChatStarted = (userId, conversationSlug, propertyId) =>
+ const logChatStarted = (userId, conversationSlug, propertyId) =>
   logActivity(ACTIVITY_EVENTS.CHAT_STARTED, userId, {
     conversationSlug,
     propertyId,

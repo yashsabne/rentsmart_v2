@@ -7,11 +7,7 @@ const {
   logMessageSent,
 } = require("../services/activityService");
 
-/**
- * POST /conversations/start
- * Creates a new conversation OR reuses existing one for same buyer+owner+property.
- * Also stores the first message (encrypted).
- */
+ 
 const startConversation = async (req, res) => {
   const errors = validationResult(req);
 
@@ -51,11 +47,7 @@ const startConversation = async (req, res) => {
         message: "Unauthorized",
       });
     }
-
-    // ------------------------------------------------
-    // Fetch buyer profile from auth-service
-    // ------------------------------------------------
-
+ 
     const authResponse = await fetch(
       `${process.env.AUTH_SERVICE_URL}/api/auth/me`,
       {
@@ -97,11 +89,7 @@ const startConversation = async (req, res) => {
       avatar: ownerData.avatar || "",
       role: "owner",
     };
-
-    // ------------------------------------------------
-    // Check existing conversation
-    // ------------------------------------------------
-
+ 
     const existing = await Conversation.findOne({
       propertyId,
       "participants.userId": {
@@ -137,10 +125,7 @@ const startConversation = async (req, res) => {
       });
     }
 
-    // ------------------------------------------------
-    // Create conversation
-    // ------------------------------------------------
-
+ 
     const conversationSlug = generateConversationSlug();
 
     const conversation = await Conversation.create({
@@ -194,12 +179,7 @@ const startConversation = async (req, res) => {
     });
   }
 };
-
-/**
- * GET /conversations
- * Returns all conversations for the authenticated user.
- * Excludes raw Mongo IDs from response.
- */
+ 
 const getConversations = async (req, res) => {
   try {
     const userId = req.user.id || req.user.id;
@@ -210,8 +190,7 @@ const getConversations = async (req, res) => {
     })
       .sort({ lastMessageAt: -1 })
       .lean();
-
-    // Strip internal Mongo IDs — only expose safe fields
+ 
     const safe = conversations.map((c) => ({
       conversationSlug: c.conversationSlug,
       propertyId: c.propertyId,
@@ -242,10 +221,7 @@ const getConversations = async (req, res) => {
   }
 };
 
-/**
- * GET /conversations/:slug
- * Returns a single conversation by slug.
- */
+ 
 const getConversationBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -258,8 +234,7 @@ const getConversationBySlug = async (req, res) => {
     if (!conversation) {
       return res.status(404).json({ message: "Conversation not found." });
     }
-
-    // Security: only participants can view
+ 
     const isParticipant = conversation.participants.some(
       (p) => p.userId.toString() === userId.toString()
     );
@@ -267,8 +242,7 @@ const getConversationBySlug = async (req, res) => {
     if (!isParticipant) {
       return res.status(403).json({ message: "Access denied." });
     }
-
-    // Strip Mongo IDs
+ 
     const safe = {
       conversationSlug: conversation.conversationSlug,
       propertyId: conversation.propertyId,
@@ -293,10 +267,7 @@ const getConversationBySlug = async (req, res) => {
   }
 };
 
-/**
- * PATCH /conversations/archive/:slug
- * Soft-archives a conversation for the requesting user only.
- */
+ 
 const archiveConversation = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -318,8 +289,7 @@ const archiveConversation = async (req, res) => {
       return res.status(403).json({ message: "Access denied." });
     }
 
-    // Add userId to archivedBy array if not already there
-    if (!conversation.archivedBy.includes(userId)) {
+     if (!conversation.archivedBy.includes(userId)) {
       conversation.archivedBy.push(userId);
       await conversation.save();
     }
