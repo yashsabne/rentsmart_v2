@@ -46,6 +46,15 @@ services:
       mongo:
         condition: service_started
 
+  chat-service:
+    build: ./services/chat-service
+    ports:
+     - "5005:5005"
+    env_file: ./services/chat-service/.env
+    depends_on:
+      mongo:
+        condition: service_started
+      
   mongo:
     image: mongo
     container_name: rentsmart-mongo

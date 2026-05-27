@@ -1,7 +1,10 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-const CHAT_SOCKET_URL = "http://localhost:5005";
+import { API } from "../../apis";
+ const CHAT_API = API.CHAT;
+
+const CHAT_SOCKET_URL =  API.CHAT;
 
 const SocketContext = createContext(null);
 

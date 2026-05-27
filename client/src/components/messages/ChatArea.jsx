@@ -91,8 +91,7 @@ const ChatArea = ({ conversation, onBack, onConversationUpdate, currentUser }) =
     }
   };
 
-  console.log(messages,'this is msg array')
-
+ 
   const handleScroll = useCallback(
     async (e) => {
       const { scrollTop } = e.target;
@@ -126,8 +125,7 @@ const ChatArea = ({ conversation, onBack, onConversationUpdate, currentUser }) =
     },
     onTyping: () => setIsTyping(true),
     onStopTyping: () => setIsTyping(false),
- onRead: async (data) => {
-  console.log("READ EVENT", data);
+ onRead: async (data) => { 
 
   const response = await getMessages(
     conversation.conversationSlug
@@ -201,8 +199,7 @@ const ChatArea = ({ conversation, onBack, onConversationUpdate, currentUser }) =
   };
 
   const groupedMessages = groupByDate(messages);
-
-  console.log(groupedMessages,'grouped msg')
+ 
 
   return (
     <div className="chat-area">

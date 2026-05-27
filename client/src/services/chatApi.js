@@ -1,4 +1,5 @@
- const CHAT_API = "http://localhost:5005";
+import { API } from "../../apis";
+ const CHAT_API = API.CHAT;
 
  
 const getAuthHeaders = () => {
@@ -102,3 +103,8 @@ export const archiveConversation = async (slug) => {
   if (!res.ok) throw new Error("Failed to archive conversation.");
   return res.json();
 };
+
+// chatApi.js — add this
+export const deleteMessages = (slug, messageIds, mode) => {
+  return "yash";
+}

@@ -454,11 +454,25 @@ export const deleteListing = async (req, res) => {
 
 export const getMyListings = async (req, res) => {
   try {
-    const listings = await Listing.find({
-      creatorId: req.user.id,
-    }).sort({ createdAt: -1 });
+    const page = Number(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
-    res.json(listings);
+    const [listings, total] = await Promise.all([
+      Listing.find({ creatorId: req.user.id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      Listing.countDocuments({ creatorId: req.user.id }),
+    ]);
+
+    res.json({
+      listings,
+      total,
+      hasMore: skip + listings.length < total,
+      currentPage: page,
+    });
   } catch (err) {
     res.status(500).json({ message: "Error fetching listings" });
   }

@@ -19,7 +19,7 @@ const MessagesPage = ({currentUser} ) => {
     const load = async () => {
       try {
         const data = await getConversations();
-
+        
         setConversations(data.conversations || []);
       } catch (err) {
         console.error("[MessagesPage] Failed to load conversations:", err);
@@ -59,7 +59,6 @@ const MessagesPage = ({currentUser} ) => {
       )
     );
   };
- 
 
   return (
     <div className="messages-page">

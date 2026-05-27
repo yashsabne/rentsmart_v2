@@ -18,6 +18,8 @@ const todayStr = () =>
     year: "numeric",
   });
 
+
+
 export default function Dashboard() {
   const [activeNav, setActiveNav] = useState(
     () => localStorage.getItem("activeNav") || "overview"
@@ -29,7 +31,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [userLoading, setUserLoading] = useState(true);
   const [properties, setProperties] = useState([]);
-  const [propsLoading, setPropsLoading] = useState(true);
+  const [propsLoading, setPropsLoading] = useState(false);
   const [statsData, setStatsData] = useState({
     total: 0,
     active: 0,
@@ -38,7 +40,14 @@ export default function Dashboard() {
   });
   const [activities, setActivities] = useState([]);
 
+
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+
   const navigate = useNavigate();
+
+  
 
   // ── Fetch user ──
   useEffect(() => {
@@ -63,36 +72,59 @@ export default function Dashboard() {
     };
     fetchUser();
   }, []);
-
-  // ── Fetch properties ──
-  useEffect(() => {
-    const fetchProperties = async () => {
+  
+    const fetchProperties = async (pageNum = 1, append = false) => {
       try {
         setPropsLoading(true);
-        const res = await fetch(`${API.PROPERTY}/api/property/my`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
+
+        const res = await fetch(
+          `${API.PROPERTY}/api/property/my?page=${pageNum}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
         const data = await res.json();
-        const list = Array.isArray(data) ? data : [];
-        setProperties(list);
-        setStatsData({
-          total: list.length,
-          active: list.filter((p) => p.promoted).length,
-          rent: list.filter(
-            (p) => p.buyOrSell && p.buyOrSell.trim().toLowerCase() === "rent"
-          ).length,
-          buy: list.filter(
-            (p) => p.buyOrSell && p.buyOrSell.trim().toLowerCase() === "sell"
-          ).length,
-        });
+
+        setProperties((prev) =>
+          append
+            ? [...prev, ...(data.listings || [])]
+            : data.listings || []
+        );
+
+        setHasMore(data.hasMore);
+
+        if (!append) {
+          const list = data.listings || [];
+
+          setStatsData({
+            total: data.total,
+            active: list.filter((p) => p.promoted).length,
+            rent: list.filter(
+              (p) =>
+                p.buyOrSell &&
+                p.buyOrSell.trim().toLowerCase() === "rent"
+            ).length,
+            buy: list.filter(
+              (p) =>
+                p.buyOrSell &&
+                p.buyOrSell.trim().toLowerCase() === "sell"
+            ).length,
+          });
+        }
       } catch (err) {
         console.log(err);
       } finally {
         setPropsLoading(false);
       }
-    };
-    fetchProperties();
-  }, []);
+    }; 
+
+
+  useEffect(() => {
+  fetchProperties(1);
+}, []);
 
   useEffect(() => {
     const currentNav = navItems.find((item) => item.id === activeNav);
@@ -129,6 +161,14 @@ export default function Dashboard() {
     setSidebarOpen(false);
     if (item.link) navigate(`/${item.link}`);
   };
+
+    const handleLoadMore = () => {
+  const nextPage = page + 1;
+
+  fetchProperties(nextPage, true);
+
+  setPage(nextPage);
+};
 
   return (
     <div className="dashboard-root">
@@ -707,6 +747,19 @@ export default function Dashboard() {
               </table>
             </div>
           </div>
+
+          {hasMore && !propsLoading && (
+            <div style={{ textAlign: "center", marginTop: "20px" }}>
+              <button
+                onClick={handleLoadMore}
+                className="btn-action btn-action-green"
+              >
+                Load More
+              </button>
+            </div>
+          )}
+
+
         </div>
       </main>
     </div>
