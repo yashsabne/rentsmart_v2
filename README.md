@@ -79,7 +79,8 @@ Current Services:
 - Activity Service
 - Payment Service
 - Notification Service
-- Chat Service (Work in Progress)
+- Chat Service
+- Redis Service (Planned)
 
 Benefits of the Architecture:
 
@@ -111,8 +112,8 @@ Benefits of the Architecture:
 ### Additional Technologies
 
 - Docker (Containerization)
-- Redis (Planned)
-- Socket.IO (Planned)
+- Redis (Caching & Distributed Infrastructure - Planned)
+- Socket.IO (Real-Time Communication)
 - Razorpay Integration
 
 ---
@@ -137,18 +138,46 @@ Planned Docker Components:
 
 ---
 
-## Redis Integration (Planned)
+## Redis Service (Planned)
 
-Redis is planned for performance optimization and distributed system support.
+A dedicated Redis service is planned as part of the RentSmart infrastructure layer to improve performance, scalability, and inter-service communication.
 
-Potential Use Cases:
+Redis will operate as a centralized in-memory data store shared across microservices and containerized deployments.
+
+Planned Responsibilities:
+
+### Caching Layer
 
 - Property listing caching
-- Session management
-- JWT blacklisting
+- Property details caching
+- User profile caching
+- Dashboard statistics caching
+- Frequently accessed API response caching
+
+### Security & Performance
+
 - Rate limiting
+- Temporary token storage
+- JWT blacklisting
+- Request throttling support
+
+### Real-Time Communication
+
 - Chat Pub/Sub messaging
-- Frequently accessed data caching
+- Event broadcasting between services
+- Distributed message handling
+
+### Infrastructure Support
+
+- Shared cache across services
+- Docker-based deployment integration
+- Future horizontal scaling support
+
+Current Status:
+
+- Architecture planned
+- Service structure reserved
+- Integration pending implementation
 
 ---
 ## Security & Trust Features
@@ -265,8 +294,7 @@ The current focus is on:
 Several major features and architectural improvements are still under development, including:
 
 - Real-time chat system
-- Redis integration 
-- Advanced recommendation engine
+- Redis service deployment and caching layer implementation- Advanced recommendation engine
 - Admin management tools
 - Performance optimization
 - Security enhancements
