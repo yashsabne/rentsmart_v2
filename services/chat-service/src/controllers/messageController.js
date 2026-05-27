@@ -1,11 +1,7 @@
 const { validationResult } = require("express-validator");
 const Message = require("../models/Message");
 const Conversation = require("../models/Conversation");
-const {
-  logMessageSent,
-  logMessageRead,
-} = require("../services/activityService");
-
+ 
 const PAGE_SIZE = 30;
 
  
@@ -55,17 +51,7 @@ const sendMessage = async (req, res) => {
  
     await conversation.save();
 
-    try {
-      await logMessageSent(
-        userId,
-        conversationSlug
-      );
-    } catch (err) {
-      console.error(
-        "[activity-service] MESSAGE_SENT failed:",
-        err.message
-      );
-    }
+  
 
     return res.status(201).json({
       success: true,
@@ -140,6 +126,8 @@ const getMessages = async (req, res) => {
       createdAt: m.createdAt,
     }));
 
+    console.log(safe,'tjos os same')
+
     return res.status(200).json({
       messages: safe,
       hasMore: messages.length === PAGE_SIZE,
@@ -197,18 +185,7 @@ const markMessagesRead = async (req, res) => {
       }
     );
 
-    try {
-      await logMessageRead(
-        userId,
-        conversationSlug
-      );
-    } catch (err) {
-      console.error(
-        "[activity-service] MESSAGE_READ failed:",
-        err.message
-      );
-    }
-
+    
     return res.status(200).json({
       updated: result.modifiedCount,
     });

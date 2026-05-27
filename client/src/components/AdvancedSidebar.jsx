@@ -90,8 +90,7 @@ function Toggle({ label, value, onChange, icon }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
-export default function AdvancedSidebar({ onFiltersChange }) {
+ export default function AdvancedSidebar({ onFiltersChange }) {
   const [filters, setFilters] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);

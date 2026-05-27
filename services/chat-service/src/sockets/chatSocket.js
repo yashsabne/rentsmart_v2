@@ -1,14 +1,12 @@
 const { SOCKET_EVENTS } = require("../constants/events");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
-const { logMessageReceived } = require("../services/activityService");
 
- const onlineUsers = new Map();
+const onlineUsers = new Map();
 
- 
 const registerChatHandlers = (io, socket) => {
   const user = socket.user;
-  const userId = user.id || user._id;
+  const userId = String(user.id || user._id);
 
   if (!userId) {
     console.error("[socket] Missing user id");
@@ -16,216 +14,166 @@ const registerChatHandlers = (io, socket) => {
     return;
   }
 
- 
-  onlineUsers.set(String(userId), socket.id);
+  onlineUsers.set(userId, socket.id);
 
-  io.emit(SOCKET_EVENTS.USER_ONLINE, {
-    userId,
+  io.emit(SOCKET_EVENTS.USER_ONLINE, { userId });
+
+  console.log(`[socket] User connected: ${userId} (${socket.id})`);
+
+  socket.on("getOnlineUsers", () => {
+    socket.emit(SOCKET_EVENTS.ONLINE_USERS, getOnlineUsers());
   });
 
-  console.log(
-    `[socket] User connected: ${userId} (${socket.id})`
-  );
+  socket.on(SOCKET_EVENTS.JOIN_CONVERSATION, async ({ conversationSlug }) => {
+    try {
+      const conversation = await Conversation.findOne({ conversationSlug });
 
- 
-  socket.on(
-    SOCKET_EVENTS.JOIN_CONVERSATION,
-    async ({ conversationSlug }) => {
-      try {
-        const conversation = await Conversation.findOne({
-          conversationSlug,
-        });
-
-        if (!conversation) {
-          return socket.emit(SOCKET_EVENTS.ERROR, {
-            message: "Conversation not found.",
-          });
-        }
-
-        const isParticipant = conversation.participants.some(
-          (p) => String(p.userId) === String(userId)
-        );
-
-        if (!isParticipant) {
-          return socket.emit(SOCKET_EVENTS.ERROR, {
-            message: "Access denied.",
-          });
-        }
-
-        socket.join(conversationSlug);
-
-        console.log(
-          `[socket] ${userId} joined room: ${conversationSlug}`
-        );
-
-        await Message.updateMany(
-          {
-            conversationId: conversation._id,
-            senderUserId: {
-              $ne: userId,
-            },
-            status: "sent",
-          },
-          {
-            $set: {
-              status: "delivered",
-            },
-          }
-        );
-
-        io.to(conversationSlug).emit(
-          SOCKET_EVENTS.MESSAGE_DELIVERED,
-          {
-            conversationSlug,
-            deliveredTo: userId,
-          }
-        );
-      } catch (err) {
-        console.error(
-          "[socket joinConversation] Error:",
-          err
-        );
-
-        socket.emit(SOCKET_EVENTS.ERROR, {
-          message: "Failed to join conversation.",
+      if (!conversation) {
+        return socket.emit(SOCKET_EVENTS.ERROR, {
+          message: "Conversation not found.",
         });
       }
-    }
-  );
 
- 
-  socket.on(
-    SOCKET_EVENTS.LEAVE_CONVERSATION,
-    ({ conversationSlug }) => {
-      socket.leave(conversationSlug);
-
-      console.log(
-        `[socket] ${userId} left room: ${conversationSlug}`
+      const isParticipant = conversation.participants.some(
+        (p) => String(p.userId) === userId
       );
-    }
-  );
 
- 
+      if (!isParticipant) {
+        return socket.emit(SOCKET_EVENTS.ERROR, { message: "Access denied." });
+      }
+
+      socket.join(conversationSlug);
+
+      console.log(`[socket] ${userId} joined room: ${conversationSlug}`);
+
+      const updatedMessages = await Message.updateMany(
+        {
+          conversationId: conversation._id,
+          senderUserId: { $ne: userId },
+          status: "sent",
+        },
+        { $set: { status: "delivered" } }
+      );
+
+      if (updatedMessages.modifiedCount > 0) {
+        io.to(conversationSlug).emit(SOCKET_EVENTS.MESSAGE_DELIVERED, {
+          conversationSlug,
+          deliveredTo: userId,
+        });
+      }
+    } catch (err) {
+      console.error("[socket joinConversation] Error:", err);
+      socket.emit(SOCKET_EVENTS.ERROR, {
+        message: "Failed to join conversation.",
+      });
+    }
+  });
+
+  socket.on(SOCKET_EVENTS.LEAVE_CONVERSATION, ({ conversationSlug }) => {
+    socket.leave(conversationSlug);
+    console.log(`[socket] ${userId} left room: ${conversationSlug}`);
+  });
+
   socket.on(
     SOCKET_EVENTS.SEND_MESSAGE,
     async ({ conversationSlug, messageData }) => {
       try {
-        const conversation = await Conversation.findOne({
-          conversationSlug,
-        });
-
+        const conversation = await Conversation.findOne({ conversationSlug });
         if (!conversation) return;
 
         const isParticipant = conversation.participants.some(
-          (p) => String(p.userId) === String(userId)
+          (p) => String(p.userId) === userId
         );
-
         if (!isParticipant) return;
 
-        io.to(conversationSlug).emit(
-          SOCKET_EVENTS.RECEIVE_MESSAGE,
-          {
-            conversationSlug,
-            message: messageData,
-          }
-        );
-
         const recipient = conversation.participants.find(
-          (p) => String(p.userId) !== String(userId)
+          (p) => String(p.userId) !== userId
         );
 
-        if (recipient) {
-          try {
-            await logMessageReceived(
-              recipient.userId,
-              conversationSlug
-            );
-          } catch (err) {
-            console.error(
-              "[activity-service] MESSAGE_RECEIVED failed:",
-              err.message
-            );
+        if (recipient && messageData._id) {
+          const recipientSocketId = onlineUsers.get(String(recipient.userId));
+          const recipientSocket = recipientSocketId
+            ? io.sockets.sockets.get(recipientSocketId)
+            : null;
+          const recipientInRoom = recipientSocket?.rooms?.has(conversationSlug);
+
+          if (recipientInRoom) {
+            await Message.findByIdAndUpdate(messageData._id, {
+              $set: { status: "delivered" },
+            });
+            messageData = { ...messageData, status: "delivered" };
           }
         }
+
+        io.to(conversationSlug).emit(SOCKET_EVENTS.RECEIVE_MESSAGE, {
+          conversationSlug,
+          message: messageData,
+        });
       } catch (err) {
-        console.error(
-          "[socket sendMessage] Error:",
-          err
-        );
+        console.error("[socket sendMessage] Error:", err);
       }
     }
   );
 
- 
-  socket.on(
-    SOCKET_EVENTS.TYPING,
-    ({ conversationSlug }) => {
-      socket.to(conversationSlug).emit(
-        SOCKET_EVENTS.TYPING,
-        {
-          conversationSlug,
-          userId,
-        }
-      );
-    }
-  );
+  socket.on(SOCKET_EVENTS.TYPING, ({ conversationSlug }) => {
+    socket.to(conversationSlug).emit(SOCKET_EVENTS.TYPING, {
+      conversationSlug,
+      userId,
+    });
+  });
 
-  socket.on(
-    SOCKET_EVENTS.STOP_TYPING,
-    ({ conversationSlug }) => {
-      socket.to(conversationSlug).emit(
-        SOCKET_EVENTS.STOP_TYPING,
-        {
-          conversationSlug,
-          userId,
-        }
-      );
-    }
-  );
+  socket.on(SOCKET_EVENTS.STOP_TYPING, ({ conversationSlug }) => {
+    socket.to(conversationSlug).emit(SOCKET_EVENTS.STOP_TYPING, {
+      conversationSlug,
+      userId,
+    });
+  });
 
- 
   socket.on(
     SOCKET_EVENTS.MESSAGE_READ,
     async ({ conversationSlug }) => {
       try {
-        io.to(conversationSlug).emit(
-          SOCKET_EVENTS.MESSAGE_READ,
+        const conversation = await Conversation.findOne({ conversationSlug });
+        if (!conversation) return;
+
+        const isParticipant = conversation.participants.some(
+          (p) => String(p.userId) === userId
+        );
+        if (!isParticipant) return;
+
+        const readAt = new Date();
+
+        await Message.updateMany(
           {
-            conversationSlug,
-            readBy: userId,
-            readAt: new Date().toISOString(),
-          }
+            conversationId: conversation._id,
+            senderUserId: { $ne: userId },
+            status: { $in: ["sent", "delivered"] },
+          },
+          { $set: { status: "read", readAt } }
         );
+
+        io.to(conversationSlug).emit(SOCKET_EVENTS.MESSAGE_READ, {
+          conversationSlug,
+          readBy: userId,
+          readAt: readAt.toISOString(),
+        });
       } catch (err) {
-        console.error(
-          "[socket messageRead] Error:",
-          err
-        );
+        console.error("[socket messageRead] Error:", err);
       }
     }
   );
-  
+
   socket.on(SOCKET_EVENTS.DISCONNECT, () => {
-    onlineUsers.delete(String(userId));
+    onlineUsers.delete(userId);
 
-    io.emit(SOCKET_EVENTS.USER_OFFLINE, {
-      userId,
-    });
+    io.emit(SOCKET_EVENTS.USER_OFFLINE, { userId });
 
-    console.log(
-      `[socket] User disconnected: ${userId}`
-    );
+    console.log(`[socket] User disconnected: ${userId}`);
   });
 };
- 
-const isUserOnline = (userId) =>
-  onlineUsers.has(String(userId));
- 
-const getOnlineUsers = () =>
-  Array.from(onlineUsers.keys());
 
-module.exports = {
-  registerChatHandlers,
-  isUserOnline,
-  getOnlineUsers,
-};
+const isUserOnline = (userId) => onlineUsers.has(String(userId));
+
+const getOnlineUsers = () => Array.from(onlineUsers.keys());
+
+module.exports = { registerChatHandlers, isUserOnline, getOnlineUsers };

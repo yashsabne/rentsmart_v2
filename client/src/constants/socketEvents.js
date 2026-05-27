@@ -1,5 +1,7 @@
-const SOCKET_EVENTS = {
-  ONLINE_USERS: "onlineUsers",
+// Frontend mirror of backend socket event constants
+// Must stay in sync with chat-service/src/constants/events.js
+
+export const SOCKET_EVENTS = {
   CONNECTION: "connection",
   DISCONNECT: "disconnect",
 
@@ -21,12 +23,3 @@ const SOCKET_EVENTS = {
 
   ERROR: "chatError",
 };
-
-const ACTIVITY_EVENTS = {
-  CHAT_STARTED: "CHAT_STARTED",
-  MESSAGE_SENT: "MESSAGE_SENT",
-  MESSAGE_RECEIVED: "MESSAGE_RECEIVED",
-  MESSAGE_READ: "MESSAGE_READ",
-};
-
-module.exports = { SOCKET_EVENTS, ACTIVITY_EVENTS };

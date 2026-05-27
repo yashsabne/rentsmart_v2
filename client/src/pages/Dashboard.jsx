@@ -6,6 +6,9 @@ import { activityConfig, C, navItems } from "../constants";
 import { Avatar, StatusBadge, formatPrice, fullLocation, userInitials } from "../const_func/dashFunction.jsx";
 import { API } from "../../apis.js";
 import "./styles/dashboard.css"
+// import MessagesPage from "../messages/MessagesPage";
+import MessagesPage from "../components/messages/MessagesPage.jsx";
+
 
 const todayStr = () =>
   new Date().toLocaleDateString("en-IN", {
@@ -427,6 +430,9 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
+
+
+              {activeNav === "messages" && (<MessagesPage currentUser={user} />)}
             </div>
 
             {/* RIGHT column: Activity + Profile */}
@@ -551,9 +557,8 @@ export default function Dashboard() {
                 <div className="card-subtitle">
                   {propsLoading
                     ? "Loading..."
-                    : `${properties.length} listing${
-                        properties.length !== 1 ? "s" : ""
-                      } total`}
+                    : `${properties.length} listing${properties.length !== 1 ? "s" : ""
+                    } total`}
                 </div>
               </div>
               <button className="btn-text-gold">Export →</button>

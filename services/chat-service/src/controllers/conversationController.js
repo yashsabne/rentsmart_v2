@@ -2,11 +2,6 @@ const { validationResult } = require("express-validator");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const { generateConversationSlug } = require("../utils/slugGenerator");
-const {
-  logChatStarted,
-  logMessageSent,
-} = require("../services/activityService");
-
  
 const startConversation = async (req, res) => {
   const errors = validationResult(req);
@@ -112,11 +107,7 @@ const startConversation = async (req, res) => {
       
       await existing.save();
 
-      await logMessageSent(
-        buyer.userId,
-        existing.conversationSlug
-      );
-
+    
       return res.status(200).json({
         success: true,
         isNew: false,
@@ -153,16 +144,7 @@ const startConversation = async (req, res) => {
       status: "sent",
     });
 
-    await logChatStarted(
-      buyer.userId,
-      conversationSlug,
-      propertyId
-    );
-
-    await logMessageSent(
-      buyer.userId,
-      conversationSlug
-    );
+ 
 
     return res.status(201).json({
       success: true,
@@ -199,6 +181,7 @@ const getConversations = async (req, res) => {
       propertyLocation: c.propertyLocation,
       propertyPrice: c.propertyPrice,
       participants: c.participants.map((p) => ({
+        userId:p.userId,
         fullName: p.fullName,
         email: p.email,
         avatar: p.avatar,
@@ -227,9 +210,13 @@ const getConversationBySlug = async (req, res) => {
     const { slug } = req.params;
     const userId = req.user.id || req.user.id;
 
+
+
     const conversation = await Conversation.findOne({
       conversationSlug: slug,
     }).lean();
+
+    console.log(conversation,"this is convertsation")
 
     if (!conversation) {
       return res.status(404).json({ message: "Conversation not found." });
@@ -251,6 +238,7 @@ const getConversationBySlug = async (req, res) => {
       propertyLocation: conversation.propertyLocation,
       propertyPrice: conversation.propertyPrice,
       participants: conversation.participants.map((p) => ({
+        userId:p.userId,
         fullName: p.fullName,
         email: p.email,
         avatar: p.avatar,

@@ -11,6 +11,7 @@ import SavedPropertiesPage from './pages/SavedList';
 import RentSmartDev from './pages/Developer';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import EditListing from './pages/EditListing';
+import MessagesPage from './components/messages/MessagesPage';
 
 
 function App() {
@@ -24,14 +25,16 @@ function App() {
 
         <Route path='/login' element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        
+
         <Route path="/saved-properties" element={<SavedPropertiesPage />} />
-        <Route path='/details/:id' element={<ListingDetails /> } />
+        <Route path='/details/:id' element={<ListingDetails />} />
         <Route path='/search-for-property/:type' element={<PropertyBuyPage />} />
         <Route path='/create' element={<CreateListing />} />
         <Route path="/edit-property/:id" element={<EditListing />} />
-        <Route path="/verify-email/:token" element={<VerifyEmailPage/>} />
+        <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
         <Route path='/developer' element={<RentSmartDev />} />
+        <Route path="/dashboard/messages" element={<Dashboard initialSection="messages" />} />
+        <Route path="/dashboard/messages/:slug" element={<Dashboard initialSection="messages" />} />
 
       </Routes>
     </Router>

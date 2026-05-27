@@ -196,7 +196,7 @@ export default function RegisterPage() {
       if (response.ok) {
         console.log('Registration successful:', data);
            localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // localStorage.setItem("user", JSON.stringify(data.user));
   
         setStep(2); // Move to success step
       } else {

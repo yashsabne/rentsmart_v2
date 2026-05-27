@@ -95,13 +95,102 @@ export default function ListingDetails() {
     return () => window.removeEventListener("keydown", handler);
   }, [lightboxOpen, property?.listingPhotos?.length]);
 
-  const handleSend = () => {
-    if (message.trim()) {
-      setSent(true);
-      setMessage("");
-      setTimeout(() => setSent(false), 3000);
+const handleSend = async () => {
+  try {
+    if (!message.trim()) return;
+
+    const token = localStorage.getItem("token");
+
+    if (!currentUser?._id) {
+      throw new Error("Please login first");
     }
-  };
+
+    if (!owner?._id) {
+      throw new Error("Owner information not found");
+    }
+
+    if (!property?._id) {
+      throw new Error("Property information not found");
+    }
+ 
+   const payload = {
+  propertyId: property._id,
+  propertyTitle: property.title,
+
+  propertyImage:
+    property.listingPhotos?.[0] ||
+    "https://via.placeholder.com/300x200",
+
+  propertyLocation:
+    property.location ||
+    `${property.address?.city || ""}, ${property.address?.country || ""}`,
+
+  propertyPrice: String(property.price || ""),
+
+  owner: {
+    userId: owner._id,
+
+    fullName:
+      `${owner.firstName || ""} ${owner.lastName || ""}`.trim(),
+
+    email: owner.email || "",
+
+    avatar:
+      owner.avatar ||
+      owner.profilePicture ||
+      "",
+  },
+
+  text: message.trim(),
+};
+
+    console.log("Chat Payload:", payload);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_CHAT_API}/conversations/start`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const data = await response.json();
+
+    console.log("Status:", response.status);
+    console.log("Response:", data);
+
+    if (!response.ok) {
+      throw new Error(
+        data?.message ||
+        data?.errors?.[0]?.msg ||
+        "Failed to start chat"
+      );
+    }
+
+    setSent(true);
+
+    if (data?.conversationSlug) {
+      navigate(
+        `/dashboard/messages/${data.conversationSlug}`
+      );
+    } else {
+      console.error(
+        "conversationSlug missing:",
+        data
+      );
+      throw new Error(
+        "Conversation created but slug missing"
+      );
+    }
+  } catch (err) {
+    console.error("Chat Error:", err);
+    alert(err.message);
+  }
+};
 
   if (loading) {
     return (

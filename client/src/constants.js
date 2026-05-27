@@ -582,6 +582,7 @@ export const navItems = [
   { icon: "🔎", label: "Search For Buy", id: "buy", link: "/search-for-property/sell", tab: true },
   { icon: "💳", label: "Payments", id: "payments" },
   { icon: "⚙️", label: "Settings", id: "settings" },
+  { icon: "💬", label: "Messages", id: "messages" },
 ];
 
 export const AMENITY_ICONS = {

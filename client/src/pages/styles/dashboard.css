@@ -773,10 +773,7 @@
   background: var(--color-border);
   color: var(--color-ink-muted);
 }
-
-/* ─────────────────────────────────────────────
-   TABLE
-───────────────────────────────────────────── */
+ 
 .table-card {
   overflow: hidden;
 }
