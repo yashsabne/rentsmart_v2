@@ -3,179 +3,189 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { sendVerificationEmail } from "../services/sendVerificationEmail.js";
-
-
 import { logActivity } from "../utils/activityLogger.js";
+import { redisPost, redisGet, redisDelete } from "../utils/redisClient.js";
 
- 
+export const register = async (req, res) => {
+  try {
+    const { email, password, firstName, lastName, phone, city, preferences, notifications } = req.body;
 
+    const rateLimitResult = await redisPost("/rate-limit/check", {
+      identifier: `register:${req.headers["x-forwarded-for"] || req.socket.remoteAddress}`,
+      max: 5,
+      ttl: 3600,
+    });
 
-// register controller
-export const register = async (req,res) => {
- try {
+    if (rateLimitResult && !rateLimitResult.allowed) {
+      return res.status(429).json({
+        success: false,
+        message: "Too many registration attempts. Please try again later.",
+      });
+    }
 
-  const { email,password,firstName,lastName,phone,city,preferences,notifications } = req.body;
+    const existingUser = await User.findOne({ email });
 
-  const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ error: "Email already registered" });
 
-  if(existingUser) return res.status(400).json({ error:"Email already registered" });
+    const verificationToken = crypto.randomBytes(32).toString("hex");
 
-  const verificationToken = crypto.randomBytes(32).toString("hex");
+    const user = new User({
+      email,
+      password,
+      firstName,
+      lastName,
+      phone,
+      city,
+      preferences: preferences || [],
+      emailNotifications: notifications?.emailAlerts ?? true,
+      smsNotifications: notifications?.smsUpdates ?? true,
+      whatsappNotifications: notifications?.whatsappNotifications ?? false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpiry: Date.now() + 24 * 60 * 60 * 1000,
+    });
 
-  const user = new User({
-   email,
-   password,
-   firstName,
-   lastName,
-   phone,
-   city,
-   preferences:preferences || [],
-   emailNotifications:notifications?.emailAlerts ?? true,
-   smsNotifications:notifications?.smsUpdates ?? true,
-   whatsappNotifications:notifications?.whatsappNotifications ?? false,
-   emailVerificationToken:verificationToken,
-   emailVerificationExpiry:Date.now() + 24*60*60*1000
-  });
+    if (password) await user.hashPassword();
 
-  if(password) await user.hashPassword();
+    await user.save();
 
-  await user.save();
+    const verifyLink = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
 
-  const verifyLink = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+    await sendVerificationEmail(user.email, user.firstName, verifyLink);
 
-  await sendVerificationEmail(user.email,user.firstName,verifyLink);
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
-  const token = jwt.sign({ id:user._id },process.env.JWT_SECRET,{ expiresIn:"1d" });
+    const userResponse = user.toObject();
 
-  const userResponse = user.toObject();
+    delete userResponse.password;
 
-  delete userResponse.password;
+    await redisPost("/session", {
+      userId: user._id.toString(),
+      sessionData: { id: user._id, email: user.email, firstName: user.firstName },
+    });
 
-  res.status(201).json({
-   success:true,
-   message:"Registered successfully. Please verify your email.",
-   token,
-   user:userResponse
-  });
-
- } catch(err){
-  console.log(err);
-  res.status(500).json({ error:err.message });
- }
+    res.status(201).json({
+      success: true,
+      message: "Registered successfully. Please verify your email.",
+      token,
+      user: userResponse,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 export const login = async (req, res) => {
   try {
-
-    const {
-      email,
-      phone,
-      password
-    } = req.body;
+    const { email, phone, password } = req.body;
 
     if (!email && !phone) {
-      return res.status(400).json({
-        message:
-          "Email or phone is required"
+      return res.status(400).json({ message: "Email or phone is required" });
+    }
+
+    const rateLimitIdentifier = email
+      ? `login:email:${email}`
+      : `login:phone:${phone}`;
+
+    const rateLimitResult = await redisPost("/rate-limit/check", {
+      identifier: rateLimitIdentifier,
+      max: 10,
+      ttl: 900,
+    });
+
+    if (rateLimitResult && !rateLimitResult.allowed) {
+
+
+      return res.status(429).json({
+        success: false,
+        message: "Too many login attempts. Please try again later.",
       });
     }
 
     let user;
 
     if (email) {
-
-      user = await User.findOne({
-        email
-      });
-
+      user = await User.findOne({ email });
     } else {
-
-      const cleanPhone =
-        phone.replace(/\D/g, "");
-
-      user = await User.findOne({
-        phone: cleanPhone
-      });
-
+      const cleanPhone = phone.replace(/\D/g, "");
+      user = await User.findOne({ phone: cleanPhone });
     }
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found"
-      });
-    }
-
-    const isMatch =
-      await bcrypt.compare(
-        password,
-        user.password
-      );
-
-    if (!isMatch) {
-      return res.status(400).json({
-        message:
-          "Invalid credentials"
-      });
-    }
-
-    const token = jwt.sign(
-      {
-        id: user._id
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "5d"
-      }
-    );
-
-    const userAgent =
-      req.headers["user-agent"] || "";
-
-    await logActivity(
-      user._id,
-      "LOGIN",
-      {
-        loginAt:
-          new Date().toISOString(),
-
-        device:
-          /mobile/i.test(userAgent)
-            ? "Mobile"
-            : "Desktop",
-
-        userAgent,
-
-        ip:
-          req.headers[
-            "x-forwarded-for"
-          ] ||
-          req.socket.remoteAddress
-      }
-    );
-
-    return res.json({
-      message:
-        "Login successful",
-      token
-    });
-
-  } catch (err) {
-
-    return res.status(500).json({
-      error: err.message
-    });
-
-  }
-};
-
- 
-export const getMe = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "5d" });
+
+    const userAgent = req.headers["user-agent"] || "";
+
+    await redisPost("/session", {
+      userId: user._id.toString(),
+      sessionData: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        loginAt: new Date().toISOString(),
+      },
+    });
+
+    await logActivity(user._id, "LOGIN", {
+      loginAt: new Date().toISOString(),
+      device: /mobile/i.test(userAgent) ? "Mobile" : "Desktop",
+      userAgent,
+      ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+    });
+
+    return res.json({ message: "Login successful", token });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    const token = req.token;
+    const userId = req.user.id;
+
+    if (token) {
+      await redisPost("/token/blacklist", { token, ttl: 432000 });
+    }
+
+    await redisDelete(`/session/${userId}`);
+
+    res.status(200).json({ success: true, message: "Logged out successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+export const getMe = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const cached = await redisGet(`/cache/user:${userId}`);
+
+    if (cached?.success && cached?.data) {
+      return res.status(200).json(cached.data);
+    }
+
+    const user = await User.findById(userId).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await redisPost("/cache", {
+      key: `user:${userId}`,
+      data: user.toObject(),
+      ttl: 300,
+    });
 
     res.status(200).json(user);
   } catch (err) {
@@ -184,68 +194,54 @@ export const getMe = async (req, res) => {
 };
 
 export const getUserById = async (req, res) => {
-
   try {
+    const userId = req.params.id;
 
-    const user = await User.findById(req.params.id)
-      .select("-password");
+    const cached = await redisGet(`/cache/user:${userId}`);
 
-    if (!user) {
-
-      return res.status(404).json({
-        message: "User not found"
-      });
-
+    if (cached?.success && cached?.data) {
+      return res.status(200).json(cached.data);
     }
 
-    res.status(200).json(user);
+    const user = await User.findById(userId).select("-password");
 
-  } catch (err) {
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    console.log(err);
-
-    res.status(500).json({
-      message: "Error fetching user"
+    await redisPost("/cache", {
+      key: `user:${userId}`,
+      data: user.toObject(),
+      ttl: 300,
     });
 
+    res.status(200).json(user);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Error fetching user" });
   }
 };
 
 export const verifyEmail = async (req, res) => {
   try {
-
     const token = req.params.token;
 
     console.log("Verification token:", token);
 
-    const user = await User.findOne({
-      emailVerificationToken: token
-    });
+    const user = await User.findOne({ emailVerificationToken: token });
 
-    console.log(user)
+    console.log(user);
 
     if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid verification link"
-      });
+      return res.status(400).json({ success: false, message: "Invalid verification link" });
     }
 
     if (user.isEmailVerified) {
-      return res.status(200).json({
-        success: true,
-        message: "Email already verified"
-      });
+      return res.status(200).json({ success: true, message: "Email already verified" });
     }
 
-    if (
-      !user.emailVerificationExpiry ||
-      user.emailVerificationExpiry < new Date()
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Verification link expired"
-      });
+    if (!user.emailVerificationExpiry || user.emailVerificationExpiry < new Date()) {
+      return res.status(400).json({ success: false, message: "Verification link expired" });
     }
 
     user.isEmailVerified = true;
@@ -254,107 +250,70 @@ export const verifyEmail = async (req, res) => {
 
     await user.save();
 
-    await logActivity(
-      user._id,
-      "EMAIL_VERIFIED",
-      {
-        email: user.email
-      }
-    );
+    await redisDelete(`/cache/user:${user._id}`);
 
-    return res.status(200).json({
-      success: true,
-      message: "Email verified successfully"
-    });
+    await logActivity(user._id, "EMAIL_VERIFIED", { email: user.email });
 
+    return res.status(200).json({ success: true, message: "Email verified successfully" });
   } catch (err) {
-
     console.error("Verify Email Error:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message
-    });
-
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
+
 export const resendVerificationEmail = async (req, res) => {
   try {
-
     const user = await User.findById(req.user.id);
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     if (user.isEmailVerified) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false, message: "Email already verified" });
+    }
+
+    const rateLimitResult = await redisPost("/rate-limit/check", {
+      identifier: `resend-verify:${req.user.id}`,
+      max: 3,
+      ttl: 3600,
+    });
+
+    if (rateLimitResult && !rateLimitResult.allowed) {
+      return res.status(429).json({
         success: false,
-        message: "Email already verified"
+        message: "Too many resend attempts. Please try again later.",
       });
     }
 
-    const verificationToken = crypto
-      .randomBytes(32)
-      .toString("hex");
+    const verificationToken = crypto.randomBytes(32).toString("hex");
 
     user.emailVerificationToken = verificationToken;
-
-    user.emailVerificationExpiry =
-      new Date(Date.now() + 24 * 60 * 60 * 1000);
+    user.emailVerificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await user.save();
 
-    const verifyLink =
-      `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+    const verifyLink = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
 
-    await sendVerificationEmail(
-      user.email,
-      user.firstName,
-      verifyLink
-    );
+    await sendVerificationEmail(user.email, user.firstName, verifyLink);
 
-    return res.status(200).json({
-      success: true,
-      message: "Verification email sent"
-    });
-
+    return res.status(200).json({ success: true, message: "Verification email sent" });
   } catch (err) {
-
     console.error("Resend Verification Error:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message
-    });
-
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
-export const checkVerification = async (req,res) => {
- try {
 
-  const user = await User.findById(req.params.userId)
-   .select("isEmailVerified");
+export const checkVerification = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).select("isEmailVerified");
 
-  if(!user){
-   return res.status(404).json({
-    success:false,
-    message:"User not found"
-   });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, verified: user.isEmailVerified });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
-
-  res.json({
-   success:true,
-   verified:user.isEmailVerified
-  });
-
- } catch(err){
-  res.status(500).json({
-   success:false,
-   message:err.message
-  });
- }
 };
