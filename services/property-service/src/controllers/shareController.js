@@ -1,7 +1,4 @@
-// =============================================
-// controllers/shareController.js
-// =============================================
-
+ 
 import Share from "../models/Share.js";
 
 import {
@@ -25,22 +22,19 @@ export const createShareLink = async (
                 message: "Listing ID required",
             });
         }
-
-        // generate huge professional token
+ 
         const token =
             generateAdvancedShareToken(
                 listingId,
                 userId
             );
-
-        // save in database
+ 
         const share = await Share.create({
             token,
             listingId,
             sharedBy: userId || null,
         });
-
-        // professional tracking url
+ 
         const shareUrl =
             `${process.env.SERVER_URL}/api/share/open/${token}?shared=True`;
 

@@ -1,10 +1,35 @@
 import Listing from "../models/Listings.js";
-import {cloudinary} from "../config/cloudinary.js";
+import { cloudinary } from "../config/cloudinary.js";
 import { logActivity } from "../utils/activityLogger.js";
+import { redisPost, redisGet, redisDelete } from "../utils/redisClient.js";
 
+const buildFilterCacheKey = (query) => {
+  const {
+    type, search, minPrice, maxPrice, propertyType,
+    bedrooms, bathrooms, city, furnished, parking,
+    readyToMove, amenities, sortBy, page = 1, limit = 9,
+  } = query;
 
+  return [
+    "listings:filtered",
+    type || "",
+    search || "",
+    minPrice || "",
+    maxPrice || "",
+    propertyType || "",
+    bedrooms || "",
+    bathrooms || "",
+    city || "",
+    furnished || "",
+    parking || "",
+    readyToMove || "",
+    Array.isArray(amenities) ? amenities.join(",") : amenities || "",
+    sortBy || "",
+    page,
+    limit,
+  ].join(":");
+};
 
-/* ── UPLOAD PHOTOS ── */
 export const uploadPhotos = async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
@@ -28,12 +53,11 @@ export const uploadPhotos = async (req, res) => {
     });
   }
 };
-/* CREATE LISTING */
+
 export const createListing = async (req, res) => {
   try {
-
     const creatorId = req.user.id;
-    // NEW
+
     const {
       type, purpose, title, description,
       address, city, locality, pincode,
@@ -45,13 +69,9 @@ export const createListing = async (req, res) => {
 
     const newListing = new Listing({
       creatorId,
-
-      // BASIC
       category: type,
       type,
       buyOrSell: purpose,
-
-      // ADDRESS
       address: {
         street: address,
         aptSuite: locality,
@@ -59,78 +79,56 @@ export const createListing = async (req, res) => {
         pincode,
         country: "India",
       },
-
-      // PROPERTY DETAILS
       details: {
         guestCount: beds,
         bedroomCount: beds,
         bedCount: beds,
         bathroomCount: baths,
-
         area,
         balconyCount: balconies,
         floorNumber: floors,
         totalFloors,
-
         furnishing,
         facing,
-
         propertyAge,
-
-        parking: parking || {
-          car: 0,
-          bike: 0,
-        },
+        parking: parking || { car: 0, bike: 0 },
       },
-
-      // AMENITIES
       amenities: amenities || [],
-
-      // TEMPORARY IMAGES
       listingPhotos: Array.isArray(photos) && photos.length > 0 ? photos : [],
-
-      // CONTENT
       title,
       description,
-
-      // HIGHLIGHTS
       highlight: title,
       highlightDesc: description,
-
-      // PRICE
       price,
-
       deposit: deposit || null,
       maintenance: maintenance || null,
       available: available || null,
       negotiable: negotiable || false,
-      // PAYMENT
-      paymentType:
-        purpose === "Sell" ? "one-time" : "monthly",
+      paymentType: purpose === "Sell" ? "one-time" : "monthly",
     });
 
     await newListing.save();
 
-    await logActivity(
-      creatorId,
-      "PROPERTY_CREATED",
-      {
-        propertyId: newListing._id,
-        propertyTitle: newListing.title,
-        purpose: newListing.buyOrSell,
-        price: newListing.price
-      }
-    );
+    await Promise.all([
+      redisPost("/cache/flush", { pattern: "listings:filtered*" }),
+      redisPost("/cache/flush", { pattern: `listings:my:${creatorId}*` }),
+      redisPost("/cache/flush", { pattern: "listings:recommended*" }),
+    ]);
+
+    await logActivity(creatorId, "PROPERTY_CREATED", {
+      propertyId: newListing._id,
+      propertyTitle: newListing.title,
+      purpose: newListing.buyOrSell,
+      price: newListing.price,
+    });
 
     res.status(201).json({
       success: true,
       message: "Listing created successfully",
       listing: newListing,
     });
-
   } catch (err) {
     console.error("CREATE LISTING ERROR:", err);
-
     res.status(500).json({
       success: false,
       message: "Failed to create listing",
@@ -138,201 +136,112 @@ export const createListing = async (req, res) => {
     });
   }
 };
-// controllers/listingController.js
 
 export const getFilteredListings = async (req, res) => {
   try {
+    const cacheKey = buildFilterCacheKey(req.query);
+
+    const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
+    if (cached?.success && cached?.data) {
+      return res.status(200).json(cached.data);
+    }
+
     const {
-      type,
-      search,
-      minPrice,
-      maxPrice,
-      propertyType,
-      bedrooms,
-      bathrooms,
-      city,
-      furnished,
-      parking,
-      readyToMove,
-      amenities,
-      sortBy,
-      page = 1,
-      limit = 9
+      type, search, minPrice, maxPrice, propertyType,
+      bedrooms, bathrooms, city, furnished, parking,
+      readyToMove, amenities, sortBy,
+      page = 1, limit = 9,
     } = req.query;
 
     const filter = {};
 
-    // BUY / RENT
     if (type) {
-      filter.buyOrSell = {
-        $regex: type,
-        $options: "i"
-      };
+      filter.buyOrSell = { $regex: type, $options: "i" };
     }
 
-    // PROPERTY TYPE
     if (propertyType && propertyType !== "All") {
       filter.type = propertyType;
     }
 
-    // SEARCH
-    if (
-      search &&
-      search !== "all" &&
-      search !== "undefined"
-    ) {
+    if (search && search !== "all" && search !== "undefined") {
       filter.$or = [
-        {
-          category: {
-            $regex: search,
-            $options: "i"
-          }
-        },
-        {
-          title: {
-            $regex: search,
-            $options: "i"
-          }
-        },
-        {
-          "address.city": {
-            $regex: search,
-            $options: "i"
-          }
-        }
+        { category: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } },
+        { "address.city": { $regex: search, $options: "i" } },
       ];
     }
 
-    // CITY
     if (city?.trim()) {
-      filter["address.city"] = {
-        $regex: city,
-        $options: "i"
-      };
+      filter["address.city"] = { $regex: city, $options: "i" };
     }
 
-    // PRICE
     filter.price = {};
+    if (minPrice) filter.price.$gte = Number(minPrice);
+    if (maxPrice) filter.price.$lte = Number(maxPrice);
 
-    if (minPrice) {
-      filter.price.$gte = Number(minPrice);
-    }
-
-    if (maxPrice) {
-      filter.price.$lte = Number(maxPrice);
-    }
-
-    // BEDROOMS
     if (bedrooms && bedrooms !== "Any") {
-      if (bedrooms === "4+") {
-        filter["details.bedroomCount"] = {
-          $gte: 4
-        };
-      } else {
-        filter["details.bedroomCount"] =
-          Number(bedrooms);
-      }
+      filter["details.bedroomCount"] =
+        bedrooms === "4+" ? { $gte: 4 } : Number(bedrooms);
     }
 
-    // BATHROOMS
     if (bathrooms && bathrooms !== "Any") {
-      if (bathrooms === "4+") {
-        filter["details.bathroomCount"] = {
-          $gte: 4
-        };
-      } else {
-        filter["details.bathroomCount"] =
-          Number(bathrooms);
-      }
+      filter["details.bathroomCount"] =
+        bathrooms === "4+" ? { $gte: 4 } : Number(bathrooms);
     }
 
-    // FURNISHED
-    if (furnished === "true") {
-      filter["details.furnished"] = true;
-    }
+    if (furnished === "true") filter["details.furnished"] = true;
+    if (parking === "true") filter["details.parking"] = true;
+    if (readyToMove === "true") filter.status = "ready";
 
-    // PARKING
-    if (parking === "true") {
-      filter["details.parking"] = true;
-    }
-
-    // READY TO MOVE
-    if (readyToMove === "true") {
-      filter.status = "ready";
-    }
-
-    // AMENITIES
     if (amenities) {
-      const amenitiesArray = Array.isArray(amenities)
-        ? amenities
-        : [amenities];
-
-      filter.amenities = {
-        $all: amenitiesArray
-      };
+      const amenitiesArray = Array.isArray(amenities) ? amenities : [amenities];
+      filter.amenities = { $all: amenitiesArray };
     }
 
-    // SORTING
-    let sortObject = {
-      promoted: -1,
-      createdAt: -1
-    };
+    let sortObject = { promoted: -1, createdAt: -1 };
 
     switch (sortBy) {
       case "Price: Low–High":
         sortObject = { price: 1 };
         break;
-
       case "Price: High–Low":
         sortObject = { price: -1 };
         break;
-
       case "Newest First":
         sortObject = { createdAt: -1 };
         break;
     }
 
-    // PAGINATION
     const pageNum = Number(page);
     const limitNum = Number(limit);
-
     const skip = (pageNum - 1) * limitNum;
 
-    // QUERY
-    const [listings, totalCount] =
-      await Promise.all([
-        Listing.find(filter)
-          .sort(sortObject)
-          .skip(skip)
-          .limit(limitNum),
+    const [listings, totalCount] = await Promise.all([
+      Listing.find(filter).sort(sortObject).skip(skip).limit(limitNum),
+      Listing.countDocuments(filter),
+    ]);
 
-        Listing.countDocuments(filter)
-      ]);
-
-    // RESPONSE
-    res.status(200).json({
+    const responseData = {
       listings,
       totalCount,
       currentPage: pageNum,
-      totalPages: Math.ceil(
-        totalCount / limitNum
-      ),
-      pageSize: limitNum
+      totalPages: Math.ceil(totalCount / limitNum),
+      pageSize: limitNum,
+    };
+
+    await redisPost("/cache", {
+      key: cacheKey,
+      data: responseData,
+      ttl: 300,
     });
 
+    res.status(200).json(responseData);
   } catch (err) {
-    console.error(
-      "FILTER ERROR:",
-      err
-    );
-
-    res.status(500).json({
-      message: "Server Error",
-      error: err.message
-    });
+    console.error("FILTER ERROR:", err);
+    res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
-// Keep your existing searchListings for backward compatibility if needed
+
 export const searchListings = async (req, res) => {
   try {
     const { search, type } = req.query;
@@ -346,7 +255,7 @@ export const searchListings = async (req, res) => {
       filter.$or = [
         { category: { $regex: search, $options: "i" } },
         { title: { $regex: search, $options: "i" } },
-        { "address.city": { $regex: search, $options: "i" } }
+        { "address.city": { $regex: search, $options: "i" } },
       ];
     }
 
@@ -358,33 +267,38 @@ export const searchListings = async (req, res) => {
   }
 };
 
-
-/* GET SINGLE LISTING */
 export const getListingById = async (req, res) => {
   try {
+    const { id } = req.params;
 
-    const listing = await Listing.findById(req.params.id);
-    if (!listing) {
-      return res.status(404).json({
-        message: "Listing not found"
-      });
+    const cached = await redisGet(`/cache/listing:${id}`);
+    if (cached?.success && cached?.data) {
+      return res.status(200).json(cached.data);
     }
+
+    const listing = await Listing.findById(id);
+
+    if (!listing) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    await redisPost("/cache", {
+      key: `listing:${id}`,
+      data: listing.toObject(),
+      ttl: 600,
+    });
 
     res.status(200).json(listing);
-
   } catch (err) {
-
-    res.status(500).json({
-      message: "Error fetching listing"
-    });
-
+    res.status(500).json({ message: "Error fetching listing" });
   }
 };
 
-/* UPDATE LISTING */
 export const updateListing = async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id);
+    const { id } = req.params;
+
+    const listing = await Listing.findById(id);
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
@@ -394,37 +308,32 @@ export const updateListing = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    const updated = await Listing.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const updated = await Listing.findByIdAndUpdate(id, req.body, { new: true });
 
-    await logActivity(
-      req.user.id,
-      "PROPERTY_UPDATED",
-      {
-        propertyId: updated._id,
-        propertyTitle: updated.title
-      }
-    );
+    await Promise.all([
+      redisDelete(`/cache/listing:${id}`),
+      redisPost("/cache/flush", { pattern: "listings:filtered*" }),
+      redisPost("/cache/flush", { pattern: `listings:my:${req.user.id}*` }),
+      redisPost("/cache/flush", { pattern: "listings:recommended*" }),
+    ]);
+
+    await logActivity(req.user.id, "PROPERTY_UPDATED", {
+      propertyId: updated._id,
+      propertyTitle: updated.title,
+    });
 
     res.json(updated);
-
   } catch (err) {
     console.error("UPDATE ERROR:", err);
-
-    res.status(500).json({
-      message: "Update failed",
-      error: err.message,
-    });
+    res.status(500).json({ message: "Update failed", error: err.message });
   }
 };
 
-/* DELETE LISTING */
 export const deleteListing = async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id);
+    const { id } = req.params;
+
+    const listing = await Listing.findById(id);
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
@@ -434,45 +343,59 @@ export const deleteListing = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    await Listing.findByIdAndDelete(req.params.id);
+    const propertyTitle = listing.title;
+    const creatorId = listing.creatorId;
 
-    await logActivity(
-      req.user.id,
-      "PROPERTY_DELETED",
-      {
-        propertyTitle
-      }
-    );
+    await Listing.findByIdAndDelete(id);
+
+    await Promise.all([
+      redisDelete(`/cache/listing:${id}`),
+      redisPost("/cache/flush", { pattern: "listings:filtered*" }),
+      redisPost("/cache/flush", { pattern: `listings:my:${creatorId}*` }),
+      redisPost("/cache/flush", { pattern: "listings:recommended*" }),
+    ]);
+
+    await logActivity(req.user.id, "PROPERTY_DELETED", { propertyTitle });
 
     res.json({ message: "Listing deleted successfully" });
-
   } catch (err) {
     res.status(500).json({ message: "Delete failed" });
   }
 };
 
-
 export const getMyListings = async (req, res) => {
   try {
+    const userId = req.user.id;
     const page = Number(req.query.page) || 1;
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    const [listings, total] = await Promise.all([
-      Listing.find({ creatorId: req.user.id })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
+    const cacheKey = `listings:my:${userId}:page:${page}`;
 
-      Listing.countDocuments({ creatorId: req.user.id }),
+    const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
+    if (cached?.success && cached?.data) {
+      return res.status(200).json(cached.data);
+    }
+
+    const [listings, total] = await Promise.all([
+      Listing.find({ creatorId: userId }).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Listing.countDocuments({ creatorId: userId }),
     ]);
 
-    res.json({
+    const responseData = {
       listings,
       total,
       hasMore: skip + listings.length < total,
       currentPage: page,
+    };
+
+    await redisPost("/cache", {
+      key: cacheKey,
+      data: responseData,
+      ttl: 120,
     });
+
+    res.json(responseData);
   } catch (err) {
     res.status(500).json({ message: "Error fetching listings" });
   }
@@ -482,25 +405,29 @@ export const getRecommended = async (req, res) => {
   try {
     const { city, preferences, limit = 10 } = req.query;
 
+    const cacheKey = `listings:recommended:${city || ""}:${preferences || ""}:${limit}`;
+
+    const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
+    if (cached?.success && cached?.data) {
+      return res.status(200).json(cached.data);
+    }
+
     const prefArray = preferences
-      ? preferences.split(",").map(p => p.trim())
+      ? preferences.split(",").map((p) => p.trim())
       : [];
 
     const query = {};
 
     if (city) {
-      const cityArray = city.split(",").map(c => c.trim());
-
-      query["address.city"] = {
-        $in: cityArray.map(c => new RegExp(c, "i"))
-      };
+      const cityArray = city.split(",").map((c) => c.trim());
+      query["address.city"] = { $in: cityArray.map((c) => new RegExp(c, "i")) };
     }
 
     if (prefArray.length > 0) {
       query["$or"] = [
         { type: { $in: prefArray } },
         { category: { $in: prefArray } },
-        { title: { $in: prefArray.map(p => new RegExp(p, "i")) } },
+        { title: { $in: prefArray.map((p) => new RegExp(p, "i")) } },
       ];
     }
 
@@ -508,8 +435,13 @@ export const getRecommended = async (req, res) => {
       .limit(Number(limit))
       .sort({ createdAt: -1 });
 
-    res.json(properties);
+    await redisPost("/cache", {
+      key: cacheKey,
+      data: properties,
+      ttl: 600,
+    });
 
+    res.json(properties);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
