@@ -5,63 +5,102 @@ services:
     build: ./services/auth-service
     ports:
       - "5000:5000"
-    env_file: ./services/auth-service/.env
+    env_file:
+      - ./services/auth-service/.env
     depends_on:
       mongo:
+        condition: service_started
+      redis:
         condition: service_started
 
   property-service:
     build: ./services/property-service
     ports:
       - "5001:5001"
-    env_file: ./services/property-service/.env
+    env_file:
+      - ./services/property-service/.env
     depends_on:
       mongo:
+        condition: service_started
+      redis:
         condition: service_started
 
   payment-service:
     build: ./services/payment-service
     ports:
       - "5002:5002"
-    env_file: ./services/payment-service/.env
+    env_file:
+      - ./services/payment-service/.env
     depends_on:
       mongo:
+        condition: service_started
+      redis:
         condition: service_started
 
   notification-service:
     build: ./services/notification-service
     ports:
       - "5003:5003"
-    env_file: ./services/notification-service/.env
+    env_file:
+      - ./services/notification-service/.env
     depends_on:
       mongo:
+        condition: service_started
+      redis:
         condition: service_started
 
   activity-service:
     build: ./services/activity-service
     ports:
       - "5004:5004"
-    env_file: ./services/activity-service/.env
+    env_file:
+      - ./services/activity-service/.env
     depends_on:
       mongo:
+        condition: service_started
+      redis:
         condition: service_started
 
   chat-service:
     build: ./services/chat-service
     ports:
-     - "5005:5005"
-    env_file: ./services/chat-service/.env
+      - "5005:5005"
+    env_file:
+      - ./services/chat-service/.env
     depends_on:
       mongo:
         condition: service_started
-      
+      redis:
+        condition: service_started
+
+  redis-service:
+    build: ./services/redis-service
+    ports:
+      - "5006:5006"
+    env_file:
+      - ./services/redis-service/.env
+    depends_on:
+      redis:
+        condition: service_started
+
   mongo:
     image: mongo
     container_name: rentsmart-mongo
+    restart: always
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
 
+  redis:
+    image: redis:latest
+    container_name: rentsmart-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
 volumes:
   mongo-data:
+  redis-data:
