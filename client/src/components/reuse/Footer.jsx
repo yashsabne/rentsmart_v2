@@ -9,13 +9,11 @@ const Footer =  () => {
     Press: "/press",
     Blog: "/blog",
 
-    Buy: "/buy",
-    Rent: "/rent",
-    Sell: "/sell",
-    Commercial: "/commercial",
-    Premium: "/premium",
+    Buy: "/search-for-property/sell",
+    Rent: "/search-for-property/rent",  
+    Premium: "/premium-coming-soon",
 
-    "Help Center": "/help-center",
+    "Help Center": "/help",
     "Contact Us": "/contact",
     "Privacy Policy": "/privacy-policy",
     developer: "/developer",

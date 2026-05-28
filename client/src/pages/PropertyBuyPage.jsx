@@ -11,6 +11,7 @@ import debounce from 'lodash/debounce';
 import SaveButton from "../components/SaveBtn";
 import { API } from "../../apis";
 import "./styles/propertybuy.css"
+import Footer from "../components/reuse/Footer";
 
 
 const PAGE_SIZE = 9;
@@ -333,7 +334,7 @@ export default function PropertyBuyPage() {
   };
 
   return (
-
+<>
 
 
     <div style={{ minHeight: "100vh", background: C.cream, fontFamily: "'DM Sans', sans-serif", color: C.ink }}>
@@ -494,5 +495,8 @@ export default function PropertyBuyPage() {
         )}
       </div>
     </div>
+
+    <Footer/>
+    </>
   );
 }

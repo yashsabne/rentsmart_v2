@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../../apis";
+import Footer from "../components/reuse/Footer";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -662,6 +663,7 @@ export default function CreateListing() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
+    <>
     <div style={{ minHeight: "100vh", background: C.cream, fontFamily: "'DM Sans', sans-serif", color: C.ink }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -1223,5 +1225,8 @@ export default function CreateListing() {
         </div>
       </div>
     </div>
+
+    <Footer/>
+    </>
   );
 }

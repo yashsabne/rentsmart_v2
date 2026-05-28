@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { API } from "../../apis";
 import { convertProcessSignalToExitCode } from "util";
+import Footer from "../components/reuse/Footer";
 
 const C = {
   cream: "#FAFAF7",
@@ -397,6 +398,7 @@ const handlePhotoAdd = () => {
   }
 
   return (
+    <>
     <div style={{ minHeight: "100vh", background: C.cream, fontFamily: "'DM Sans', sans-serif", color: C.ink }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -734,5 +736,7 @@ const handlePhotoAdd = () => {
         </div>
       </div>
     </div>
+    <Footer/>
+    </>
   );
 }

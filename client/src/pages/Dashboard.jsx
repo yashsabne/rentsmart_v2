@@ -8,6 +8,7 @@ import { API } from "../../apis.js";
 import "./styles/dashboard.css"
 // import MessagesPage from "../messages/MessagesPage";
 import MessagesPage from "../components/messages/MessagesPage.jsx";
+import Footer from "../components/reuse/Footer.jsx";
 
 
 const todayStr = () =>
@@ -171,6 +172,7 @@ export default function Dashboard() {
 };
 
   return (
+    <>
     <div className="dashboard-root">
       {/* ── MOBILE OVERLAY ── */}
       {sidebarOpen && (
@@ -763,5 +765,7 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
+    <Footer/>
+    </>
   );
 }

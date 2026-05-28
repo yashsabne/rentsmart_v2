@@ -5,6 +5,7 @@ import { C,AMENITY_ICONS } from "../constants";
 import ContactCard from "../components/property/ContactCard";
 import { API } from "../../apis";
 import "./styles/listingdetails.css"
+import Footer from "../components/reuse/Footer";
  
 const tabs = ["Overview", "Amenities", "Location", "Similar"];
 
@@ -264,6 +265,7 @@ const handleSend = async () => {
   ].filter(Boolean).join(", ");
 
   return (
+    <>
     <div style={{ minHeight: "100vh", background: C.cream, fontFamily: "'DM Sans', sans-serif", color: C.ink }}>
     
 
@@ -592,5 +594,7 @@ const handleSend = async () => {
         </div>
       </div>
     </div>
+    <Footer/>
+    </>
   );
 }

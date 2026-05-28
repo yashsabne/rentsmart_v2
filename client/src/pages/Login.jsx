@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Link, useNavigate } from "react-router-dom";
 import { API } from "../../apis";
+import Footer from "../components/reuse/Footer";
 
 const C = {
   cream: "#FAFAF7",
@@ -131,6 +132,7 @@ export default function LoginPage() {
   };
 
   return (
+    <>
     <div style={{ minHeight: "100vh", background: C.cream, fontFamily: "'DM Sans', sans-serif", color: C.ink }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -299,8 +301,7 @@ export default function LoginPage() {
                     </button>
                   ))}
                 </div>
-
-                {/* Footer note */}
+ 
                 <p style={{ textAlign: "center", fontSize: 12, color: C.light, lineHeight: 1.7 }}>
                   By signing in, you agree to our{" "}
                   <a href="#" style={{ color: C.muted, borderBottom: `1px solid ${C.border}` }}>Terms</a> and{" "}
@@ -313,5 +314,8 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+
+    <Footer/>
+    </>
   );
 }
