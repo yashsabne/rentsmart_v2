@@ -61,18 +61,16 @@ const getConversationsForUser = async (userId, filter = "all") => {
         isActive: true,
     };
 
-
-    console.log("userId", userId);
+ 
 
     const conversations = await Conversation.find(query)
         .sort({ lastMessageAt: -1 })
         .lean();
 
-    console.log("found conversations", conversations.length);
-
-    if (conversations.length) {
-        console.log(JSON.stringify(conversations[0], null, 2));
-    }
+ 
+    // if (conversations.length) {
+    //     console.log(JSON.stringify(conversations[0], null, 2));
+    // }
 
      const userPublicId = conversations[0]?.participants.find(
         (p) => p.userId.toString() === userId.toString()

@@ -126,8 +126,7 @@ const getMessages = async (req, res) => {
       createdAt: m.createdAt,
     }));
 
-    console.log(safe,'tjos os same')
-
+ 
     return res.status(200).json({
       messages: safe,
       hasMore: messages.length === PAGE_SIZE,
