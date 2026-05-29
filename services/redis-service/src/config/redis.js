@@ -4,8 +4,10 @@ import Redis from "ioredis";
 dotenv.config()
 
 let redisClient;
- 
+
 const connectRedis = () => {
+
+  /** DEVELOPMENT
   redisClient = new Redis({
     host: process.env.REDIS_HOST || "redis",
     port: parseInt(process.env.REDIS_PORT) || 6379,
@@ -15,12 +17,13 @@ const connectRedis = () => {
       return delay;
     },
   });
+   */
+   redisClient = new Redis(process.env.REDIS_URL);
 
 
-  redisClient.on("connect", () => { 
-    console.log("Redis Connected Successfully");
-    console.log("HOST:", process.env.REDIS_HOST || "redis");
-    console.log("PORT:", process.env.REDIS_PORT || 6379);
+
+  redisClient.on("connect", () => {
+    console.log("Redis Connected Successfully Redis Connected Successfully Using Upstash Redis");
   });
 
   redisClient.on("error", (err) => {
