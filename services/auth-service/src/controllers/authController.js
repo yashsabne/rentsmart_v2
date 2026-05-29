@@ -102,7 +102,6 @@ export const login = async (req, res) => {
 
     if (rateLimitResult && !rateLimitResult.allowed) {
 
-
       return res.status(429).json({
         success: false,
         message: "Too many login attempts. Please try again later.",
