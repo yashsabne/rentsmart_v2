@@ -59,6 +59,7 @@ export const register = async (req, res) => {
     // } catch (error) {
     //   console.error("Verification email failed:", error);
     // }
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
     const userResponse = user.toObject();
@@ -72,10 +73,10 @@ export const register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Registered successfully. Please verify your email.",
+      message: "Registered successfully. Please verify youWr email.",
       token,
       user: userResponse,
-    });
+    });W
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: err.message });
