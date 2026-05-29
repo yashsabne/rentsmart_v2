@@ -21,14 +21,46 @@ export const redisPost = async (path, body) => {
 };
 
 export const redisGet = async (path) => {
+  console.log("\n========== REDIS GET ==========");
+  console.log("Path:", path);
 
-  console.log("redisGet path =", path);
+  const url = `${REDIS_SERVICE_URL}/api/redis${path}`;
+
+  console.log("URL:", url);
+
+  // Detect bad requests
+  if (path === "/cache" || path === "/cache/" || !path) {
+    console.error("🚨 BAD CACHE REQUEST DETECTED");
+    console.trace("Call Stack");
+  }
+
+  const start = Date.now();
 
   try {
-    const res = await fetch(`${REDIS_SERVICE_URL}/api/redis${path}`);
-    return await res.json();
+    const res = await fetch(url);
+
+    console.log("Status:", res.status);
+    console.log("Content-Type:", res.headers.get("content-type"));
+    console.log(`Request took ${Date.now() - start}ms`);
+
+    const text = await res.text();
+
+    console.log(
+      "Response Preview:",
+      text.substring(0, 300)
+    );
+
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      console.error("❌ JSON Parse Failed");
+      console.error("Raw Response:", text);
+      return null;
+    }
   } catch (error) {
     console.error("Redis service GET failed:", error.message);
+    console.error(`Failed after ${Date.now() - start}ms`);
+    console.trace("GET Error Trace");
     return null;
   }
 };
