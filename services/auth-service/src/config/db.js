@@ -6,14 +6,9 @@ const connectDB = async () => {
     console.log("ENV URI:", process.env.MONGO_URI);
 
     const conn = await mongoose.connect(process.env.MONGO_URI);
-
-    console.log("=================================");
+ 
     console.log("Mongo Connected Successfully");
-    console.log("DB NAME:", conn.connection.name);
-    console.log("HOST:", conn.connection.host);
-    console.log("PORT:", conn.connection.port);
-    console.log("READY STATE:", mongoose.connection.readyState);
-    console.log("=================================");
+  
 
     mongoose.connection.on("connected", () => {
       console.log("Mongoose connected to:", mongoose.connection.name);

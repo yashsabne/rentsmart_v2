@@ -57,11 +57,11 @@ function Field({ label, type = "text", placeholder, value, onChange, error, righ
 }
 
 export default function LoginPage() {
-  const [tab, setTab] = useState("email"); // email | phone
+  const [tab, setTab] = useState("email");  
   const [showPass, setShowPass] = useState(false);
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
-
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", phone: "", password: "" });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
@@ -98,6 +98,7 @@ export default function LoginPage() {
     setErrors({});
 
     try {
+      setLoading(true)
       const res = await fetch(`${API.AUTH}/api/auth/login`, {
         method: "POST",
         headers: {
@@ -114,20 +115,26 @@ export default function LoginPage() {
 
       if (!res.ok) {
         setErrors({ password: data.message || "Login failed" });
+        
+      setLoading(false)
         return;
       }
  
       localStorage.setItem("token", data.token);
  
       setSuccess(true);
+      
+      setLoading(false)
+      
  
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 1000);
+      }, 2000);
 
     } catch (err) {
       console.error(err);
       setErrors({ password: "Server error" });
+      setLoading(false)
     }
   };
 
@@ -277,10 +284,11 @@ export default function LoginPage() {
 
                 {/* Sign in button */}
                 <button onClick={handleLogin}
-                  style={{ width: "100%", padding: "13px", borderRadius: 10, border: "none", background: C.ink, color: C.white, fontSize: 14, fontWeight: 600, marginBottom: 20, transition: "background .2s" }}
+                  disabled={loading}
+                  style={{ width: "100%", padding: "13px", borderRadius: 10, border: "none", background: C.ink, color: C.white, fontSize: 14, fontWeight: 600, marginBottom: 20, transition: "background .2s",cursor:loading?"not-allowed":"pointer" }}
                   onMouseEnter={e => e.currentTarget.style.background = "#2a2a2a"}
                   onMouseLeave={e => e.currentTarget.style.background = C.ink}>
-                  Sign in
+                   {loading?"Working...":"Sign in" } 
                 </button>
 
                 {/* Divider */}

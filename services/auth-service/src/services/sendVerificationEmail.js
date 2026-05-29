@@ -6,6 +6,9 @@ export const sendVerificationEmail = async (
   verificationLink
 ) => {
 
+
+  console.log("email verifation sent successsfulyy")
+
   await transporter.sendMail({
     from: `"RentSmart" <${process.env.OWNER_EMAIL}>`,
     to: email,

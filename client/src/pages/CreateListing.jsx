@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../../apis";
 import Footer from "../components/reuse/Footer";
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
+ 
 const C = {
   cream:   "#FAFAF7",
   white:   "#FFFFFF",
@@ -18,8 +17,7 @@ const C = {
   red:     "#C0392B",
   redBg:   "#FDECEA",
 };
-
-// ─── Constants ────────────────────────────────────────────────────────────────
+ 
 const STEPS = [
   { label: "Basic Info", desc: "Type, purpose & title" },
   { label: "Location",   desc: "Address & city" },

@@ -50,15 +50,15 @@ export const register = async (req, res) => {
 
     const verifyLink = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
 
-    // try {
-    //   await sendVerificationEmail(
-    //     user.email,
-    //     user.firstName,
-    //     verifyLink
-    //   );
-    // } catch (error) {
-    //   console.error("Verification email failed:", error);
-    // }
+    try {
+      await sendVerificationEmail(
+        user.email,
+        user.firstName,
+        verifyLink
+      );
+    } catch (error) {
+      console.error("Verification email failed:", error);
+    }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
@@ -233,12 +233,10 @@ export const getUserById = async (req, res) => {
 export const verifyEmail = async (req, res) => {
   try {
     const token = req.params.token;
-
-    console.log("Verification token:", token);
+ 
 
     const user = await User.findOne({ emailVerificationToken: token });
-
-    console.log(user);
+ 
 
     if (!user) {
       return res.status(400).json({ success: false, message: "Invalid verification link" });

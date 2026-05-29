@@ -5,8 +5,7 @@ import VerifyEmailButton from "../components/VerifyEmailButton";
 import { activityConfig, C, navItems } from "../constants";
 import { Avatar, StatusBadge, formatPrice, fullLocation, userInitials } from "../const_func/dashFunction.jsx";
 import { API } from "../../apis.js";
-import "./styles/dashboard.css"
-// import MessagesPage from "../messages/MessagesPage";
+import "./styles/dashboard.css" ;
 import MessagesPage from "../components/messages/MessagesPage.jsx";
 import Footer from "../components/reuse/Footer.jsx";
 
@@ -186,7 +185,10 @@ export default function Dashboard() {
       {/* ── SIDEBAR ── */}
       <aside className={`dashboard-sidebar${sidebarOpen ? " sidebar-open" : ""}`} aria-label="Main navigation">
         {/* Logo */}
-        <div className="sidebar-logo playfair">
+        <div
+        onClick={ () =>{  navigate("/")}}
+        style={{cursor:'pointer'}}
+         className="sidebar-logo playfair">
           Rent<span className="sidebar-logo-accent">Smart</span>
         </div>
 

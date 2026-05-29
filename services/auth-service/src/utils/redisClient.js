@@ -7,8 +7,7 @@ export const redisPost = async (path, body) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-
-    console.log(res)
+ 
 
     return await res.json();
   } catch (error) {
