@@ -50,15 +50,15 @@ export const register = async (req, res) => {
 
     const verifyLink = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
 
-    try {
-      await sendVerificationEmail(
-        user.email,
-        user.firstName,
-        verifyLink
-      );
-    } catch (error) {
-      console.error("Verification email failed:", error);
-    }
+    // try {
+    //   await sendVerificationEmail(
+    //     user.email,
+    //     user.firstName,
+    //     verifyLink
+    //   );
+    // } catch (error) {
+    //   console.error("Verification email failed:", error);
+    // }
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
     const userResponse = user.toObject();
