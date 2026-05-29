@@ -76,7 +76,7 @@ export const register = async (req, res) => {
       message: "Registered successfully. Please verify youWr email.",
       token,
       user: userResponse,
-    });W
+    });
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: err.message });
