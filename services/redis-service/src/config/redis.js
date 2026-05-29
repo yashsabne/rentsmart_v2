@@ -21,7 +21,6 @@ const connectRedis = () => {
    redisClient = new Redis(process.env.REDIS_URL);
 
 
-
   redisClient.on("connect", () => {
     console.log("Redis Connected Successfully Redis Connected Successfully Using Upstash Redis");
   });
