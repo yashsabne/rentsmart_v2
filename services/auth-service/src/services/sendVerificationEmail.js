@@ -7,8 +7,7 @@ export const sendVerificationEmail = async (
   verificationLink
 ) => {
 
-  console.log(process.env.BREVO_API_KEY,"this is api key")
-
+ 
   const html = `
     <div style="font-family:Arial;padding:20px">
       <h2>Hello ${firstName}</h2>
