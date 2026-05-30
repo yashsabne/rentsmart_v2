@@ -1,58 +1,74 @@
 import transporter from "../config/mail.js";
 
-
+ 
 export const sendVerificationEmail = async (
   email,
   firstName,
   verificationLink
 ) => {
 
+  console.log(process.env.BREVO_API_KEY,"this is api key")
 
-  console.log("email verifation started")
+  const html = `
+    <div style="font-family:Arial;padding:20px">
+      <h2>Hello ${firstName}</h2>
 
- 
-  await transporter.sendMail({
-    from: `"RentSmart" <${process.env.OWNER_EMAIL}>`,
-    to: email,
-    subject: "Verify your RentSmart account",
+      <p>Welcome to RentSmart.</p>
 
-    html: `
-      <div style="font-family:Arial;padding:20px">
-        <h2>Hello ${firstName}</h2>
+      <p>Please verify your email address.</p>
 
-        <p>
-          Welcome to RentSmart.
-        </p>
+      <a
+        href="${verificationLink}"
+        style="
+          display:inline-block;
+          padding:12px 24px;
+          background:#2563eb;
+          color:white;
+          text-decoration:none;
+          border-radius:8px;
+        "
+      >
+        Verify Email
+      </a>
 
-        <p>
-          Please verify your email address to unlock:
-        </p>
+      <p>Link expires in 24 hours.</p>
+    </div>
+  `;
 
-        <ul>
-          <li>Create Property Listings</li>
-          <li>Reveal Owner Contact Details</li>
-          <li>Send Property Inquiries</li>
-        </ul>
+  const response = await fetch(
+    "https://api.brevo.com/v3/smtp/email",
+    {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "api-key": process.env.BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender: {
+          name: "RentSmart",
+          email: process.env.OWNER_EMAIL,
+        },
+        to: [
+          {
+            email,
+            name: firstName,
+          },
+        ],
+        subject: "Verify your RentSmart account",
+        htmlContent: html,
+      }),
+    }
+  );
 
-        <a
-          href="${verificationLink}"
-          style="
-            display:inline-block;
-            padding:12px 24px;
-            background:#2563eb;
-            color:white;
-            text-decoration:none;
-            border-radius:8px;
-          "
-        >
-          Verify Email
-        </a>
+  const data = await response.json();
 
-        <p>
-          Link expires in 24 hours.
-        </p>
-      </div>
-    `,
-  });
+  console.log("Brevo Response:", data);
 
+  if (!response.ok) {
+    throw new Error(JSON.stringify(data));
+  }
+
+  return data;
 };
+ 
