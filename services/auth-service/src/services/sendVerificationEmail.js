@@ -1,27 +1,5 @@
 import transporter from "../config/mail.js";
-  import dns from "dns/promises";
 
-  import net from "node:net";
-
-const socket = net.createConnection({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-});
-
-socket.on("connect", () => {
-  console.log("TCP CONNECTED");
-  socket.destroy();
-});
-
-socket.on("timeout", () => {
-  console.log("TCP TIMEOUT");
-  socket.destroy();
-});
-
-socket.on("error", (err) => {
-  console.error("TCP ERROR:", err);
-});
- 
 
 export const sendVerificationEmail = async (
   email,
@@ -32,14 +10,7 @@ export const sendVerificationEmail = async (
 
   console.log("email verifation started")
 
-
-try {
-  const result = await dns.lookup("smtp-relay.brevo.com");
-  console.log("DNS Result:", result);
-} catch (err) {
-  console.error("DNS Error:", err);
-}
-
+ 
   await transporter.sendMail({
     from: `"RentSmart" <${process.env.OWNER_EMAIL}>`,
     to: email,
