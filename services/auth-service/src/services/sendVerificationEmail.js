@@ -1,4 +1,6 @@
 import transporter from "../config/mail.js";
+  import dns from "dns/promises";
+
  
 
 export const sendVerificationEmail = async (
@@ -10,7 +12,13 @@ export const sendVerificationEmail = async (
 
   console.log("email verifation started")
 
-  console.log(transporter,'waht transporter giving me')
+
+try {
+  const result = await dns.lookup("smtp-relay.brevo.com");
+  console.log("DNS Result:", result);
+} catch (err) {
+  console.error("DNS Error:", err);
+}
 
   await transporter.sendMail({
     from: `"RentSmart" <${process.env.OWNER_EMAIL}>`,
