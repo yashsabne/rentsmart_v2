@@ -1,4 +1,7 @@
 import nodemailer from "nodemailer";
+
+throw new Error("MAIL_JS_TEST");
+
  console.log("MAIL.JS LOADED MAIL.JS LOADED MAIL.JS LOADED MAIL.JS LOADED MAIL.JS LOADEDMAIL.JS LOADEDMAIL.JS LOADEDMAIL.JS LOADEDMAIL.JS LOADEDMAIL.JS LOADED ");
 
 const transporter = nodemailer.createTransport({
