@@ -1,7 +1,5 @@
 const REDIS_SERVICE_URL = process.env.REDIS_SERVICE_URL;
 
-console.log(REDIS_SERVICE_URL,"this is redis url")
-
 export const redisPost = async (path, body) => {
   try {
     const res = await fetch(`${REDIS_SERVICE_URL}/api/redis${path}`, {
@@ -9,17 +7,8 @@ export const redisPost = async (path, body) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-
-    console.log("Status:", res.status);
-console.log("Content-Type:", res.headers.get("content-type"));
-
-const text = await res.text();
-console.log(text);
  
-
-    console.log("this is what we are fetching",`${REDIS_SERVICE_URL}/api/redis${path}`)
-
-    // return await res.json();
+    return await res.json();
   } catch (error) {
     console.error("Redis service POST failed:", error.message);
     return null;
@@ -29,14 +18,7 @@ console.log(text);
 export const redisGet = async (path) => {
   try {
     const res = await fetch(`${REDIS_SERVICE_URL}/api/redis${path}`);
-
-    console.log("Status:", res.status);
-console.log("Content-Type:", res.headers.get("content-type"));
-
-const text = await res.text();
-console.log(text);
-
-    // return await res.json();
+    return await res.json();
   } catch (error) {
     console.error("Redis service GET failed:", error.message);
     return null;
