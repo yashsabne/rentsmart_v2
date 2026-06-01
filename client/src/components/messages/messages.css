@@ -977,32 +977,4 @@
     display: none;
   }
 }
-
-
-.focus-toolbar {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  z-index: 100;
-}
-
-.focus-btn {
-  padding: 8px 14px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  background: #111827;
-  color: white;
-}
-
-.blur-panel {
-  filter: blur(6px);
-  opacity: 0.25;
-  pointer-events: none;
-  transition: all 0.3s ease;
-}
-
-.messages-main--focused {
-  z-index: 5;
-}
+ 
