@@ -39,7 +39,7 @@ export default function PropertyBuyPage() {
   const [searchParams] = useSearchParams();
   const search = searchParams.get("search") || "all";
 
-  const PAGE_SIZE = 9;
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     const query = new URLSearchParams();
@@ -462,8 +462,7 @@ export default function PropertyBuyPage() {
                           </span>
 
                         </div>
-
-                        {/* Save Button */}
+ 
                         <SaveButton
                           id={p._id}
                           isSaved={savedIds.includes(p._id)}

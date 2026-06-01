@@ -10,21 +10,13 @@ const C = {
   goldLight: "rgba(200,169,110,0.12)",
 };
 
-/**
- * Pagination
- * Props:
- *   currentPage  : number  (1-based)
- *   totalPages   : number
- *   onPageChange : (page: number) => void
- *   totalItems   : number   (optional — shows "Showing X–Y of Z")
- *   pageSize     : number   (optional, default 10)
- */
+ 
 export default function Pagination({
   currentPage = 1,
   totalPages = 1,
   onPageChange,
   totalItems,
-  pageSize = 10,
+  pageSize = 20,
 }) {
   // Scroll to top of listing section smoothly on page change
   useEffect(() => {

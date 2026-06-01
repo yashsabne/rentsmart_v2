@@ -151,7 +151,7 @@ export const getFilteredListings = async (req, res) => {
       type, search, minPrice, maxPrice, propertyType,
       bedrooms, bathrooms, city, furnished,
       parking, amenities, sortBy,
-      page = 1, limit = 15,
+      page = 1, limit = 20,
     } = req.query;
 
     const filter = {};
