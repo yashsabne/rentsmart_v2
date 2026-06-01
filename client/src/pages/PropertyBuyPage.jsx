@@ -9,12 +9,12 @@ import AdvancedSidebar from "../components/AdvancedSidebar";
 import Pagination from "../components/Pagination";
 import debounce from 'lodash/debounce';
 import SaveButton from "../components/SaveBtn";
+import { formattedPrice } from "../const_func/dashFunction";
 import { API } from "../../apis";
 import "./styles/propertybuy.css"
 import Footer from "../components/reuse/Footer";
 
-
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 15;
 
 export default function PropertyBuyPage() {
   const [typeFilter, setTypeFilter] = useState("All");
@@ -23,7 +23,7 @@ export default function PropertyBuyPage() {
   const [sortBy, setSortBy] = useState("Relevance");
   const [savedIds, setSavedIds] = useState([]);
 
-  const [hoveredCard, setHoveredCard] = useState(null); 
+  const [hoveredCard, setHoveredCard] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -111,10 +111,9 @@ export default function PropertyBuyPage() {
     if (
       advFilters?.amenities?.length > 0
     ) {
-      query.set(
-        "amenities",
-        advFilters.amenities.join(",")
-      );
+      advFilters.amenities.forEach((item) => {
+        query.append("amenities", item);
+      });
     }
 
     // SORT
@@ -221,6 +220,7 @@ export default function PropertyBuyPage() {
         params.append("city", advFilters.city);
       }
 
+
       // ---------------- TOGGLES ----------------
 
       if (advFilters?.furnished) {
@@ -261,7 +261,6 @@ export default function PropertyBuyPage() {
         params.append("sortBy", activeSortBy);
       }
 
-      // ---------------- PAGINATION ----------------
 
       params.append("page", currentPage);
       params.append("limit", PAGE_SIZE);
@@ -303,7 +302,6 @@ export default function PropertyBuyPage() {
     currentPage
   ]);
 
-  // FETCH WHEN FILTERS CHANGE
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -316,14 +314,13 @@ export default function PropertyBuyPage() {
     advFilters
   ]);
 
-  // FETCH DATA
   useEffect(() => {
     fetchProperties();
   }, [fetchProperties]);
 
   const paginatedResults = properties || [];
 
-  
+
 
   const toggleSave = (id) => {
     setSavedIds((prev) =>
@@ -334,169 +331,261 @@ export default function PropertyBuyPage() {
   };
 
   return (
-<>
+    <>
+      <div style={{ minHeight: "100vh", background: C.cream, fontFamily: "'DM Sans', sans-serif", color: C.ink }}>
 
 
-    <div style={{ minHeight: "100vh", background: C.cream, fontFamily: "'DM Sans', sans-serif", color: C.ink }}>
+        <Navbar scrolled={true} />
 
+        <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "0 48px", position: "sticky", top: 64, zIndex: 50, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 0, overflowX: "auto", height: 56 }}>
+            {/* Property Type */}
+            <div style={{ display: "flex", gap: 4, paddingRight: 20, borderRight: `1px solid ${C.border}`, flexShrink: 0 }}>
+              {propertyTypes.map(t => (
+                <button key={t} onClick={() => setTypeFilter(t)}
+                  style={{ padding: "6px 14px", borderRadius: 100, border: `1.5px solid ${typeFilter === t ? C.ink : C.border}`, background: typeFilter === t ? C.ink : "none", color: typeFilter === t ? "#fff" : C.inkMuted, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all .2s", whiteSpace: "nowrap" }}>
+                  {t}
+                </button>
+              ))}
+            </div>
 
-      <Navbar scrolled={true} />
- 
-      <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "0 48px", position: "sticky", top: 64, zIndex: 50, boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 0, overflowX: "auto", height: 56 }}>
-          {/* Property Type */}
-          <div style={{ display: "flex", gap: 4, paddingRight: 20, borderRight: `1px solid ${C.border}`, flexShrink: 0 }}>
-            {propertyTypes.map(t => (
-              <button key={t} onClick={() => setTypeFilter(t)}
-                style={{ padding: "6px 14px", borderRadius: 100, border: `1.5px solid ${typeFilter === t ? C.ink : C.border}`, background: typeFilter === t ? C.ink : "none", color: typeFilter === t ? "#fff" : C.inkMuted, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all .2s", whiteSpace: "nowrap" }}>
-                {t}
-              </button>
-            ))}
+            <div style={{ display: "flex", gap: 4, padding: "0 20px", borderRight: `1px solid ${C.border}`, flexShrink: 0 }}>
+              {budgetRanges.map((b, i) => (
+                <button key={b.label} onClick={() => setBudgetIdx(i)}
+                  style={{ padding: "6px 14px", borderRadius: 100, border: `1.5px solid ${budgetIdx === i ? C.gold : C.border}`, background: budgetIdx === i ? C.goldLight : "none", color: budgetIdx === i ? C.ink : C.inkMuted, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all .2s", whiteSpace: "nowrap" }}>
+                  {b.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Sort + view mode */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: "auto", flexShrink: 0, paddingLeft: 20 }}>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                style={{ fontSize: 13, color: C.ink, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "6px 12px", background: C.white, outline: "none", cursor: "pointer" }}>
+                {sortOptions.map(s => <option key={s}>{s}</option>)}
+              </select>
+
+            </div>
           </div>
- 
-          <div style={{ display: "flex", gap: 4, padding: "0 20px", borderRight: `1px solid ${C.border}`, flexShrink: 0 }}>
-            {budgetRanges.map((b, i) => (
-              <button key={b.label} onClick={() => setBudgetIdx(i)}
-                style={{ padding: "6px 14px", borderRadius: 100, border: `1.5px solid ${budgetIdx === i ? C.gold : C.border}`, background: budgetIdx === i ? C.goldLight : "none", color: budgetIdx === i ? C.ink : C.inkMuted, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all .2s", whiteSpace: "nowrap" }}>
-                {b.label}
-              </button>
-            ))}
+        </div>
+
+        {/* CONTENT */}
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 28, alignItems: "start" }}>
+          <div>
+            <div id="property-listing-top" style={{ position: "relative", top: -100 }} />
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 40, marginBottom: 20 }}>
+              <div>
+                <span className="pf" style={{ fontSize: 22, fontWeight: 700, color: C.ink }}>{totalCount}</span>
+                <span style={{ fontSize: 14, color: C.inkMuted, marginLeft: 8 }}>properties found</span>
+                {search && search !== "all" && <span style={{ fontSize: 13, color: C.gold, marginLeft: 8 }}>for "{search}"</span>}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <button
+                  className="pbp-mobile-filter-btn"
+                  onClick={() => setShowSidebar(true)}
+                  style={{ display: "none", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 12, border: "1.5px solid #E8E4DF", background: "#fff", color: "#1A1A2E", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", fontFamily: "inherit" }}
+                >
+                  <span style={{ fontSize: 16 }}>⚙</span> Filters
+                </button>
+              </div>
+            </div>
+
+
+
+            {/* Skeleton loading - same as before */}
+            {loading && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 22 }}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} style={{ background: C.white, borderRadius: 20, overflow: "hidden", border: `1px solid ${C.border}` }}>
+                    <div className="skeleton" style={{ height: 210 }} />
+                    <div style={{ padding: "18px 20px 20px" }}>
+                      <div className="skeleton" style={{ height: 22, width: "50%", marginBottom: 10 }} />
+                      <div className="skeleton" style={{ height: 16, width: "75%", marginBottom: 8 }} />
+                      <div className="skeleton" style={{ height: 13, width: "55%", marginBottom: 18 }} />
+                      <div style={{ display: "flex", gap: 14 }}>
+                        <div className="skeleton" style={{ height: 12, width: 60 }} />
+                        <div className="skeleton" style={{ height: 12, width: 60 }} />
+                        <div className="skeleton" style={{ height: 12, width: 60 }} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!loading && (
+              <div className="image-grid">
+                {paginatedResults.map((p) => {
+                  const isRent = p.buyOrSell?.toLowerCase() === "rent";
+                  const isSaved = savedIds.includes(p._id);
+
+                  return (
+                    <article
+                      key={p._id}
+                      className={`prop-card ${hoveredCard === p._id ? "hovered" : ""
+                        }`}
+                      onClick={() => navigate(`/details/${p._id}`)}
+                      onMouseEnter={() => setHoveredCard(p._id)}
+                      onMouseLeave={() => setHoveredCard(null)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && navigate(`/details/${p._id}`)
+                      }
+                    >
+                      {/* Image */}
+                      <div className="prop-card-img-wrap">
+                        {p.listingPhotos?.[0] ? (
+                          <img
+                            src={p.listingPhotos[0]}
+                            alt={p.title}
+                            className="prop-card-img"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div
+                            className="prop-card-img-placeholder"
+                            aria-hidden="true"
+                          >
+                            🏠
+                          </div>
+                        )}
+
+                        {/* Top badges */}
+                        <div className="prop-badge-row">
+                          <span
+                            className={`prop-badge prop-badge-type ${isRent ? "rent" : "buy"
+                              }`}
+                          >
+                            {p.buyOrSell || "Property"}
+                          </span>
+
+                        </div>
+
+                        {/* Save Button */}
+                        <SaveButton
+                          id={p._id}
+                          isSaved={savedIds.includes(p._id)}
+                          onToggle={toggleSave}
+                        />
+
+
+                        <span className="prop-category-chip">
+                          {p.type || "Property"}
+                        </span>
+                      </div>
+
+                      {/* Body */}
+                      <div className="prop-card-body">
+                        <div className="prop-price playfair">
+                          {formattedPrice(p.price, p.paymentType)}
+                        </div>
+                        <div className="prop-price pf">
+                          {p.priceLabel}
+                        </div>
+
+                        <div className="prop-title">
+                          {p.title}
+                        </div>
+
+                        <div className="prop-location">
+                          📍 {p.address?.city || "Location not available"}
+                        </div>
+
+                        <div className="prop-details">
+                          <span className="prop-detail-item">
+                            <span>🛏</span>
+                            {p.details?.bedroomCount || 0} Bed
+                          </span>
+
+                          <span className="prop-detail-item">
+                            <span>🚿</span>
+                            {p.details?.bathroomCount || 0} Bath
+                          </span>
+
+                          <span className="prop-detail-item">
+                            <span>📐</span>
+                            {p.details?.area || 0} sqft
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+
+                {paginatedResults.length === 0 && (
+                  <div
+                    style={{
+                      gridColumn: "1/-1",
+                      textAlign: "center",
+                      padding: "80px 20px",
+                    }}
+                  >
+                    <div style={{ fontSize: 50, marginBottom: 16 }}>🏚️</div>
+
+                    <div
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 700,
+                        color: C.ink,
+                        marginBottom: 10,
+                      }}
+                    >
+                      No properties found
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 14,
+                        color: C.inkMuted,
+                      }}
+                    >
+                      Try adjusting your filters or search terms
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!loading && totalCount > 0 && totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalCount}
+                pageSize={PAGE_SIZE}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </div>
 
-          {/* Sort + view mode */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: "auto", flexShrink: 0, paddingLeft: 20 }}>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-              style={{ fontSize: 13, color: C.ink, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "6px 12px", background: C.white, outline: "none", cursor: "pointer" }}>
-              {sortOptions.map(s => <option key={s}>{s}</option>)}
-            </select>
-  
+          {/* RIGHT: Advanced Sidebar */}
+
+          <div className="pbp-desktop-sidebar">
+            <AdvancedSidebar onFiltersChange={setAdvFilters} />
           </div>
+
+          {showSidebar && (
+            <>
+              <div className="pbp-overlay" onClick={() => setShowSidebar(true)} />
+              <div className="pbp-drawer">
+                <div className="pbp-drawer-header">
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#1A1A2E", fontFamily: "'Playfair Display', serif" }}>Filters</div>
+                    <div style={{ fontSize: 12, color: "#8A8A9A", marginTop: 2 }}>Narrow down your search</div>
+                  </div>
+                  <button className="pbp-drawer-close" onClick={() => setShowSidebar(false)}>✕</button>
+                </div>
+                <div className="pbp-drawer-body">
+                  <AdvancedSidebar onFiltersChange={(f) => { setAdvFilters(f); setShowSidebar(true); }} />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* CONTENT */}
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 28, alignItems: "start" }}>
-        {/* LEFT: Listings */}
-        <div>
-          <div id="property-listing-top" style={{ position: "relative", top: -100 }} />
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 40, marginBottom: 20 }}>
-            <div>
-              <span className="pf" style={{ fontSize: 22, fontWeight: 700, color: C.ink }}>{totalCount}</span>
-              <span style={{ fontSize: 14, color: C.inkMuted, marginLeft: 8 }}>properties found</span>
-              {search && search !== "all" && <span style={{ fontSize: 13, color: C.gold, marginLeft: 8 }}>for "{search}"</span>}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-              <button
-                className="pbp-mobile-filter-btn"
-                onClick={() => setShowSidebar(true)}
-                style={{ display: "none", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 12, border: "1.5px solid #E8E4DF", background: "#fff", color: "#1A1A2E", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", fontFamily: "inherit" }}
-              >
-                <span style={{ fontSize: 16 }}>⚙</span> Filters
-              </button>
-            </div>
-          </div>
-
-
-
-          {/* Skeleton loading - same as before */}
-          {loading && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 22 }}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} style={{ background: C.white, borderRadius: 20, overflow: "hidden", border: `1px solid ${C.border}` }}>
-                  <div className="skeleton" style={{ height: 210 }} />
-                  <div style={{ padding: "18px 20px 20px" }}>
-                    <div className="skeleton" style={{ height: 22, width: "50%", marginBottom: 10 }} />
-                    <div className="skeleton" style={{ height: 16, width: "75%", marginBottom: 8 }} />
-                    <div className="skeleton" style={{ height: 13, width: "55%", marginBottom: 18 }} />
-                    <div style={{ display: "flex", gap: 14 }}>
-                      <div className="skeleton" style={{ height: 12, width: 60 }} />
-                      <div className="skeleton" style={{ height: 12, width: 60 }} />
-                      <div className="skeleton" style={{ height: 12, width: 60 }} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
- 
-          {!loading && (
-            <div className="image-grid" >
-              {paginatedResults.map(p => (
-                <div key={p._id} className="prop-card fu"
-                  onClick={() => navigate(`/details/${p._id}`)}
-                  onMouseEnter={() => setHoveredCard(p._id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  style={{ background: C.white, borderRadius: 20, overflow: "hidden", border: `1px solid ${C.border}`, transition: "all .3s", cursor: "pointer" }}>
-                  <div style={{ position: "relative", height: 200, overflow: "hidden" }}>
-                    <img src={p.listingPhotos?.[0]} alt={p.title} decoding="async" loading="lazy" style={{ width: "100%", height: "220px", objectFit: "cover" }} />
-                    <SaveButton
-                      id={p._id}
-                      isSaved={savedIds.includes(p._id)}
-                      onToggle={toggleSave}
-                    />
-                  </div>
-                  <div style={{ padding: "16px 18px 18px" }}>
-                    <div className="pf" style={{ fontSize: 19, fontWeight: 700, color: C.ink, marginBottom: 2 }}>{p.priceLabel}</div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: C.ink, marginBottom: 4 }}>{p.title}</div>
-                    <div style={{ fontSize: 12, color: C.inkMuted, marginBottom: 12 }}>📍 {p.address?.city}</div>
-                    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: "flex", gap: 14 }}>
-                      {[["🛏", `${p.details?.bedroomCount} Bed`], ["🚿", `${p.details?.bathroomCount} Bath`], ["📐", `${p.details.area} sqft`]].map(([icon, val]) => (
-                        <span key={val} style={{ fontSize: 12, color: C.inkMuted, display: "flex", alignItems: "center", gap: 4 }}>{icon} {val}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {paginatedResults.length === 0 && (
-                <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px" }}>
-                  <div style={{ fontSize: 40, marginBottom: 16 }}>🏚️</div>
-                  <div style={{ fontSize: 16, fontWeight: 500, color: C.ink, marginBottom: 8 }}>No properties found</div>
-                  <div style={{ fontSize: 13, color: C.inkMuted }}>Try adjusting your filters or search terms</div>
-                </div>
-              )}
-            </div>
-          )}
- 
-          {!loading && totalCount > 0 && totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={totalCount}
-              pageSize={PAGE_SIZE}
-              onPageChange={setCurrentPage}
-            />
-          )}
-        </div>
-
-        {/* RIGHT: Advanced Sidebar */}
-
-        <div className="pbp-desktop-sidebar">
-          <AdvancedSidebar onFiltersChange={setAdvFilters} />
-        </div>
-
-        {showSidebar && (
-          <>
-            <div className="pbp-overlay" onClick={() => setShowSidebar(true)} />
-            <div className="pbp-drawer">
-              <div className="pbp-drawer-header">
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#1A1A2E", fontFamily: "'Playfair Display', serif" }}>Filters</div>
-                  <div style={{ fontSize: 12, color: "#8A8A9A", marginTop: 2 }}>Narrow down your search</div>
-                </div>
-                <button className="pbp-drawer-close" onClick={() => setShowSidebar(false)}>✕</button>
-              </div>
-              <div className="pbp-drawer-body">
-                <AdvancedSidebar onFiltersChange={(f) => { setAdvFilters(f); setShowSidebar(true); }} />
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-
-    <Footer/>
+      <Footer />
     </>
   );
 }
