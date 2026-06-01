@@ -74,11 +74,9 @@ const Hero = () => {
   }}
 
   onClick={() => {
-
-    navigate(
-      `/search-for-property/${searchType.toLowerCase()}?search=${searchQuery}`
-    );
-
+navigate(
+  `/search-for-property/${searchType.toLowerCase()}?type=${searchType.toLowerCase()}&search=${encodeURIComponent(searchQuery)}`
+);
   }}
 
   onMouseEnter={e => e.currentTarget.style.background = C.gold}
