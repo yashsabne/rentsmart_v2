@@ -2,12 +2,13 @@ import Listing from "../models/Listings.js";
 import { cloudinary } from "../config/cloudinary.js";
 import { logActivity } from "../utils/activityLogger.js";
 import { redisPost, redisGet, redisDelete } from "../utils/redisClient.js";
+import { POPULAR_LOCATIONS } from "../../const/popularCities.js";
 
 const buildFilterCacheKey = (query) => {
   const {
     type, search, minPrice, maxPrice, propertyType,
     bedrooms, bathrooms, city, furnished, parking,
-    readyToMove, amenities, sortBy, page = 1, limit = 9,
+    readyToMove, amenities, sortBy, page = 1, limit = 15,
   } = query;
 
   return [
@@ -148,50 +149,44 @@ export const getFilteredListings = async (req, res) => {
 
     const {
       type, search, minPrice, maxPrice, propertyType,
-      bedrooms, bathrooms, city, furnished, parking,
-      readyToMove, amenities, sortBy,
-      page = 1, limit = 9,
+      bedrooms, bathrooms, city, furnished,
+      parking, amenities, sortBy,
+      page = 1, limit = 15,
     } = req.query;
 
     const filter = {};
 
-    if (type) {
-      filter.buyOrSell = { $regex: type, $options: "i" };
+    const hasCitySearch = city?.trim();
+    const hasTextSearch = search && search !== "all" && search !== "undefined";
+
+    if (type) filter.buyOrSell = { $regex: `^${type}$`, $options: "i" };
+
+    if (propertyType && propertyType !== "All") filter.type = propertyType;
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
-    if (propertyType && propertyType !== "All") {
-      filter.type = propertyType;
+    if (bedrooms && bedrooms !== "Any")
+      filter["details.bedroomCount"] = bedrooms === "4+" ? { $gte: 4 } : Number(bedrooms);
+
+    if (bathrooms && bathrooms !== "Any")
+      filter["details.bathroomCount"] = bathrooms === "4+" ? { $gte: 4 } : Number(bathrooms);
+
+    if (furnished === "true")
+      filter["details.furnishing"] = { $exists: true, $nin: ["Unfurnished", "", null] };
+
+    if (parking === "true") {
+      filter.$and = filter.$and || [];
+      filter.$and.push({
+        $or: [
+          { "details.parking.car": { $gt: 0 } },
+          { "details.parking.bike": { $gt: 0 } }
+        ]
+      });
     }
-
-    if (search && search !== "all" && search !== "undefined") {
-      filter.$or = [
-        { category: { $regex: search, $options: "i" } },
-        { title: { $regex: search, $options: "i" } },
-        { "address.city": { $regex: search, $options: "i" } },
-      ];
-    }
-
-    if (city?.trim()) {
-      filter["address.city"] = { $regex: city, $options: "i" };
-    }
-
-    filter.price = {};
-    if (minPrice) filter.price.$gte = Number(minPrice);
-    if (maxPrice) filter.price.$lte = Number(maxPrice);
-
-    if (bedrooms && bedrooms !== "Any") {
-      filter["details.bedroomCount"] =
-        bedrooms === "4+" ? { $gte: 4 } : Number(bedrooms);
-    }
-
-    if (bathrooms && bathrooms !== "Any") {
-      filter["details.bathroomCount"] =
-        bathrooms === "4+" ? { $gte: 4 } : Number(bathrooms);
-    }
-
-    if (furnished === "true") filter["details.furnished"] = true;
-    if (parking === "true") filter["details.parking"] = true;
-    if (readyToMove === "true") filter.status = "ready";
 
     if (amenities) {
       const amenitiesArray = Array.isArray(amenities) ? amenities : [amenities];
@@ -216,10 +211,106 @@ export const getFilteredListings = async (req, res) => {
     const limitNum = Number(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    const [listings, totalCount] = await Promise.all([
-      Listing.find(filter).sort(sortObject).skip(skip).limit(limitNum),
-      Listing.countDocuments(filter),
-    ]);
+    let listings = [];
+    let totalCount = 0;
+
+    if (hasCitySearch || hasTextSearch) {
+
+      const query = city?.trim() || search?.trim() || "";
+
+      const sortedCities = [...POPULAR_LOCATIONS].sort(
+        (a, b) => b.length - a.length
+      );
+
+      const detectedCity = sortedCities.find(c =>
+        query.toLowerCase().includes(c.toLowerCase())
+      );
+
+      const remainingSearch = detectedCity
+        ? query.replace(new RegExp(detectedCity, "ig"), "").trim()
+        : query;
+
+      if (detectedCity) {
+        filter["address.city"] = {
+          $regex: `^${detectedCity}$`,
+          $options: "i"
+        };
+      }
+
+      const searchQuery = remainingSearch || detectedCity;
+
+ 
+
+      const pipeline = [
+        {
+          $search: {
+            index: "default",
+            compound: {
+              should: [
+                {
+                  text: {
+                    query: searchQuery,
+                    path: "title",
+                    fuzzy: { maxEdits: 2 },
+                    score: { boost: { value: 10 } }
+                  }
+                },
+                {
+                  text: {
+                    query: searchQuery,
+                    path: "amenities",
+                    fuzzy: { maxEdits: 1 },
+                    score: { boost: { value: 8 } }
+                  }
+                },
+                {
+                  text: {
+                    query: searchQuery,
+                    path: "type",
+                    fuzzy: { maxEdits: 1 },
+                    score: { boost: { value: 6 } }
+                  }
+                },
+                {
+                  text: {
+                    query: searchQuery,
+                    path: "category",
+                    fuzzy: { maxEdits: 1 },
+                    score: { boost: { value: 4 } }
+                  }
+                },
+                {
+                  text: {
+                    query: searchQuery,
+                    path: "description",
+                    fuzzy: { maxEdits: 2 },
+                    score: { boost: { value: 1 } }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        { $match: filter },
+        { $sort: sortObject },
+        {
+          $facet: {
+            listings: [{ $skip: skip }, { $limit: limitNum }],
+            totalCount: [{ $count: "count" }]
+          }
+        }
+      ];
+
+      const result = await Listing.aggregate(pipeline);
+
+      listings = result[0]?.listings || [];
+      totalCount = result[0]?.totalCount?.[0]?.count || 0;
+    } else {
+      [listings, totalCount] = await Promise.all([
+        Listing.find(filter).sort(sortObject).skip(skip).limit(limitNum),
+        Listing.countDocuments(filter),
+      ]);
+    }
 
     const responseData = {
       listings,
@@ -235,38 +326,98 @@ export const getFilteredListings = async (req, res) => {
       ttl: 300,
     });
 
-    res.status(200).json(responseData);
+    return res.status(200).json(responseData);
+
   } catch (err) {
     console.error("FILTER ERROR:", err);
-    res.status(500).json({ message: "Server Error", error: err.message });
+    return res.status(500).json({
+      message: "Server Error",
+      error: err.message
+    });
   }
 };
 
 export const searchListings = async (req, res) => {
   try {
     const { search, type } = req.query;
-    let filter = {};
+
+    const pipeline = [];
+
+    if (search?.trim()) {
+      pipeline.push({
+        $search: {
+          index: "default",
+          compound: {
+            should: [
+              {
+                text: {
+                  query: search,
+                  path: [
+                    "title",
+                    "description",
+                    "category",
+                    "amenities",
+                    "type"
+                  ],
+                  fuzzy: {
+                    maxEdits: 2
+                  }
+                }
+              },
+              {
+                autocomplete: {
+                  query: search,
+                  path: "address.city",
+                  fuzzy: {
+                    maxEdits: 2
+                  }
+                }
+              }
+            ]
+          }
+        }
+      });
+
+      pipeline.push({
+        $addFields: {
+          score: {
+            $meta: "searchScore"
+          }
+        }
+      });
+    }
 
     if (type) {
-      filter.buyOrSell = new RegExp(type, "i");
+      pipeline.push({
+        $match: {
+          buyOrSell: {
+            $regex: `^${type}$`,
+            $options: "i"
+          }
+        }
+      });
     }
 
-    if (search && search !== "all") {
-      filter.$or = [
-        { category: { $regex: search, $options: "i" } },
-        { title: { $regex: search, $options: "i" } },
-        { "address.city": { $regex: search, $options: "i" } },
-      ];
-    }
+    pipeline.push({
+      $sort: {
+        score: -1,
+        promoted: -1,
+        createdAt: -1
+      }
+    });
 
-    const listings = await Listing.find(filter).sort({ promoted: -1 });
+    const listings = await Listing.aggregate(pipeline);
+
     res.status(200).json(listings);
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Search failed" });
+
+    res.status(500).json({
+      message: "Search failed"
+    });
   }
 };
-
 export const getListingById = async (req, res) => {
   try {
     const { id } = req.params;

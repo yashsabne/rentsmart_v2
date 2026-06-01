@@ -18,9 +18,7 @@ export const redisPost = async (path, body) => {
 };
 
 export const redisGet = async (path) => {
-
-  console.log("redisGet path =", path);
-
+ 
   try {
     const res = await fetch(`${REDIS_SERVICE_URL}/api/redis${path}`);
     return await res.json();
