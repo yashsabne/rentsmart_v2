@@ -5,6 +5,7 @@ import Navbar from "../components/reuse/Navbar";
 import Hero from "../components/Hero";
 import { stats, steps } from "../constants";
 import Footer from "../components/reuse/Footer";
+import { formattedPrice } from "../const_func/dashFunction";
 import { API } from "../../apis";
 import "./styles/homepage.css";
 
@@ -103,11 +104,6 @@ export default function HomePage() {
     return mf && ms;
   });
 
-  const formattedPrice = (price, paymentType) => {
-    if (!price) return "Price on Request";
-    const formatted = `₹${price.toLocaleString("en-IN")}`;
-    return paymentType === "monthly" ? `${formatted}/mo` : formatted;
-  };
 
   const fullLocation = (address) =>
     [address?.street, address?.city].filter(Boolean).join(", ");
