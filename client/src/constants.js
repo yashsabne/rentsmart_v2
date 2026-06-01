@@ -447,16 +447,19 @@ export const POPULAR_LOCATIONS = [
 ];
 
 export const AMENITIES_LIST = [
-  { id: "gym", label: "Gym", icon: "🏋️" },
-  { id: "pool", label: "Swimming Pool", icon: "🏊" },
-  { id: "security", label: "24/7 Security", icon: "🔒" },
-  { id: "lift", label: "Lift / Elevator", icon: "🛗" },
-  { id: "park", label: "Park / Garden", icon: "🌳" },
-  { id: "clubhouse", label: "Clubhouse", icon: "🏛️" },
-  { id: "powerbackup", label: "Power Backup", icon: "⚡" },
-  { id: "playarea", label: "Play Area", icon: "🎪" },
+  { id: "Gym", label: "Gym", icon: "🏋️" },
+  { id: "Swimming Pool", label: "Swimming Pool", icon: "🏊" },
+  { id: "Security", label: "24/7 Security", icon: "🔒" },
+  { id: "Lift", label: "Lift / Elevator", icon: "🛗" },
+  { id: "Park", label: "Park / Garden", icon: "🌳" },
+  { id: "Clubhouse", label: "Clubhouse", icon: "🏛️" },
+  { id: "Power Backup", label: "Power Backup", icon: "⚡" },
+  { id: "Play Area", label: "Play Area", icon: "🎪" },
+  { id: "Parking", label: "Parking", icon: "🚗" },
+  { id: "Air Conditioning", label: "Air Conditioning", icon: "❄️" },
+  { id: "Wi-Fi", label: "Wi-Fi", icon: "📶" },
+  { id: "Laundry", label: "Laundry", icon: "🧺" },
 ];
-
 
 export const PROPERTY_TYPES = ["Apartment", "Villa", "Bungalow", "Studio", "Penthouse", "Commercial", "Plot"];
 
