@@ -37,3 +37,10 @@ export const userInitials = (user) => {
   if (!user) return "??";
   return `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
 };
+
+
+export  const formattedPrice = (price, paymentType) => {
+    if (!price) return "Price on Request";
+    const formatted = `₹${price.toLocaleString("en-IN")}`;
+    return paymentType === "monthly" ? `${formatted}/mo` : formatted;
+  };
