@@ -15,7 +15,7 @@ const connectRedis = () => {
   //   retryStrategy: (times) => {
   //     const delay = Math.min(times * 50, 2000);
   //     return delay;
-  //   },
+  //   }, 
   // });
     
    redisClient = new Redis(process.env.REDIS_URL);
