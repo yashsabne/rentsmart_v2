@@ -532,7 +532,7 @@ export const getMyListings = async (req, res) => {
           $group: {
             _id: null,
             total: { $sum: 1 },
-            active: { $sum: { $cond: ["$promoted", 1, 0] } },
+            active: { $sum: { $cond: ["$isPromoted", 1, 0] } },
             rent: { $sum: { $cond: [{ $eq: [{ $toLower: "$buyOrSell" }, "rent"] }, 1, 0] } },
             buy: { $sum: { $cond: [{ $eq: [{ $toLower: "$buyOrSell" }, "sell"] }, 1, 0] } }
           }

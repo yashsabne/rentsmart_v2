@@ -103,10 +103,9 @@ const listingSchema = new mongoose.Schema(
       default: false,
     },
 
-    promoted: {
-      type: Boolean,
-      default: false,
-    },
+    isPromoted: { type: Boolean, default: false },
+    promotedUntil: { type: Date, default: null },
+    promotedPaymentId: { type: String, default: null },
   },
   { timestamps: true }
 );
