@@ -699,7 +699,7 @@ export default function CreateListing() {
         <div style={{ fontSize: 13, color: C.muted }}>
           Step <strong style={{ color: C.ink }}>{step + 1}</strong> of {STEPS.length}
         </div>
-        <span style={{ fontSize: 13, color: C.light }}>Save Draft</span>
+        <span onClick={() => navigate("/dashboard")   }  style={{ fontSize: 13, color: C.light }}>get back</span>
       </nav>
 
       <div className="layout" style={{ display: "flex", minHeight: "calc(100vh - 60px)" }}>
