@@ -204,8 +204,7 @@ export default function EditListing() {
         if (!res.ok) {
           alert(data.message);
           return;
-        }
- 
+        } 
 
         setForm({
           type: data.type || "",
@@ -342,8 +341,8 @@ const handlePhotoAdd = () => {
         alert(data.message || "Failed to create listing");
         return;
       }
- 
 
+ 
       alert("Property updated successfully");
 
       navigate(`/details/${id}`);
@@ -430,7 +429,7 @@ const handlePhotoAdd = () => {
         <div style={{ fontSize: 13, color: C.muted }}>
           Step <strong style={{ color: C.ink }}>{step + 1}</strong> of {steps.length}
         </div>
-        <a href="#" style={{ fontSize: 13, color: C.muted, borderBottom: `1px solid ${C.border}` }}>Save Draft</a>
+        <span onClick={() => navigate("/dashboard")   }  style={{ fontSize: 13, color: C.light }}>get back</span>
       </nav>
 
       <div className="layout" style={{ display: "flex", minHeight: "calc(100vh - 60px)" }}>
