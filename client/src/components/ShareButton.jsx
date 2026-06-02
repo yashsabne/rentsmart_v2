@@ -4,11 +4,11 @@
 
 import React, { useState } from "react";
 import { API } from "../../apis";
+import { C } from "../constants";
 
 const ShareButton = ({
   listing,
   currentUser,
-  C,
 }) => {
 
   const [loading, setLoading] =
@@ -100,41 +100,16 @@ const ShareButton = ({
       type="button"
       onClick={handleShare}
       disabled={loading}
-      style={{
-        flex: 1,
-        padding: "11px",
-        borderRadius: 12,
-        border: `1.5px solid ${C.border}`,
-        background: "none",
-        color: C.ink,
-        fontSize: 13,
-        fontWeight: 500,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        transition: "all .2s",
-        cursor: "pointer",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background =
-          C.ink;
-
-        e.currentTarget.style.color =
-          "#fff";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background =
-          "none";
-
-        e.currentTarget.style.color =
-          C.ink;
-      }}
+   style={{ padding: "11px", borderRadius: 10, border: "0.5px solid rgba(0,0,0,.08)", background: "#fff", fontSize: 13, fontWeight: 500, cursor: "pointer" }}
+      
     >
       {loading
         ? "Sharing..."
         : "🔗 Share"}
     </button>
+
+
+ 
   );
 };
 
