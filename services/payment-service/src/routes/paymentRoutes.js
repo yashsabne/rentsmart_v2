@@ -2,7 +2,9 @@ import express from "express";
 
 import {
   createOrder,
+  createPromoteOrder,
   verifyPayment,
+  verifyPromotePayment,
 } from "../controller/paymentController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -27,5 +29,8 @@ router.post(
   requireVerifiedEmail,
   verifyPayment
 );
+
+router.post("/promote/order",  authMiddleware, createPromoteOrder);
+router.post("/promote/verify", authMiddleware, verifyPromotePayment);
 
 export default router;
