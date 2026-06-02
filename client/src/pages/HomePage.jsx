@@ -131,13 +131,7 @@ export default function HomePage() {
               <p className="section-label">{sectionLabel}</p>
               <p className="section-sub playfair">{sectionSub}</p>
             </div>
-            <a
-              href="#"
-              className="see-all-link"
-              aria-label="See all properties"
-            >
-              See all →
-            </a>
+        
           </div>
 
           {/* Filter pills */}
