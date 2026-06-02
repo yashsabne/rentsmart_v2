@@ -61,7 +61,7 @@ const PaymentUnlockCard = ({ owner, property, currentUser, C }) => {
       }
 
       const options = {
-        key: "rzp_test_SLeOOqQEvpGxpv",
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: "RentSmart",
