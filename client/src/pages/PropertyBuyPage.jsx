@@ -375,7 +375,7 @@ export default function PropertyBuyPage() {
             <div id="property-listing-top" style={{ position: "relative", top: -100 }} />
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 40, marginBottom: 20 }}>
-              <div>
+              <div >
                 <span className="pf" style={{ fontSize: 22, fontWeight: 700, color: C.ink }}>{totalCount}</span>
                 <span style={{ fontSize: 14, color: C.inkMuted, marginLeft: 8 }}>properties found</span>
                 {search && search !== "all" && <span style={{ fontSize: 13, color: C.gold, marginLeft: 8 }}>for "{search}"</span>}
@@ -391,13 +391,10 @@ export default function PropertyBuyPage() {
               </div>
             </div>
 
-
-
-            {/* Skeleton loading - same as before */}
             {loading && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 22 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(250px,1fr))", gap: 22 }}>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} style={{ background: C.white, borderRadius: 20, overflow: "hidden", border: `1px solid ${C.border}` }}>
+                  <div key={i} style={{ background: C.white, overflow: "hidden", border: `1px solid ${C.border}` }}>
                     <div className="skeleton" style={{ height: 210 }} />
                     <div style={{ padding: "18px 20px 20px" }}>
                       <div className="skeleton" style={{ height: 22, width: "50%", marginBottom: 10 }} />

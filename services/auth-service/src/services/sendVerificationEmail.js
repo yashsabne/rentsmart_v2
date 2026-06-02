@@ -61,8 +61,7 @@ export const sendVerificationEmail = async (
   );
 
   const data = await response.json();
-
-  console.log("Brevo Response:", data);
+ 
 
   if (!response.ok) {
     throw new Error(JSON.stringify(data));

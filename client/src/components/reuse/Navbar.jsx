@@ -118,7 +118,6 @@ const Navbar = () => {
         padding: "0 48px", height: 64,
         background: scrolled || menuOpen ? "rgba(250,250,247,0.95)" : "transparent",
         backdropFilter: scrolled || menuOpen ? "blur(12px)" : "none",
-        borderBottom: scrolled || menuOpen ? `1px solid ${C.border}` : "none",
         boxShadow: scrolled || menuOpen ? "0 2px 16px rgba(0,0,0,0.05)" : "none",
         transition: "all .3s ease",
       }}>

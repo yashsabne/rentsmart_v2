@@ -192,14 +192,11 @@ export default function RegisterPage() {
       });
 
       const data = await response.json();
-      console.log(data);
-      
-      if (response.ok) {
-        console.log('Registration successful:', data);
-           localStorage.setItem("token", data.token);
-      // localStorage.setItem("user", JSON.stringify(data.user));
   
-        setStep(2); // Move to success step
+      if (response.ok) { 
+           localStorage.setItem("token", data.token);
+ 
+        setStep(2);  
       } else {
         console.error('Registration failed:', data.error);
         alert(data.error || 'Registration failed. Please try again.');

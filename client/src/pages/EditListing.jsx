@@ -205,8 +205,7 @@ export default function EditListing() {
           alert(data.message);
           return;
         }
-
-        console.log(data)
+ 
 
         setForm({
           type: data.type || "",
@@ -343,8 +342,7 @@ const handlePhotoAdd = () => {
         alert(data.message || "Failed to create listing");
         return;
       }
-
-      console.log("Listing updated:", data);
+ 
 
       alert("Property updated successfully");
 

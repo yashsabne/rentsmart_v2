@@ -28,14 +28,12 @@ export const SocketProvider = ({ children }) => {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      setIsConnected(true);
-      console.log("[socket] Connected:", socket.id);
+      setIsConnected(true); 
       socket.emit("getOnlineUsers");
     });
 
     socket.on("disconnect", () => {
-      setIsConnected(false);
-      console.log("[socket] Disconnected");
+      setIsConnected(false); 
     });
 
     socket.on("connect_error", (err) => {

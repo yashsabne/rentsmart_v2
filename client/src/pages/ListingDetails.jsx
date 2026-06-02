@@ -144,8 +144,7 @@ const handleSend = async () => {
 
   text: message.trim(),
 };
-
-    console.log("Chat Payload:", payload);
+ 
 
     const response = await fetch(
       `${import.meta.env.VITE_CHAT_API}/conversations/start`,
@@ -161,8 +160,6 @@ const handleSend = async () => {
 
     const data = await response.json();
 
-    console.log("Status:", response.status);
-    console.log("Response:", data);
 
     if (!response.ok) {
       throw new Error(

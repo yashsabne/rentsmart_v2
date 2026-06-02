@@ -11,16 +11,16 @@ import "./styles/homepage.css";
 
 export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState("All");
-  const [searchQuery,  setSearchQuery]  = useState("");
-  const [savedIds,     setSavedIds]     = useState([]);
-  const [hoveredCard,  setHoveredCard]  = useState(null);
-  const [hoveredStep,  setHoveredStep]  = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [savedIds, setSavedIds] = useState([]);
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [hoveredStep, setHoveredStep] = useState(null);
 
-  const [properties,   setProperties]  = useState([]);
-  const [loading,      setLoading]     = useState(true);
-  const [user,         setUser]        = useState(null);
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
   const [sectionLabel, setSectionLabel] = useState("Latest Listings");
-  const [sectionSub,   setSectionSub]  = useState("Properties You'll Love");
+  const [sectionSub, setSectionSub] = useState("Properties You'll Love");
 
   const navigate = useNavigate();
 
@@ -43,7 +43,6 @@ export default function HomePage() {
     fetchUser();
   }, []);
 
-  // ── Fetch properties ──
   useEffect(() => {
     const fetchProperties = async () => {
       try {
@@ -52,7 +51,7 @@ export default function HomePage() {
 
         if (user?.city || user?.preferences?.length > 0) {
           const params = new URLSearchParams();
-          if (user.city)                    params.set("city",        user.city);
+          if (user.city) params.set("city", user.city);
           if (user.preferences?.length > 0) params.set("preferences", user.preferences.join(","));
           params.set("limit", "10");
           url = `${API.PROPERTY}/api/property/recommended?${params.toString()}`;
@@ -68,7 +67,7 @@ export default function HomePage() {
           setSectionSub("Properties You'll Love");
         }
 
-        const res  = await fetch(url);
+        const res = await fetch(url);
         const data = await res.json();
         setProperties(Array.isArray(data) ? data.slice(0, 10) : []);
       } catch (err) {
@@ -91,7 +90,7 @@ export default function HomePage() {
     const mf =
       activeFilter === "All" ||
       (activeFilter === "Rent" && buyOrSell === "rent") ||
-      (activeFilter === "Buy"  && buyOrSell === "sell");
+      (activeFilter === "Buy" && buyOrSell === "sell");
 
     const searchLower = searchQuery.toLowerCase();
     const ms =
@@ -157,18 +156,18 @@ export default function HomePage() {
 
           {/* ── SKELETON ── */}
           {loading && (
-            <div className="cards-grid" aria-busy="true" aria-label="Loading properties">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(250px,1fr))", gap: 22 }}>
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="prop-skeleton">
-                  <div className="skeleton skeleton-img" />
-                  <div className="prop-skeleton-body">
-                    <div className="skeleton" style={{ height: 20, width: "50%", marginBottom: 10 }} />
-                    <div className="skeleton" style={{ height: 15, width: "75%", marginBottom: 8 }} />
+                <div key={i} style={{ background: C.white, overflow: "hidden", border: `1px solid ${C.border}` }}>
+                  <div className="skeleton" style={{ height: 210 }} />
+                  <div style={{ padding: "18px 20px 20px" }}>
+                    <div className="skeleton" style={{ height: 22, width: "50%", marginBottom: 10 }} />
+                    <div className="skeleton" style={{ height: 16, width: "75%", marginBottom: 8 }} />
                     <div className="skeleton" style={{ height: 13, width: "55%", marginBottom: 18 }} />
-                    <div className="skeleton-row">
-                      <div className="skeleton" style={{ height: 12, width: 54 }} />
-                      <div className="skeleton" style={{ height: 12, width: 54 }} />
-                      <div className="skeleton" style={{ height: 12, width: 54 }} />
+                    <div style={{ display: "flex", gap: 14 }}>
+                      <div className="skeleton" style={{ height: 12, width: 60 }} />
+                      <div className="skeleton" style={{ height: 12, width: 60 }} />
+                      <div className="skeleton" style={{ height: 12, width: 60 }} />
                     </div>
                   </div>
                 </div>

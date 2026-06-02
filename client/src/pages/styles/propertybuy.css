@@ -9,6 +9,7 @@
   top: 64px;
   z-index: 500;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
+  height: max-content;
 }
 
 .pbp-filter-inner {
@@ -56,7 +57,7 @@
 .pbp-desktop-sidebar {
   display: block;
   position: sticky;
-  top: 100px; 
+  top: 50px; 
 }
  
 
@@ -174,7 +175,7 @@
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 678px) {
   .pbp-desktop-sidebar {
     display: none !important;
   }
@@ -234,3 +235,5 @@
     gap: 14px;
   }
 }
+
+ 

@@ -191,11 +191,9 @@ function Toggle({ label, value, onChange, icon }) {
         ref={sidebarRef}
         style={{
           position: "sticky",
-          top: isSticky ? 76 : 20,
-          maxHeight: "calc(100vh - 100px)",
+          top: isSticky ? 80 : 20, 
           overflowY: "auto",
-          background: C.white,
-          borderRadius: 20,
+          background: C.white, 
           border: `1px solid ${C.border}`,
           padding: "22px 20px 24px",
           boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
@@ -262,7 +260,7 @@ function Toggle({ label, value, onChange, icon }) {
                     Recent
                   </div>
                   {recentSearches.map(r => (
-                    <div key={r} className="sugg-item" onClick={() => selectCity(r)} style={{
+                    <div key={r} className="sugg-item" onMouseDown={() => selectCity(r)} style={{
                       padding: "9px 14px", fontSize: 13, color: C.ink,
                       cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "background .15s",
                     }}>
@@ -276,7 +274,7 @@ function Toggle({ label, value, onChange, icon }) {
                 {cityInput ? "Suggestions" : "Popular Cities"}
               </div>
               {suggestions.slice(0, 6).map(s => (
-                <div key={s} className="sugg-item" onClick={() => selectCity(s)} style={{
+                <div key={s} className="sugg-item" onMouseDown={() => selectCity(s)} style={{
                   padding: "9px 14px", fontSize: 13, color: C.ink,
                   cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "background .15s",
                 }}>
@@ -387,19 +385,7 @@ function Toggle({ label, value, onChange, icon }) {
         >
           Apply Filters ✦
         </button>
-
-        <button
-          className="clear-btn"
-          onClick={clearAll}
-          style={{
-            width: "100%", padding: "10px 0", borderRadius: 14,
-            background: "none", border: `1.5px solid ${C.border}`,
-            color: C.inkMuted, fontSize: 12, fontWeight: 600,
-            cursor: "pointer", marginTop: 8, transition: "all .18s",
-          }}
-        >
-          Reset All Filters
-        </button>
+ 
       </div>
     </>
   );

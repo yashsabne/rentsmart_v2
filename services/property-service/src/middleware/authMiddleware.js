@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
-
-console.log('yash sabje')
+ 
 
 const authMiddleware = (req, res, next) => {
   try {

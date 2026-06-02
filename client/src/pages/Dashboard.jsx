@@ -87,8 +87,7 @@ export default function Dashboard() {
       );
 
       const data = await res.json();
-
-      console.log(data)
+ 
 
       setProperties((prev) =>
         append
@@ -97,8 +96,7 @@ export default function Dashboard() {
       );
 
       setHasMore(data.hasMore);
-
-      console.log(data)
+ 
 
       if (!append) {
         const list = data.listings || [];
@@ -116,7 +114,6 @@ export default function Dashboard() {
       setPropsLoading(false);
     }
   };
-
 
   useEffect(() => {
     fetchProperties(1);

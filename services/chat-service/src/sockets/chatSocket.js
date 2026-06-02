@@ -18,8 +18,6 @@ const registerChatHandlers = (io, socket) => {
 
   io.emit(SOCKET_EVENTS.USER_ONLINE, { userId });
 
-  console.log(`[socket] User connected: ${userId} (${socket.id})`);
-
   socket.on("getOnlineUsers", () => {
     socket.emit(SOCKET_EVENTS.ONLINE_USERS, getOnlineUsers());
   });
@@ -44,8 +42,7 @@ const registerChatHandlers = (io, socket) => {
 
       socket.join(conversationSlug);
 
-      console.log(`[socket] ${userId} joined room: ${conversationSlug}`);
-
+ 
       const updatedMessages = await Message.updateMany(
         {
           conversationId: conversation._id,
@@ -70,8 +67,7 @@ const registerChatHandlers = (io, socket) => {
   });
 
   socket.on(SOCKET_EVENTS.LEAVE_CONVERSATION, ({ conversationSlug }) => {
-    socket.leave(conversationSlug);
-    console.log(`[socket] ${userId} left room: ${conversationSlug}`);
+    socket.leave(conversationSlug); 
   });
 
   socket.on(
@@ -167,8 +163,7 @@ const registerChatHandlers = (io, socket) => {
     onlineUsers.delete(userId);
 
     io.emit(SOCKET_EVENTS.USER_OFFLINE, { userId });
-
-    console.log(`[socket] User disconnected: ${userId}`);
+ 
   });
 };
 

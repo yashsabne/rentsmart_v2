@@ -21,5 +21,5 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 5004;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Notification Service on ${PORT}`);
+  console.log(` Notification Service on ${PORT}`);
 });

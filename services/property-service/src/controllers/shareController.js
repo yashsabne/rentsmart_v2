@@ -14,8 +14,6 @@ export const createShareLink = async (
 
         const { listingId, userId } = req.body;
 
-        console.log(req.body)
-
         if (!listingId) {
             return res.status(400).json({
                 success: false,

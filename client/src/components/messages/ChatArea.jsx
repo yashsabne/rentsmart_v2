@@ -56,9 +56,7 @@ const ChatArea = ({ conversation, onBack, onConversationUpdate, currentUser }) =
 
       const data = await getMessages(conversation.conversationSlug, before);
       const msgs = data.messages || [];
-
-      console.log(msgs,'this is crct ig')
-      // console.log(msgs,'latest')
+ 
       setHasMore(data.hasMore || false);
  
 
