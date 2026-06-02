@@ -80,7 +80,7 @@ Current Services:
 - Payment Service
 - Notification Service
 - Chat Service
-- Redis Service (Planned)
+- Redis Service 
 
 Benefits of the Architecture:
 
@@ -112,7 +112,7 @@ Benefits of the Architecture:
 ### Additional Technologies
 
 - Docker (Containerization)
-- Redis (Caching & Distributed Infrastructure - Planned)
+- Redis (Caching & Distributed Infrastructure)
 - Socket.IO (Real-Time Communication)
 - Razorpay Integration
 
@@ -129,57 +129,17 @@ Each service can be packaged independently, allowing:
 - Service isolation
 - Improved scalability
 - Easier infrastructure management
-
-Planned Docker Components:
-
-- Dockerfile for each service
-- Docker Compose orchestration
-- Container networking between services
-
+ 
 ---
 
-## Redis Service (Planned)
+## Redis Service
 
-A dedicated Redis service is planned as part of the RentSmart infrastructure layer to improve performance, scalability, and inter-service communication.
+A dedicated Redis service is as part of the RentSmart infrastructure layer to improve performance, scalability, and inter-service communication.
 
 Redis will operate as a centralized in-memory data store shared across microservices and containerized deployments.
 
-Planned Responsibilities:
-
-### Caching Layer
-
-- Property listing caching
-- Property details caching
-- User profile caching
-- Dashboard statistics caching
-- Frequently accessed API response caching
-
-### Security & Performance
-
-- Rate limiting
-- Temporary token storage
-- JWT blacklisting
-- Request throttling support
-
-### Real-Time Communication
-
-- Chat Pub/Sub messaging
-- Event broadcasting between services
-- Distributed message handling
-
-### Infrastructure Support
-
-- Shared cache across services
-- Docker-based deployment integration
-- Future horizontal scaling support
-
-Current Status:
-
-- Architecture planned
-- Service structure reserved
-- Integration pending implementation
-
----
+ 
+ 
 ## Security & Trust Features
 
 RentSmart is being developed with a strong focus on user safety, trust, and platform accountability.
@@ -218,11 +178,9 @@ Safety Features (Planned):
 
 The objective is to create a secure rental ecosystem where users can confidently interact, communicate, and conduct property-related transactions while maintaining privacy, accountability, and platform trust.
 ## Planned Features
-
-- Real-time Chat using Socket.IO
+ 
 - Google Authentication
 - Advanced Property Recommendation System
-- Cloudinary Image Management
 - Property Analytics
 - Docker Compose Deployment
 - CI/CD Pipeline
@@ -292,14 +250,11 @@ The current focus is on:
 - Infrastructure setup
 
 Several major features and architectural improvements are still under development, including:
-
-- Real-time chat system
-- Redis service deployment and caching layer implementation- Advanced recommendation engine
+  
 - Admin management tools
 - Performance optimization
 - Security enhancements
-- Production-grade deployment architecture
-- Img upload and cloudinary integration
+- Production-grade deployment architecture 
 
 This repository represents the first deployment-ready milestone of the project. Future phases will focus on scalability, reliability, observability, and advanced platform capabilities.
   
