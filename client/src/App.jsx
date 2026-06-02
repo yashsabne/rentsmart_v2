@@ -37,6 +37,7 @@ function App() {
         <Route path="/dashboard/messages" element={<Dashboard initialSection="messages" />} />
         <Route path="/dashboard/messages/:slug" element={<Dashboard initialSection="messages" />} />
         <Route path='/help' element={<Help/> } />
+        
          
 
       </Routes>

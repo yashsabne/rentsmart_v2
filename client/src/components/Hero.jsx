@@ -99,8 +99,7 @@ navigate(
           ))}
         </div>
       </div>
-
-      {/* Floating image grid — visible only ≥1100px */}
+ 
       <div style={{ position: "absolute", right: 48, top: "50%", transform: "translateY(-50%)", display: "grid", gridTemplateColumns: "180px 140px", gridTemplateRows: "160px 160px 160px", gap: 12, zIndex: 1 }}
         className="hero-grid">
         {properties.slice(0, 3).map((p, i) => (
