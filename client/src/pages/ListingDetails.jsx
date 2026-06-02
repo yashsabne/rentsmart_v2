@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import ShareButton from "../components/ShareButton";
+// import ShareButton from "../components/ShareButton";
 import { C,AMENITY_ICONS } from "../constants";
 import ContactCard from "../components/property/ContactCard";
 import { API } from "../../apis";
@@ -27,8 +27,13 @@ export default function ListingDetails() {
   const [lightboxIdx, setLightboxIdx] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
 
+ 
   const { id } = useParams();
   const navigate = useNavigate();
+
+  
+    const token = localStorage.getItem("token");
+
  
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60);
@@ -99,8 +104,6 @@ export default function ListingDetails() {
 const handleSend = async () => {
   try {
     if (!message.trim()) return;
-
-    const token = localStorage.getItem("token");
 
     if (!currentUser?._id) {
       throw new Error("Please login first");
@@ -585,6 +588,8 @@ const handleSend = async () => {
               sent={sent}
               handleSend={handleSend}
               C={C}
+              token={token}
+              propertyTitle={property.title}
             />
           </div>
 
