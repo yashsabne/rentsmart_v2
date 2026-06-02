@@ -223,9 +223,7 @@ export default function HomePage() {
                         <span className={`prop-badge prop-badge-type${isRent ? " rent" : " buy"}`}>
                           For {p.buyOrSell}
                         </span>
-                        {p.promoted && (
-                          <span className="prop-badge prop-badge-featured">Featured</span>
-                        )}
+                    
                       </div>
 
                       {/* Save button */}

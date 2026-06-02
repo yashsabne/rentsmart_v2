@@ -12,6 +12,7 @@ import RentSmartDev from './pages/Developer';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import EditListing from './pages/EditListing';
 import MessagesPage from './components/messages/MessagesPage';
+import Help from './pages/Help';
 
 
 function App() {
@@ -35,6 +36,8 @@ function App() {
         <Route path='/developer' element={<RentSmartDev />} />
         <Route path="/dashboard/messages" element={<Dashboard initialSection="messages" />} />
         <Route path="/dashboard/messages/:slug" element={<Dashboard initialSection="messages" />} />
+        <Route path='/help' element={<Help/> } />
+         
 
       </Routes>
     </Router>

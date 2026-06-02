@@ -343,7 +343,7 @@
 
 /* Card body */
 .prop-card-body {
-  padding: 18px 20px 20px;
+  padding: 10px 15px;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -390,6 +390,25 @@
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+}
+
+@media (max-width:480px) {
+  .prop-details {
+  border-top: 1px solid var(--color-border);
+  padding-top: 5px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.prop-detail-item {
+  font-size: 10px;
+  color: var(--color-ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+ 
 }
  
 .empty-state {

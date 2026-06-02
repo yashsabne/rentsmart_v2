@@ -369,8 +369,8 @@ export default function PropertyBuyPage() {
           </div>
         </div>
 
-        {/* CONTENT */}
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 28, alignItems: "start" }}>
+        {/* CONTENT */} <div className="pbp-layout">
+
           <div>
             <div id="property-listing-top" style={{ position: "relative", top: -100 }} />
 
@@ -385,8 +385,7 @@ export default function PropertyBuyPage() {
                   className="pbp-mobile-filter-btn"
                   onClick={() => setShowSidebar(true)}
                   style={{ display: "none", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 12, border: "1.5px solid #E8E4DF", background: "#fff", color: "#1A1A2E", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", fontFamily: "inherit" }}
-                >
-                  <span style={{ fontSize: 16 }}>⚙</span> Filters
+                > Filters
                 </button>
               </div>
             </div>
