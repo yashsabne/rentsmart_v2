@@ -14,11 +14,14 @@ const ContactCard = ({
   sent,
   handleSend,
   C,
+  token,  
 }) => {
+ 
+
   return (
     <div> 
       {isOwner ? (
-        <OwnerCard owner={owner} C={C} property_id={property._id} />
+        <OwnerCard owner={owner} C={C} property={property}  token={token} />
       ) : (
         <>
         <PaymentUnlockCard
