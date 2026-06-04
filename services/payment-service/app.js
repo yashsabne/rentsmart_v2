@@ -18,7 +18,7 @@ app.use(cors({
     "http://localhost:5173",
     "https://rentsmart-v2.vercel.app"
   ],
-  credentials: true
+  credentials: true 
 }));
 
 app.use(express.json());

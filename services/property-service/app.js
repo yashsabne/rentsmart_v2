@@ -7,6 +7,7 @@ import propertyRoutes from "./src/routes/propertyRoutes.js";
 import savedRoutes from "./src/routes/savedRoutes.js";
 import shareRoutes from "./src/routes/shareRoutes.js";
 import promoteRoutes from "./src/routes/promoteRoutes.js" 
+import listingaction from "./src/routes/listingactionsroutes.js"
 
 
 dotenv.config();
@@ -28,6 +29,8 @@ app.use("/api/property", propertyRoutes);
 app.use("/api/saved", savedRoutes);
 
 app.use("/api/promote",promoteRoutes)
+
+app.use("/api/actions",listingaction )
 
 app.use("/api/share", shareRoutes);
 
