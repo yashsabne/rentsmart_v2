@@ -141,7 +141,6 @@ export const createListing = async (req, res) => {
 export const getFilteredListings = async (req, res) => {
   try {
     const cacheKey = buildFilterCacheKey(req.query);
-
     const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
     if (cached?.success && cached?.data) {
       return res.status(200).json(cached.data);
@@ -154,13 +153,17 @@ export const getFilteredListings = async (req, res) => {
       page = 1, limit = 20,
     } = req.query;
 
-    const filter = {};
+    const now = new Date();
+
+    const filter = {
+      isHidden: false,
+      status: "AVAILABLE",
+    };
 
     const hasCitySearch = city?.trim();
     const hasTextSearch = search && search !== "all" && search !== "undefined";
 
     if (type) filter.buyOrSell = { $regex: `^${type}$`, $options: "i" };
-
     if (propertyType && propertyType !== "All") filter.type = propertyType;
 
     if (minPrice || maxPrice) {
@@ -183,8 +186,8 @@ export const getFilteredListings = async (req, res) => {
       filter.$and.push({
         $or: [
           { "details.parking.car": { $gt: 0 } },
-          { "details.parking.bike": { $gt: 0 } }
-        ]
+          { "details.parking.bike": { $gt: 0 } },
+        ],
       });
     }
 
@@ -193,48 +196,51 @@ export const getFilteredListings = async (req, res) => {
       filter.amenities = { $all: amenitiesArray };
     }
 
-    let sortObject = { promoted: -1, createdAt: -1 };
+    const promotedSort = {
+      $cond: {
+        if: { $and: [{ $eq: ["$isPromoted", true] }, { $gt: ["$promotedUntil", now] }] },
+        then: 1,
+        else: 0,
+      },
+    };
+
+    let baseSortStage;
 
     switch (sortBy) {
       case "Price: Low–High":
-        sortObject = { price: 1 };
+        baseSortStage = { $sort: { _promoted: -1, price: 1 } };
         break;
       case "Price: High–Low":
-        sortObject = { price: -1 };
+        baseSortStage = { $sort: { _promoted: -1, price: -1 } };
         break;
       case "Newest First":
-        sortObject = { createdAt: -1 };
+        baseSortStage = { $sort: { _promoted: -1, createdAt: -1 } };
         break;
+      default:
+        baseSortStage = { $sort: { _promoted: -1, lastRefreshedAt: -1, createdAt: -1 } };
     }
 
     const pageNum = Number(page);
     const limitNum = Number(limit);
     const skip = (pageNum - 1) * limitNum;
 
+    const addFieldsStage = { $addFields: { _promoted: promotedSort } };
+
     let listings = [];
     let totalCount = 0;
 
     if (hasCitySearch || hasTextSearch) {
-
       const query = city?.trim() || search?.trim() || "";
-
-      const sortedCities = [...POPULAR_LOCATIONS].sort(
-        (a, b) => b.length - a.length
-      );
-
+      const sortedCities = [...POPULAR_LOCATIONS].sort((a, b) => b.length - a.length);
       const detectedCity = sortedCities.find(c =>
         query.toLowerCase().includes(c.toLowerCase())
       );
-
       const remainingSearch = detectedCity
         ? query.replace(new RegExp(detectedCity, "ig"), "").trim()
         : query;
 
       if (detectedCity) {
-        filter["address.city"] = {
-          $regex: `^${detectedCity}$`,
-          $options: "i"
-        };
+        filter["address.city"] = { $regex: `^${detectedCity}$`, $options: "i" };
       }
 
       const searchQuery = remainingSearch || detectedCity;
@@ -245,69 +251,45 @@ export const getFilteredListings = async (req, res) => {
             index: "default",
             compound: {
               should: [
-                {
-                  text: {
-                    query: searchQuery,
-                    path: "title",
-                    fuzzy: { maxEdits: 2 },
-                    score: { boost: { value: 10 } }
-                  }
-                },
-                {
-                  text: {
-                    query: searchQuery,
-                    path: "amenities",
-                    fuzzy: { maxEdits: 1 },
-                    score: { boost: { value: 8 } }
-                  }
-                },
-                {
-                  text: {
-                    query: searchQuery,
-                    path: "type",
-                    fuzzy: { maxEdits: 1 },
-                    score: { boost: { value: 6 } }
-                  }
-                },
-                {
-                  text: {
-                    query: searchQuery,
-                    path: "category",
-                    fuzzy: { maxEdits: 1 },
-                    score: { boost: { value: 4 } }
-                  }
-                },
-                {
-                  text: {
-                    query: searchQuery,
-                    path: "description",
-                    fuzzy: { maxEdits: 2 },
-                    score: { boost: { value: 1 } }
-                  }
-                }
-              ]
-            }
-          }
+                { text: { query: searchQuery, path: "title", fuzzy: { maxEdits: 2 }, score: { boost: { value: 10 } } } },
+                { text: { query: searchQuery, path: "amenities", fuzzy: { maxEdits: 1 }, score: { boost: { value: 8 } } } },
+                { text: { query: searchQuery, path: "type", fuzzy: { maxEdits: 1 }, score: { boost: { value: 6 } } } },
+                { text: { query: searchQuery, path: "category", fuzzy: { maxEdits: 1 }, score: { boost: { value: 4 } } } },
+                { text: { query: searchQuery, path: "description", fuzzy: { maxEdits: 2 }, score: { boost: { value: 1 } } } },
+              ],
+            },
+          },
         },
         { $match: filter },
-        { $sort: sortObject },
+        addFieldsStage,
+        baseSortStage,
         {
           $facet: {
-            listings: [{ $skip: skip }, { $limit: limitNum }],
-            totalCount: [{ $count: "count" }]
-          }
-        }
+            listings: [{ $skip: skip }, { $limit: limitNum }, { $project: { _promoted: 0 } }],
+            totalCount: [{ $count: "count" }],
+          },
+        },
       ];
 
       const result = await Listing.aggregate(pipeline);
-
       listings = result[0]?.listings || [];
       totalCount = result[0]?.totalCount?.[0]?.count || 0;
     } else {
-      [listings, totalCount] = await Promise.all([
-        Listing.find(filter).sort(sortObject).skip(skip).limit(limitNum),
-        Listing.countDocuments(filter),
-      ]);
+      const pipeline = [
+        { $match: filter },
+        addFieldsStage,
+        baseSortStage,
+        {
+          $facet: {
+            listings: [{ $skip: skip }, { $limit: limitNum }, { $project: { _promoted: 0 } }],
+            totalCount: [{ $count: "count" }],
+          },
+        },
+      ];
+
+      const result = await Listing.aggregate(pipeline);
+      listings = result[0]?.listings || [];
+      totalCount = result[0]?.totalCount?.[0]?.count || 0;
     }
 
     const responseData = {
@@ -318,104 +300,53 @@ export const getFilteredListings = async (req, res) => {
       pageSize: limitNum,
     };
 
-    await redisPost("/cache", {
-      key: cacheKey,
-      data: responseData,
-      ttl: 300,
-    });
+    await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 300 });
 
     return res.status(200).json(responseData);
-
   } catch (err) {
     console.error("FILTER ERROR:", err);
-    return res.status(500).json({
-      message: "Server Error",
-      error: err.message
-    });
+    return res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
 
-export const searchListings = async (req, res) => {
+
+export const getSimilarListings = async (req, res) => {
   try {
-    const { search, type } = req.query;
+    const { category, type, excludeId, cursor, limit = 8 } = req.query;
 
-    const pipeline = [];
+ 
+    const query = {
+      _id: { $ne: excludeId },
+      category,
+      buyOrSell: { $regex: `^${type}$`, $options: "i" },
+      isHidden: false,
+      status: "AVAILABLE",
+    };
 
-    if (search?.trim()) {
-      pipeline.push({
-        $search: {
-          index: "default",
-          compound: {
-            should: [
-              {
-                text: {
-                  query: search,
-                  path: [
-                    "title",
-                    "description",
-                    "category",
-                    "amenities",
-                    "type"
-                  ],
-                  fuzzy: {
-                    maxEdits: 2
-                  }
-                }
-              },
-              {
-                autocomplete: {
-                  query: search,
-                  path: "address.city",
-                  fuzzy: {
-                    maxEdits: 2
-                  }
-                }
-              }
-            ]
-          }
-        }
-      });
-
-      pipeline.push({
-        $addFields: {
-          score: {
-            $meta: "searchScore"
-          }
-        }
-      });
+    if (cursor) {
+      query._id = { ...query._id, $lt: cursor };
     }
 
-    if (type) {
-      pipeline.push({
-        $match: {
-          buyOrSell: {
-            $regex: `^${type}$`,
-            $options: "i"
-          }
-        }
-      });
-    }
+    const listings = await Listing.find(query)
+      .sort({ createdAt: -1 })
+      .limit(Number(limit) + 1)
+      .lean();
 
-    pipeline.push({
-      $sort: {
-        score: -1,
-        promoted: -1,
-        createdAt: -1
-      }
+    const hasMore = listings.length > Number(limit);
+    if (hasMore) listings.pop();
+
+    res.status(200).json({
+      listings,
+      hasMore,
+      nextCursor: hasMore ? listings[listings.length - 1]._id : null,
     });
-
-    const listings = await Listing.aggregate(pipeline);
-
-    res.status(200).json(listings);
-
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      message: "Search failed"
-    });
+  } catch (err) { 
+    res.status(500).json({ message: "Failed to fetch similar listings" });
   }
 };
+
+
+
 export const getListingById = async (req, res) => {
   try {
     const { id } = req.params;
