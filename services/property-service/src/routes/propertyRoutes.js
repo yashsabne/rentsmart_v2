@@ -3,8 +3,7 @@ import { upload } from "../config/cloudinary.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import requireVerifiedEmail from "../middleware/requireVerifiedEmail.js";
 import {
-  createListing,
-  searchListings,
+  createListing, 
   getListingById,
   updateListing,
   deleteListing,
@@ -12,6 +11,7 @@ import {
   getRecommended,
   getFilteredListings,
   uploadPhotos,
+  getSimilarListings,
 } from "../controllers/propertyController.js";
 
 const router = express.Router();
@@ -31,7 +31,7 @@ router.post("/", authMiddleware, requireVerifiedEmail, createListing);
 
 // PUBLIC ROUTES 
 router.get("/filter",      getFilteredListings);
-router.get("/search",      searchListings);
+router.get("/similar",      getSimilarListings);
 router.get("/recommended", getRecommended);
 router.get("/my",          authMiddleware, getMyListings);
 router.get("/details/:id", getListingById);
