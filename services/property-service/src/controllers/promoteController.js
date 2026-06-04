@@ -1,6 +1,7 @@
 // src/controller/promoteController.js 
 import crypto from "crypto";
 import Listing from "../models/Listings.js"; // adjust to your model name
+import { redisDelete } from "../utils/redisClient.js";
 
 // src/controller/listingController.js  (add this one function)
 
@@ -15,6 +16,9 @@ export const activatePromotion = async (req, res) => {
       promotedUntil,
       promotedPaymentId: paymentId,
     });
+
+        await redisDelete(`/cache/listing:${listingId}`);
+    
 
     return res.status(200).json({ success: true });
   } catch (error) {
