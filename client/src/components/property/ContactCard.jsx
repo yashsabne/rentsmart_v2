@@ -3,6 +3,7 @@
 import OwnerCard from "./OwnerCard";
 import PaymentUnlockCard from "./PaymentUnlockCard";
 import MessageBox from "./MessageBox";
+import { useEffect } from "react";
 
 const ContactCard = ({
   isOwner,
@@ -15,13 +16,14 @@ const ContactCard = ({
   handleSend,
   C,
   token,  
+  onPropertyUpdate 
 }) => {
  
-
+ 
   return (
     <div> 
       {isOwner ? (
-        <OwnerCard owner={owner} C={C} property={property}  token={token} />
+        <OwnerCard owner={owner} C={C} property={property}  token={token} onPropertyUpdate={onPropertyUpdate} />
       ) : (
         <>
         <PaymentUnlockCard
