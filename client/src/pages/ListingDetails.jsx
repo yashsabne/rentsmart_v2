@@ -79,21 +79,21 @@ export default function ListingDetails() {
   }, [id]);
 
   const fetchSimilar = async (cursorVal = null) => {
-    setLoadingMore(true); 
-const url = `${API.PROPERTY}/api/property/similar?category=${property?.category}&type=${property?.buyOrSell}&excludeId=${id}`;
+    setLoadingMore(true);
+    const url = `${API.PROPERTY}/api/property/similar?category=${property?.category}&type=${property?.buyOrSell}&excludeId=${id}`;
     const res = await fetch(url);
-    const data = await res.json(); 
+    const data = await res.json();
     setSimilarProperties(prev => cursorVal ? [...prev, ...data.listings] : data.listings);
     setHasMore(data.hasMore);
     setCursor(data.nextCursor);
     setLoadingMore(false);
   };
 
-useEffect(() => { 
-  if (property?._id && property?.category && property?.buyOrSell) {
-    fetchSimilar();
-  }
-}, [property?._id, property?.category, property?.buyOrSell]);
+  useEffect(() => {
+    if (property?._id && property?.category && property?.buyOrSell) {
+      fetchSimilar();
+    }
+  }, [property?._id, property?.category, property?.buyOrSell]);
 
 
   useEffect(() => {
@@ -544,11 +544,17 @@ useEffect(() => {
                   <div className="card-inner" style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, padding: "26px 28px", boxShadow: C.cardShadow, marginBottom: 20 }}>
                     <h2 style={{ fontSize: 16, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Location</h2>
                     <p style={{ fontSize: 13, color: C.inkMuted, marginBottom: 20 }}>{fullAddress}</p>
-                    <div style={{ height: 280, borderRadius: 14, overflow: "hidden", background: "linear-gradient(135deg,#e8f4f8,#d4e8e0)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `1px solid ${C.border}` }}>
-                      <span style={{ fontSize: 36, marginBottom: 12 }}>🗺️</span>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: C.inkMuted }}>{property.address?.city}, {property.address?.country}</span>
-                      <span style={{ fontSize: 12, color: C.inkLight, marginTop: 4 }}>Integrate Google Maps here</span>
-                    </div>
+                   
+                      <iframe
+                        title="Google Map"
+                        width="100%"
+                        height="300"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://maps.google.com/maps?q=${encodeURIComponent(property.address?.city)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                      ></iframe>
+             
                   </div>
                 </div>
               )}

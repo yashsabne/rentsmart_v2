@@ -243,8 +243,7 @@ const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => 
 
         <div style={{ padding: 16 }}>
           <div style={{ fontSize: 11, color: "#9ca3af", letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 10 }}>Listing overview</div>
-          <div style={{ marginBottom: 14, fontSize: 12, color: "#9ca3af" }}>feature coming</div>
-
+ 
           {!promoted ? (
             <div style={{ background: PURPLE.bg, borderRadius: 12, padding: 14, marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: PURPLE.border, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: PURPLE.dark, fontSize: 18 }}>🚀</div>

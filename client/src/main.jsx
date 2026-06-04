@@ -5,6 +5,7 @@ import App from './App.jsx'
 import "./index.css"
 import { Toaster } from "react-hot-toast";
 import { SocketProvider } from './chat/socketContext.jsx';
+import { Analytics } from "@vercel/analytics/next"
 
 
 createRoot(document.getElementById('root')).render(
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')).render(
       <Toaster position="top-right" />
 
     <App />
+        <Analytics />
     </SocketProvider>
   </StrictMode>,
   
