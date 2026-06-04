@@ -1,22 +1,133 @@
-// src/components/property/OwnerCard.jsx
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../../../apis";
-
 import ShareButton from "../ShareButton";
-
-
+import { apiToggleHide, apiRefreshListing, apiUpdateStatus } from "../../services/apilisting";
 
 const PURPLE = { bg: "#EEEDFE", mid: "#534AB7", dark: "#26215C", border: "#CECBF6" };
 const GREEN = { bg: "#EAF3DE", mid: "#3B6D11", light: "#C0DD97" };
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
-const OwnerCard = ({ token, owner, property, stats = {} }) => {
+const Toast = ({ message, type, onClose }) => {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+      background: type === "error" ? "#ef4444" : "#111",
+      color: "#fff", borderRadius: 10, padding: "10px 18px",
+      fontSize: 13, fontWeight: 500, zIndex: 9999,
+      boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+      whiteSpace: "nowrap",
+    }}>
+      {message}
+    </div>
+  );
+};
+
+const formatCountdown = (ms) => {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
+
+const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => {
+
+ 
+
   const navigate = useNavigate();
   const [modal, setModal] = useState(null);
-  const [loading, setLoading] = useState(false);
-
+  const [loading, setLoading] = useState({ pay: false, hide: false, refresh: false, status: false });
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [refreshRemaining, setRefreshRemaining] = useState(0);
 
+ 
+
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
+  }, []);
+ 
+
+  useEffect(() => {
+    if (!property.lastRefreshedAt) return;
+    const elapsed = Date.now() - new Date(property.lastRefreshedAt).getTime();
+    const remaining = COOLDOWN_MS - elapsed;
+    if (remaining <= 0) { setRefreshRemaining(0); return; }
+    setRefreshRemaining(remaining);
+    const interval = setInterval(() => {
+      setRefreshRemaining(prev => {
+        const next = prev - 1000;
+        if (next <= 0) { clearInterval(interval); return 0; }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [property.lastRefreshedAt]);
+
+  const handleHide = async () => {
+    setLoading(l => ({ ...l, hide: true }));
+    try {
+      const data = await apiToggleHide(token, property._id);
+ 
+      if (data.success) {
+        onPropertyUpdate(data.listing);
+        showToast(data.listing.isHidden ? "Listing hidden" : "Listing visible again");
+      } else {
+        showToast("Failed to update listing", "error");
+      }
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setLoading(l => ({ ...l, hide: false }));
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (refreshRemaining > 0) return;
+    setLoading(l => ({ ...l, refresh: true }));
+    try {
+      const data = await apiRefreshListing(token, property._id);
+      if (data.success) {
+        onPropertyUpdate(data.listing);
+        setRefreshRemaining(COOLDOWN_MS);
+        showToast("Listing refreshed! It's now higher in search.");
+      } else if (data.remainingMs) {
+        setRefreshRemaining(data.remainingMs);
+        showToast(`Cooldown active — try in ${formatCountdown(data.remainingMs)}`, "error");
+      } else {
+        showToast("Could not refresh", "error");
+      }
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setLoading(l => ({ ...l, refresh: false }));
+    }
+  };
+
+  const handleStatus = async () => {
+    const isAvailable = property?.status === "AVAILABLE";
+    const newStatus = isAvailable
+      ? property?.buyOrSell === "Rent" ? "RENTED" : "SOLD"
+      : "AVAILABLE";
+    setLoading(l => ({ ...l, status: true }));
+    try {
+      const data = await apiUpdateStatus(token, property._id, newStatus);
+      if (data.success) {
+        onPropertyUpdate(data.listing);
+        showToast(`Marked as ${newStatus}`);
+      } else {
+        showToast("Failed to update status", "error");
+      }
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setLoading(l => ({ ...l, status: false }));
+    }
+  };
 
   const loadRazorpay = () =>
     new Promise((resolve) => {
@@ -28,7 +139,6 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
       document.body.appendChild(script);
     });
 
-  // ── open Razorpay checkout ──────────────────────────────────────────
   const openRazorpay = (order) => {
     const options = {
       key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -41,10 +151,7 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
         try {
           const res = await fetch(`${API.PAYMENT}/api/payment/promote/verify`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
@@ -52,11 +159,8 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
             }),
           });
           const data = await res.json();
-          if (data.success) {
-            setModal("success");
-          } else {
-            setError("Payment verified but activation failed. Contact support.");
-          }
+          if (data.success) setModal("success");
+          else setError("Payment verified but activation failed. Contact support.");
         } catch {
           setError("Something went wrong during verification. Contact support.");
         }
@@ -67,66 +171,57 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
         contact: owner?.phone ?? "",
       },
       theme: { color: "#534AB7" },
-      modal: {
-        ondismiss: () => setModal("confirm"),
-      },
+      modal: { ondismiss: () => setModal("confirm") },
     };
-
     const rzp = new window.Razorpay(options);
     rzp.open();
   };
 
   const handlePay = async () => {
     setError(null);
-    setLoading(true);
+    setLoading(l => ({ ...l, pay: true }));
     try {
       const loaded = await loadRazorpay();
-      if (!loaded) {
-        setError("Failed to load Razorpay. Check your internet connection.");
-        return;
-      }
-
+      if (!loaded) { setError("Failed to load Razorpay."); return; }
       const res = await fetch(`${API.PAYMENT}/api/payment/promote/order`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ listingId: property._id, propertyTitle: property.title }),
       });
-
       const data = await res.json();
-
-      if (!data.success) {
-        setError("Could not create order. Please try again.");
-        return;
-      }
-
-      setModal(null); // close modal before Razorpay opens
+      if (!data.success) { setError("Could not create order. Please try again."); return; }
+      setModal(null);
       openRazorpay(data.order);
     } catch {
       setError("Network error. Please try again.");
     } finally {
-      setLoading(false);
+      setLoading(l => ({ ...l, pay: false }));
     }
   };
+
   const steps = ["plan", "confirm", "success"];
   const stepIdx = steps.indexOf(modal);
-
 
   const promoted =
     property?.isPromoted &&
     property?.promotedUntil &&
-    new Date(property.promotedUntil) > new Date();
+    new Date(property?.promotedUntil) > new Date();
+
+ 
+  const isAvailable = property.status === "AVAILABLE";
+  const statusLabel = !isAvailable
+    ? "↩️ Mark Available Again"
+    : `🏷️ Mark as ${property?.buyOrSell === "Rent" ? "RENTED" : "SOLD"}`;
+
+  const refreshCoolingDown = refreshRemaining > 0;
 
   return (
     <>
       <script src="https://checkout.razorpay.com/v1/checkout.js" async />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* ── CARD ── */}
       <div style={{ borderRadius: 16, background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", overflow: "hidden", marginBottom: 20 }}>
 
-        {/* Top: owner info */}
         <div style={{ padding: "16px", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 46, height: 46, borderRadius: "50%", background: PURPLE.bg, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 500, fontSize: 16, color: PURPLE.dark, flexShrink: 0 }}>
             {(owner?.firstName?.[0] || "O") + (owner?.lastName?.[0] || "")}
@@ -146,21 +241,10 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
 
         <div style={{ height: "0.5px", background: "rgba(0,0,0,0.06)" }} />
 
-        {/* Body */}
         <div style={{ padding: 16 }}>
-          {/* Stats */}
           <div style={{ fontSize: 11, color: "#9ca3af", letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 10 }}>Listing overview</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 14 }}>
-            {/* {[["Views", stats.views ?? 247], ["Inquiries", stats.inquiries ?? 18], ["Reach", stats.reach ?? "4.2k"]].map(([label, val]) => (
-              <div key={label} style={{ background: "#f9fafb", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 500, color: "#111" }}>{val}</div>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{label}</div>
-              </div>
-            ))} */}
-            feature coming
-          </div>
+          <div style={{ marginBottom: 14, fontSize: 12, color: "#9ca3af" }}>feature coming</div>
 
-          {/* Promote block */}
           {!promoted ? (
             <div style={{ background: PURPLE.bg, borderRadius: 12, padding: 14, marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: PURPLE.border, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: PURPLE.dark, fontSize: 18 }}>🚀</div>
@@ -175,47 +259,55 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
             </div>
           ) : (
             <div style={{ background: GREEN.bg, borderRadius: 12, padding: 14, marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 18, color: GREEN.mid }}>✅</span>
+              <span style={{ fontSize: 18 }}>✅</span>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: GREEN.mid }}>Listing is promoted</div>
                 <div style={{ fontSize: 12, color: "#3B6D11" }}>
-                  Active for{" "}
-                  {Math.max(
-                    0,
-                    Math.ceil(
-                      (new Date(property.promotedUntil) - new Date()) /
-                      (1000 * 60 * 60 * 24)
-                    )
-                  )}{" "}
-                  days
+                  Active for {Math.max(0, Math.ceil((new Date(property?.promotedUntil) - new Date()) / (1000 * 60 * 60 * 24)))} days
                 </div>
               </div>
             </div>
           )}
 
+          {property?.isHidden && (
+            <div style={{ background: "#FEF3C7", borderRadius: 10, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: "#92400E" }}>
+              👁️ This listing is hidden from public search
+            </div>
+          )}
+
+          {!isAvailable && (
+            <div style={{ background: "#F3F4F6", borderRadius: 10, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: "#374151" }}>
+              🏷️ Marked as <strong>{property?.status}</strong>
+            </div>
+          )}
 
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: "#9ca3af", letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 10 }}>
-              Property Actions
-            </div>
+            <div style={{ fontSize: 11, color: "#9ca3af", letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 10 }}>Property Actions</div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-
-              <button style={{ padding: "11px", borderRadius: 10, border: "0.5px solid rgba(0,0,0,.08)", background: "#fff", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                👁️ Hide Listing
+              <button
+                onClick={handleHide}
+                disabled={loading.hide}
+                style={{ padding: "11px", borderRadius: 10, border: "0.5px solid rgba(0,0,0,.08)", background: property.isHidden ? "#FEF3C7" : "#fff", fontSize: 13, fontWeight: 500, cursor: loading.hide ? "not-allowed" : "pointer", opacity: loading.hide ? 0.6 : 1 }}>
+                {loading.hide ? "…" : property?.isHidden ? "👁️ Unhide Listing" : "👁️ Hide Listing"}
               </button>
 
               <ShareButton listing={property} currentUser={owner} />
 
-              <button style={{ padding: "11px", borderRadius: 10, border: "0.5px solid rgba(0,0,0,.08)", background: "#fff", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                🔄 Refresh Listing
+              <button
+                onClick={handleRefresh}
+                disabled={loading.refresh || refreshCoolingDown}
+                title={refreshCoolingDown ? `Available in ${formatCountdown(refreshRemaining)}` : "Refresh to boost in search"}
+                style={{ padding: "11px", borderRadius: 10, border: "0.5px solid rgba(0,0,0,.08)", background: refreshCoolingDown ? "#f3f4f6" : "#fff", fontSize: 13, fontWeight: 500, cursor: (loading.refresh || refreshCoolingDown) ? "not-allowed" : "pointer", opacity: (loading.refresh || refreshCoolingDown) ? 0.6 : 1 }}>
+                {loading.refresh ? "…" : refreshCoolingDown ? `🔄 ${formatCountdown(refreshRemaining)}` : "🔄 Refresh Listing"}
               </button>
 
-              <button style={{ padding: "11px", borderRadius: 10, border: "0.5px solid rgba(0,0,0,.08)", background: "#fff", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                🏷️ Mark as {property.buyOrSell === "Rent" ? "RENTED" : "SOLD"}
+              <button
+                onClick={handleStatus}
+                disabled={loading.status}
+                style={{ padding: "11px", borderRadius: 10, border: "0.5px solid rgba(0,0,0,.08)", background: !isAvailable ? "#EAF3DE" : "#fff", fontSize: 13, fontWeight: 500, cursor: loading.status ? "not-allowed" : "pointer", opacity: loading.status ? 0.6 : 1 }}>
+                {loading.status ? "…" : statusLabel}
               </button>
-
-              
             </div>
           </div>
 
@@ -223,17 +315,13 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
             style={{ width: "100%", padding: "10px", borderRadius: 10, border: "0.5px solid rgba(0,0,0,0.1)", background: "#fff", color: "#374151", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             ✏️ Edit property
           </button>
-          
         </div>
       </div>
 
-      {/* ── MODAL ── */}
       {modal && (
         <div onClick={(e) => e.target === e.currentTarget && setModal(null)}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 16 }}>
           <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 400, overflow: "hidden" }}>
-
-            {/* Modal header */}
             <div style={{ padding: "16px 16px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>
                 {modal === "plan" ? "Promote your listing" : modal === "confirm" ? "Confirm & pay" : ""}
@@ -243,14 +331,12 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
             </div>
 
             <div style={{ padding: 16 }}>
-              {/* Step bar */}
               <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
                 {steps.map((s, i) => (
                   <div key={s} style={{ height: 3, flex: 1, borderRadius: 2, background: i < stepIdx ? "#3B6D11" : i === stepIdx ? PURPLE.mid : "#e5e7eb" }} />
                 ))}
               </div>
 
-              {/* PLAN */}
               {modal === "plan" && (
                 <>
                   <div style={{ background: PURPLE.bg, borderRadius: 12, padding: 14, marginBottom: 12 }}>
@@ -279,7 +365,6 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
                 </>
               )}
 
-              {/* CONFIRM */}
               {modal === "confirm" && (
                 <>
                   <div style={{ background: "#f9fafb", borderRadius: 12, padding: "12px 14px", marginBottom: 12 }}>
@@ -292,18 +377,18 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
                       <span>Total</span><span>₹39.00</span>
                     </div>
                   </div>
+                  {error && <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 10 }}>{error}</div>}
                   <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6, marginBottom: 12 }}>
                     You'll be taken to Razorpay's secure checkout. Listing is promoted immediately after payment.
                   </div>
-                  <button onClick={handlePay} disabled={loading}
-                    style={{ width: "100%", padding: 11, borderRadius: 10, border: "none", background: PURPLE.mid, color: "#EEEDFE", fontSize: 14, fontWeight: 500, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? .6 : 1 }}>
-                    {loading ? "Creating order…" : "🔒 Pay ₹39 via Razorpay"}
+                  <button onClick={handlePay} disabled={loading.pay}
+                    style={{ width: "100%", padding: 11, borderRadius: 10, border: "none", background: PURPLE.mid, color: "#EEEDFE", fontSize: 14, fontWeight: 500, cursor: loading.pay ? "not-allowed" : "pointer", opacity: loading.pay ? .6 : 1 }}>
+                    {loading.pay ? "Creating order…" : "🔒 Pay ₹39 via Razorpay"}
                   </button>
                   <div style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 8 }}>256-bit SSL · Powered by Razorpay</div>
                 </>
               )}
 
-              {/* SUCCESS */}
               {modal === "success" && (
                 <>
                   <div style={{ width: 52, height: 52, borderRadius: "50%", background: GREEN.bg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 24 }}>🚀</div>
@@ -317,7 +402,7 @@ const OwnerCard = ({ token, owner, property, stats = {} }) => {
                       <div key={x} style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>{x}</div>
                     ))}
                   </div>
-                  <button onClick={() => { setModal(null); setPromoted(true); }}
+                  <button onClick={() => setModal(null)}
                     style={{ width: "100%", padding: 11, borderRadius: 10, border: "none", background: "#111", color: "#fff", fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
                     Done ✓
                   </button>
