@@ -102,17 +102,53 @@ const listingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isHidden: {
+      type: Boolean,
+      default: false,
+    },
+
+    hiddenAt: {
+      type: Date,
+      default: null,
+    },
+
+    status: {
+      type: String,
+      enum: ["AVAILABLE", "RENTED", "SOLD"],
+      default: "AVAILABLE",
+    },
+
+    statusChangedAt: {
+      type: Date,
+      default: null,
+    },
+
+    lastRefreshedAt: {
+      type: Date,
+      default: Date.now,
+    },
+
+    refreshCount: {
+      type: Number,
+      default: 0,
+    },
 
     isPromoted: { type: Boolean, default: false },
     promotedUntil: { type: Date, default: null },
     promotedPaymentId: { type: String, default: null },
+
   },
   { timestamps: true }
 );
 
-/**listingSchema.index({ city: 1 });
+listingSchema.index({ "address.city": 1 });
 listingSchema.index({ price: 1 });
 listingSchema.index({ category: 1 });
- */
+
+listingSchema.index({
+  isHidden: 1,
+  status: 1,
+  lastRefreshedAt: -1
+}); 
 
 export default mongoose.model("Listing", listingSchema);
