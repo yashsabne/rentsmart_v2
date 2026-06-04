@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../../../apis";
 import ShareButton from "../ShareButton";
-import { apiToggleHide, apiRefreshListing, apiUpdateStatus } from "../../services/apilisting";
+import { apiToggleHide, apiRefreshListing, apiUpdateStatus } from "../../services/apilisting.js";
 
 const PURPLE = { bg: "#EEEDFE", mid: "#534AB7", dark: "#26215C", border: "#CECBF6" };
 const GREEN = { bg: "#EAF3DE", mid: "#3B6D11", light: "#C0DD97" };
