@@ -9,7 +9,7 @@ import { API } from "../../apis.js";
 import "./styles/dashboard.css";
 import MessagesPage from "../components/messages/MessagesPage.jsx";
 import Footer from "../components/reuse/Footer.jsx";
-import DashboardListingPanel from "../components/DashboardListingPanel";
+import DashboardListingPanel from "../components/DashboardlistingPanel";
 
 const todayStr = () =>
   new Date().toLocaleDateString("en-IN", {
