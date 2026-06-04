@@ -5,7 +5,7 @@ import App from './App.jsx'
 import "./index.css"
 import { Toaster } from "react-hot-toast";
 import { SocketProvider } from './chat/socketContext.jsx';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react";
 
 
 createRoot(document.getElementById('root')).render(
