@@ -10,6 +10,7 @@ import "./styles/dashboard.css";
 import MessagesPage from "../components/messages/MessagesPage.jsx";
 import Footer from "../components/reuse/Footer.jsx";
 import DashboardListingPanel from "../components/Dashboardlistingpanel";
+import Payments from "../components/Payments.jsx";
 
 const todayStr = () =>
   new Date().toLocaleDateString("en-IN", {
@@ -308,13 +309,8 @@ export default function Dashboard() {
 
                 {activeNav === "saved"    && <SavedPropertiesPage embedded />}
                 {activeNav === "messages" && <MessagesPage currentUser={user} />}
-                {activeNav === "payments" && (
-                  <div className="card placeholder-card">
-                    <div className="placeholder-icon">💳</div>
-                    <div className="placeholder-title">Payments Coming Soon</div>
-                    <div className="placeholder-sub">Payment history and billing will appear here.</div>
-                  </div>
-                )}
+           {activeNav === "payments" && <Payments />}
+
                 {activeNav === "settings" && (
                   <div className="card placeholder-card">
                     <div className="placeholder-icon">⚙️</div>
