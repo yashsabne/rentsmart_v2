@@ -8,23 +8,48 @@ import { sendNotification } from "../utils/sendNotification.js";
 import crypto from "crypto";
 
 
+
 export const createOrder = async (req, res) => {
   try {
-
-    const {
-      listingId,
-      ownerId,
-      email,
-      ownerName,
-      ownerPhone,
-      propertyTitle,
-
-      buyerName,
-      buyerEmail,
-      buyerPhone,
-    } = req.body;
-
+    const { listingId, ownerId } = req.body;
     const userId = req.user.id;
+
+    if (!listingId || !ownerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Listing ID and Owner ID are required",
+      });
+    }
+
+    const listingRes = await fetch(
+      `${process.env.PROPERTY_SERVICE_URL}/api/property/details/${listingId}`
+    );
+    const listing = await listingRes.json();
+    if (!listing) {
+      return res.status(404).json({ success: false, message: "Listing not found" });
+    }
+
+    const buyerRes = await fetch(
+      `${process.env.AUTH_SERVICE_URL}/api/auth/internal/user/${userId}`,
+      { headers: { "x-internal-secret": process.env.INTERNAL_SECRET } }
+    );
+    const buyerData = await buyerRes.json();
+
+    if (!buyerData.user) {
+      return res.status(404).json({ success: false, message: "Buyer not found" });
+    }
+
+    const ownerRes = await fetch(
+      `${process.env.AUTH_SERVICE_URL}/api/auth/internal/user/${ownerId}`,
+      { headers: { "x-internal-secret": process.env.INTERNAL_SECRET } }
+    );
+    const ownerData = await ownerRes.json();
+    if (!ownerData.user) {
+      return res.status(404).json({ success: false, message: "Owner not found" });
+    }
+
+    const { user: buyer } = buyerData;
+    const { user: owner } = ownerData;
 
     const options = {
       amount: 3900,
@@ -34,53 +59,36 @@ export const createOrder = async (req, res) => {
 
     const order = await razorpay.orders.create(options);
 
-    const payment = await Payment.create({
+    await Payment.create({
       userId,
-
       listingId,
-
       ownerId,
-
-      email,
-
-      ownerName,
-
-      ownerPhone,
-
-      propertyTitle,
-
-      buyerName,
-
-      buyerEmail,
-
-      buyerPhone,
-
+      email: owner.email,
+      ownerName: `${owner.firstName} ${owner.lastName || ""}`.trim(),
+      ownerPhone: owner.phone,
+      propertyTitle: listing.title,
+      buyerName: `${buyer.firstName} ${buyer.lastName || ""}`.trim(),
+      buyerEmail: buyer.email,
+      buyerPhone: buyer.phone,
       amount: 39,
-
       razorpayOrderId: order.id,
     });
 
     return res.status(200).json({
       success: true,
       order,
-      payment,
     });
 
   } catch (error) {
-
-    console.log(error);
-
+    console.error("[createOrder]", error);
     return res.status(500).json({
       success: false,
       message: "Order creation failed",
     });
-
   }
 };
-
 export const verifyPayment = async (req, res) => {
   try {
-
     const {
       razorpay_order_id,
       razorpay_payment_id,
@@ -88,45 +96,26 @@ export const verifyPayment = async (req, res) => {
     } = req.body;
 
     const generatedSignature = crypto
-      .createHmac(
-        "sha256",
-        process.env.RAZORPAY_KEY_SECRET
-      )
-      .update(
-        razorpay_order_id +
-        "|" +
-        razorpay_payment_id
-      )
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
-    if (
-      generatedSignature !==
-      razorpay_signature
-    ) {
+    if (generatedSignature !== razorpay_signature) {
       return res.status(400).json({
         success: false,
         message: "Payment verification failed",
       });
     }
 
-    const payment =
-      await Payment.findOneAndUpdate(
-        {
-          razorpayOrderId:
-            razorpay_order_id,
-        },
-        {
-          razorpayPaymentId:
-            razorpay_payment_id,
-
-          status: "paid",
-
-          accessGranted: true,
-        },
-        {
-          new: true,
-        }
-      );
+    const payment = await Payment.findOneAndUpdate(
+      { razorpayOrderId: razorpay_order_id },
+      {
+        razorpayPaymentId: razorpay_payment_id,
+        status: "paid",
+        accessGranted: true,
+      },
+      { new: true }
+    );
 
     if (!payment) {
       return res.status(404).json({
@@ -135,117 +124,93 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    await sendNotification(
-      "contact-revealed",
-      {
-        email:
-          payment.email,
+    await sendNotification("contact-revealed", {
+      email: payment.buyerEmail,
+      tenantName: payment.buyerName,
+      ownerName: payment.ownerName,
+      ownerPhone: payment.ownerPhone,
+    });
 
-        ownerName:
-          payment.ownerName,
+    await sendNotification("payment-success", {
+      email: payment.buyerEmail,
+      tenantName: payment.buyerName,
+      ownerName: payment.ownerName,
+      propertyTitle: payment.propertyTitle,
+    });
 
-        ownerPhone:
-          payment.ownerPhone,
-      }
-    );
+    await sendNotification("owner-contact-revealed", {
+      email: payment.email,
+      ownerName: payment.ownerName,
+      buyerName: payment.buyerName,
+      buyerEmail: payment.buyerEmail,
+      buyerPhone: payment.buyerPhone,
+      propertyTitle: payment.propertyTitle,
+    });
 
-    await sendNotification(
-      "payment-success",
-      {
-        email:
-          payment.buyerEmail,
+    await logActivity(payment.userId, "PAYMENT_COMPLETED", {
+      amount: payment.amount,
+      propertyTitle: payment.propertyTitle,
+      paymentId: razorpay_payment_id,
+    });
 
-        ownerName:
-          payment.ownerName,
+    await logActivity(payment.userId, "CONTACT_REVEALED", {
+      propertyTitle: payment.propertyTitle,
+      ownerName: payment.ownerName,
+    });
 
-        propertyTitle:
-          payment.propertyTitle,
-      }
-    );
-
-    await sendNotification(
-      "owner-contact-revealed",
-      {
-        ownerId:
-          payment.ownerId,
-
-        buyerName:
-          payment.buyerName,
-
-        buyerEmail:
-          payment.buyerEmail,
-
-        buyerPhone:
-          payment.buyerPhone,
-
-        propertyTitle:
-          payment.propertyTitle,
-      }
-    );
-
-    await logActivity(
-      payment.userId,
-      "PAYMENT_COMPLETED",
-      {
-        amount:
-          payment.amount,
-
-        propertyTitle:
-          payment.propertyTitle,
-
-        paymentId:
-          razorpay_payment_id,
-      }
-    );
-
-    await logActivity(
-      payment.userId,
-      "CONTACT_REVEALED",
-      {
-        propertyTitle:
-          payment.propertyTitle,
-
-        ownerName:
-          payment.ownerName,
-      }
-    );
-
-    await logActivity(
-      payment.ownerId,
-      "CONTACT_VIEWED",
-      {
-        propertyTitle:
-          payment.propertyTitle,
-
-        buyerName:
-          payment.buyerName,
-
-        buyerEmail:
-          payment.buyerEmail,
-
-        buyerPhone:
-          payment.buyerPhone,
-      }
-    );
-
+    await logActivity(payment.ownerId, "CONTACT_VIEWED", {
+      propertyTitle: payment.propertyTitle,
+      buyerName: payment.buyerName,
+      buyerEmail: payment.buyerEmail,
+      buyerPhone: payment.buyerPhone,
+    });
+ 
     return res.status(200).json({
       success: true,
-      payment,
+      payment: {
+        ownerName: payment.ownerName,
+        ownerPhone: payment.ownerPhone,
+        propertyTitle: payment.propertyTitle,
+      },
     });
 
   } catch (error) {
-
-    console.log(error);
-
+    console.error("verifyPayment error:", error);
     return res.status(500).json({
       success: false,
       message: "Verification failed",
     });
-
   }
 };
 
+
+export const checkAccess = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { listingId } = req.query;
+
+    const payment = await Payment.findOne({
+      userId,
+      listingId,
+      status: "paid",
+    });
+
+    if (!payment) {
+      return res.status(200).json({ accessGranted: false });
+    }
+
  
+    return res.status(200).json({
+      accessGranted: true,
+      ownerPhone: payment.ownerPhone,
+    });
+  } catch (error) {
+    console.error("checkAccess error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
 export const createPromoteOrder = async (req, res) => {
   try {
     const { listingId, propertyTitle } = req.body;
