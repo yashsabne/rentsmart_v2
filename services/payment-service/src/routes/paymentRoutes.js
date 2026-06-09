@@ -1,6 +1,7 @@
 import express from "express";
 
 import {
+  checkAccess,
   createOrder,
   createPromoteOrder,
   verifyPayment,
@@ -16,19 +17,11 @@ router.get("/", (req, res) => {
   res.send("Payment API Running");
 });
 
-router.post(
-  "/create-order",
-  authMiddleware,
-  requireVerifiedEmail,
-  createOrder
-);
+router.post("/create-order",authMiddleware,requireVerifiedEmail,createOrder);
 
-router.post(
-  "/verify-payment",
-  authMiddleware,
-  requireVerifiedEmail,
-  verifyPayment
-);
+router.post("/verify-payment",authMiddleware,requireVerifiedEmail,verifyPayment);
+
+router.get("/check-access",authMiddleware, checkAccess);
 
 router.post("/promote/order",  authMiddleware, createPromoteOrder);
 router.post("/promote/verify", authMiddleware, verifyPromotePayment);
