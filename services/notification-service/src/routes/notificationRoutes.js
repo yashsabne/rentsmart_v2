@@ -3,6 +3,7 @@ import express from "express";
 import {
   paymentSuccess,
   contactRevealed,
+  ownerContactRevealed,
 } from "../controller/notificationController.js";
 
 const router = express.Router();
@@ -19,6 +20,11 @@ router.post(
 router.post(
   "/contact-revealed",
   contactRevealed
+);
+
+router.post(
+  "/owner-contact-revealed",
+  ownerContactRevealed
 );
 
 export default router;

@@ -1,12 +1,12 @@
-import transporter from "../config/mail.js";
+ 
+import { sendBrevoEmail } from "../config/brevo.js";
 
-const sendEmail = async ({ to, subject, html }) => {
-  await transporter.sendMail({
-    from: `RentSmart <${process.env.OWNER_EMAIL}>`,
-    to,
-    subject,
-    html,
-  });
+/**
+ * Unified email sender used by all controllers.
+ * @param {{ to: string, name?: string, subject: string, html: string }} options
+ */
+const sendEmail = async ({ to, name = "", subject, html }) => {
+  return await sendBrevoEmail({ to, name, subject, html });
 };
 
 export default sendEmail;
