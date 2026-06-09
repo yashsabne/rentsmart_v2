@@ -63,7 +63,12 @@ const PaymentUnlockCard = ({ owner, property, currentUser }) => {
         order_id: orderData.order.id,
 
         handler: async function (response) {
+
+          
+
           try {
+                  setLoading(true);
+
             const verifyRes = await fetch(`${API.PAYMENT}/api/payment/verify-payment`, {
               method: "POST",
               headers: {
@@ -87,10 +92,13 @@ const PaymentUnlockCard = ({ owner, property, currentUser }) => {
             if (verifyData.success) {
               setUnlocked(true);
               setOwnerPhone(verifyData.payment.ownerPhone);
+                    setLoading(false);
+
               toast.success("Phone Number Unlocked Successfully");
             }
           } catch (err) {
             console.error(err);
+            setLoading(false);
             toast.error("Payment verification failed");
           }
         },
