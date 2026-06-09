@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { sendVerificationEmail } from "../services/sendVerificationEmail.js";
 import { logActivity } from "../utils/activityLogger.js";
 import { redisPost, redisGet, redisDelete } from "../utils/redisClient.js";
+import { verifyInternalSecret } from "../middleware/verifyInternalSecret.js";
 
 export const register = async (req, res) => {
   try {
@@ -204,12 +205,13 @@ export const getUserById = async (req, res) => {
     const userId = req.params.id;
 
     const cached = await redisGet(`/cache/user:${userId}`);
-
     if (cached?.success && cached?.data) {
       return res.status(200).json(cached.data);
     }
 
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findById(userId).select(
+      "-password -phone -resetToken -resetTokenExpiry -emailVerificationToken -emailVerificationExpiry"
+    );
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
