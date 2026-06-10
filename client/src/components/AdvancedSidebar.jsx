@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { POPULAR_LOCATIONS,C,AMENITIES_LIST,PROPERTY_TYPES} from "../constants";
+import { POPULAR_LOCATIONS, C, AMENITIES_LIST, PROPERTY_TYPES } from "../constants";
 
 
 // ── Debounce hook ──────────────────────────────────────────────────────────────
@@ -12,7 +12,7 @@ function useDebounce(value, delay = 350) {
   return debounced;
 }
 const BEDS_OPTIONS = ["Any", "1", "2", "3", "4+"];
-const BATH_OPTIONS = ["Any", "1", "2", "3", "4+"]; 
+const BATH_OPTIONS = ["Any", "1", "2", "3", "4+"];
 const SORT_OPTIONS = ["Relevance", "Price: Low–High", "Price: High–Low", "Newest First"];
 
 const STORAGE_KEY = "adv_sidebar_filters";
@@ -29,10 +29,10 @@ const DEFAULT_FILTERS = {
   furnished: false,
   amenities: [],
   readyToMove: false,
-  parking: false, 
+  parking: false,
   sortBy: "Relevance",
 };
- 
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 function SectionLabel({ children }) {
   return (
@@ -90,10 +90,11 @@ function Toggle({ label, value, onChange, icon }) {
   );
 }
 
- export default function AdvancedSidebar({ onFiltersChange }) {
+export default function AdvancedSidebar({ onFiltersChange }) {
   const [filters, setFilters] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+
       return saved ? { ...DEFAULT_FILTERS, ...JSON.parse(saved) } : DEFAULT_FILTERS;
     } catch { return DEFAULT_FILTERS; }
   });
@@ -111,8 +112,9 @@ function Toggle({ label, value, onChange, icon }) {
   const debouncedCity = useDebounce(cityInput);
 
   // Persist filters
+
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(filters)); }
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(filters)); }
     catch { }
     onFiltersChange?.(filters);
   }, [filters]);
@@ -169,7 +171,7 @@ function Toggle({ label, value, onChange, icon }) {
     filters.furnished,
     filters.amenities.length > 0,
     filters.readyToMove,
-    filters.parking, 
+    filters.parking,
     filters.sortBy !== "Relevance",
   ].filter(Boolean).length;
 
@@ -191,9 +193,9 @@ function Toggle({ label, value, onChange, icon }) {
         ref={sidebarRef}
         style={{
           position: "sticky",
-          top: isSticky ? 80 : 20, 
+          top: isSticky ? 80 : 20,
           overflowY: "auto",
-          background: C.white, 
+          background: C.white,
           border: `1px solid ${C.border}`,
           padding: "22px 20px 24px",
           boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
@@ -303,7 +305,7 @@ function Toggle({ label, value, onChange, icon }) {
               flex: 1, padding: "9px 12px", borderRadius: 12,
               border: `1.5px solid ${C.border}`, fontSize: 13,
               color: C.ink, background: C.cream, boxSizing: "border-box",
-              width:"70px"
+              width: "70px"
             }}
           />
           <div style={{ display: "flex", alignItems: "center", color: C.inkMuted, fontSize: 12 }}>-</div>
@@ -317,15 +319,15 @@ function Toggle({ label, value, onChange, icon }) {
               flex: 1, padding: "9px 12px", borderRadius: 12,
               border: `1.5px solid ${C.border}`, fontSize: 13,
               color: C.ink, background: C.cream, boxSizing: "border-box",
-              width:"70px"
+              width: "70px"
             }}
           />
         </div>
-   
 
-      
+
+
         <Divider />
- 
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
             <SectionLabel>Bedrooms</SectionLabel>
@@ -346,7 +348,7 @@ function Toggle({ label, value, onChange, icon }) {
         </div>
 
         <Divider />
- 
+
 
         {/* Amenities */}
         <SectionLabel>Amenities</SectionLabel>
@@ -369,7 +371,7 @@ function Toggle({ label, value, onChange, icon }) {
           })}
         </div>
 
- 
+
         <Divider />
 
         {/* Apply */}
@@ -385,7 +387,7 @@ function Toggle({ label, value, onChange, icon }) {
         >
           Apply Filters ✦
         </button>
- 
+
       </div>
     </>
   );
