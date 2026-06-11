@@ -480,6 +480,14 @@ export const activityConfig = {
       "Signed out of your RentSmart account.",
   },
 
+  PASSWORD_RESET: {
+  icon: "🔑",
+  color: "#2D6A4F",
+  label: "Password Reset",
+  text: (meta) =>
+    `Your password was successfully reset${meta?.ip ? ` from IP ${meta.ip}` : ""}.`,
+},
+
   PROPERTY_CREATED: {
     icon: "🏠",
     color: "#2D6A4F",
