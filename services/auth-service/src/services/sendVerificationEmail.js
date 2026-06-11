@@ -1,4 +1,3 @@
-import transporter from "../config/mail.js";
 
  
 export const sendVerificationEmail = async (
