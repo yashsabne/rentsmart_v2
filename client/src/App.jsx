@@ -13,6 +13,8 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import EditListing from './pages/EditListing';
 import MessagesPage from './components/messages/MessagesPage';
 import Help from './pages/Help';
+import ForgotPasswordPage from './pages/Forgotpassword';
+import ResetPasswordPage from './pages/ResetPassword';
 
 
 function App() {
@@ -38,6 +40,8 @@ function App() {
         <Route path="/dashboard/messages/:slug" element={<Dashboard initialSection="messages" />} />
         <Route path='/help' element={<Help/> } />
         
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+<Route path="/reset-password/:token" element={<ResetPasswordPage />} />
          
 
       </Routes>
