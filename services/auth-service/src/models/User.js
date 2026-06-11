@@ -67,9 +67,7 @@ const userSchema = new mongoose.Schema(
       sparse: true,
       unique: true,
     },
-
-    resetToken: String,
-    resetTokenExpiry: Date,
+ 
 
     savedProperties: {
       type: [String],
@@ -110,7 +108,12 @@ const userSchema = new mongoose.Schema(
 
     emailVerificationToken: String,
     emailVerificationExpiry: Date,
+
+  resetToken: { type: String, default: null },
+  resetTokenExpiry: { type: Date, default: null },
+
   },
+
   { timestamps: true }
 );
 
