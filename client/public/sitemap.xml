@@ -25,7 +25,7 @@
   </url>
 
   <!-- About & Info Pages -->
-  <url>
+  <!-- <url>
     <loc>https://rentsmart-v2.vercel.app/about</loc>
     <lastmod>2026-06-11</lastmod>
     <changefreq>monthly</changefreq>
@@ -37,18 +37,18 @@
     <lastmod>2026-06-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-  </url>
+  </url> -->
 
   <!-- Post Property -->
   <url>
-    <loc>https://rentsmart-v2.vercel.app/post-property</loc>
+    <loc>https://rentsmart-v2.vercel.app/create</loc>
     <lastmod>2026-06-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <!-- Legal Pages -->
-  <url>
+  <!-- <url>
     <loc>https://rentsmart-v2.vercel.app/privacy-policy</loc>
     <lastmod>2026-06-11</lastmod>
     <changefreq>yearly</changefreq>
@@ -60,7 +60,7 @@
     <lastmod>2026-06-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
-  </url>
+  </url> -->
 
   <!-- Auth Pages -->
   <url>
