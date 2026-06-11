@@ -6,6 +6,8 @@ import { sendVerificationEmail } from "../services/sendVerificationEmail.js";
 import { logActivity } from "../utils/activityLogger.js";
 import { redisPost, redisGet, redisDelete } from "../utils/redisClient.js";
 import { verifyInternalSecret } from "../middleware/verifyInternalSecret.js";
+import { sendForgotPasswordEmail } from "../services/sendForgotPasswordEmail.js";
+
 
 export const register = async (req, res) => {
   try {
@@ -321,5 +323,104 @@ export const checkVerification = async (req, res) => {
     res.json({ success: true, verified: user.isEmailVerified });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const rateLimitResult = await redisPost("/rate-limit/check", {
+      identifier: `forgot-password:${email}`,
+      max: 3,
+      ttl: 3600,
+    });
+
+    if (rateLimitResult && !rateLimitResult.allowed) {
+      const retryAfterSeconds = rateLimitResult.ttl;
+      const minutes = Math.ceil(retryAfterSeconds / 60);
+      return res.status(429).json({
+        success: false,
+        message: "Too many requests. Please try again later.",
+        retryAfter: retryAfterSeconds,
+        retryAfterMinutes: minutes,
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "If that email is registered, you'll receive a reset link.",
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    user.resetToken = hashedToken;
+    user.resetTokenExpiry = Date.now() + 60 * 60 * 1000;
+    await user.save();
+
+    const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+
+    sendForgotPasswordEmail(user.email, user.firstName, resetLink).catch((err) => {
+      console.error("Reset email failed:", err);
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "If that email is registered, you'll receive a reset link.",
+    });
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      resetToken: hashedToken,
+      resetTokenExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid or expired reset link" });
+    }
+
+    user.password = password;
+    await user.hashPassword();
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+
+    await redisDelete(`/cache/user:${user._id}`);
+
+    await logActivity(user._id, "PASSWORD_RESET", {
+      resetAt: new Date().toISOString(),
+      ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+    });
+
+    return res.status(200).json({ success: true, message: "Password reset successfully" });
+  } catch (err) {
+    console.error("Reset Password Error:", err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
