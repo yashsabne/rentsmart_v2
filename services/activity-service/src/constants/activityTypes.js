@@ -27,4 +27,5 @@ export const ACTIVITY_TYPES = {
   // Authentication
   LOGIN: "LOGIN",
   LOGOUT: "LOGOUT",
+  PASSWORD_RESET:"PASSWORD_RESET"
 };
