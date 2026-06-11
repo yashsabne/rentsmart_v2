@@ -536,3 +536,106 @@ export const getRecommended = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+export const getNotLoggedRecommended = async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    const limitNum = Number(limit);
+
+    const cacheKey = `listings:recommended:notlogged:${limitNum}`;
+    const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
+    if (cached?.success && cached?.data) {
+      return res.status(200).json(cached.data);
+    }
+
+    const now = new Date();
+
+    const pipeline = [
+      {
+        $match: {
+          isHidden: false,
+          status: "AVAILABLE",
+        },
+      },
+      {
+        $addFields: {
+          _score: {
+            $add: [
+              // Promoted & still active = big boost
+              {
+                $cond: {
+                  if: { $and: [{ $eq: ["$isPromoted", true] }, { $gt: ["$promotedUntil", now] }] },
+                  then: 40,
+                  else: 0,
+                },
+              },
+              // Has photos = quality signal
+              {
+                $cond: {
+                  if: { $gt: [{ $size: { $ifNull: ["$listingPhotos", []] } }, 0] },
+                  then: 20,
+                  else: 0,
+                },
+              },
+              // More photos = better listing
+              {
+                $min: [
+                  { $multiply: [{ $size: { $ifNull: ["$listingPhotos", []] } }, 2] },
+                  20, // cap at 20
+                ],
+              },
+              // Has description
+              {
+                $cond: {
+                  if: { $and: [{ $ifNull: ["$description", false] }, { $gt: [{ $strLenCP: { $ifNull: ["$description", ""] } }, 50] }] },
+                  then: 10,
+                  else: 0,
+                },
+              },
+              // Recently refreshed
+              {
+                $cond: {
+                  if: { $gt: ["$lastRefreshedAt", new Date(now - 7 * 24 * 60 * 60 * 1000)] },
+                  then: 10,
+                  else: 0,
+                },
+              },
+            ],
+          },
+        },
+      },
+      { $sort: { _score: -1, createdAt: -1 } },
+      // Spread across property types for variety
+      {
+        $group: {
+          _id: "$type",
+          listings: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $project: {
+          listings: { $slice: ["$listings", Math.ceil(limitNum / 4)] },
+        },
+      },
+      { $unwind: "$listings" },
+      { $replaceRoot: { newRoot: "$listings" } },
+      { $sort: { _score: -1, createdAt: -1 } },
+      { $limit: limitNum },
+      { $project: { _score: 0 } },
+    ];
+
+    const listings = await Listing.aggregate(pipeline);
+
+    await redisPost("/cache", {
+      key: cacheKey,
+      data: listings,
+      ttl: 300,
+    });
+
+    return res.status(200).json(listings);
+  } catch (err) {
+    console.error("NOT_LOGGED_RECOMMENDED ERROR:", err);
+    return res.status(500).json({ message: "Failed to fetch recommended listings", error: err.message });
+  }
+};
