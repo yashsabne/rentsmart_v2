@@ -12,6 +12,7 @@ import {
   getFilteredListings,
   uploadPhotos,
   getSimilarListings,
+  getNotLoggedRecommended,
 } from "../controllers/propertyController.js";
 
 const router = express.Router();
@@ -28,11 +29,11 @@ router.post(
 
 // CREATE LISTING
 router.post("/", authMiddleware, requireVerifiedEmail, createListing);
-
-// PUBLIC ROUTES 
+ 
 router.get("/filter",      getFilteredListings);
 router.get("/similar",      getSimilarListings);
 router.get("/recommended", getRecommended);
+router.get("/search-notlogged", getNotLoggedRecommended);
 router.get("/my",          authMiddleware, getMyListings);
 router.get("/details/:id", getListingById);
 
