@@ -62,14 +62,15 @@ export default function HomePage() {
               : `Top picks near you in ${user.city}`
           );
         } else {
-          url = `${API.PROPERTY}/api/property/search?limit=10`;
+          url = `${API.PROPERTY}/api/property/search-notlogged`;
+          
           setSectionLabel("Latest Listings");
           setSectionSub("Properties You'll Love");
         }
 
         const res = await fetch(url);
         const data = await res.json();
-        setProperties(Array.isArray(data) ? data.slice(0, 10) : []);
+        setProperties(Array.isArray(data) ? data : []);
       } catch (err) {
         console.log("Properties fetch failed:", err);
         setProperties([]);
