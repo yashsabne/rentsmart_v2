@@ -10,6 +10,8 @@ import {
   verifyEmail,
   resendVerificationEmail,
   checkVerification,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import rateLimitMiddleware from "../middleware/rateLimitMiddleware.js";
@@ -46,5 +48,8 @@ router.get("/verify-email/:token", verifyEmail);
 
 router.post("/resend-verification", authMiddleware, resendVerificationEmail);
 router.get("/check-verification/:userId", checkVerification);
+
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 
 export default router;
