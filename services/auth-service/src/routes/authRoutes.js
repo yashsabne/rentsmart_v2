@@ -17,6 +17,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 import rateLimitMiddleware from "../middleware/rateLimitMiddleware.js";
 import { verifyInternalSecret } from "../middleware/verifyInternalSecret.js";
 import User from "../models/User.js";
+import { addRecentlyViewed, getRecentlyViewed } from "../controllers/recentlyViewedController.js";
 
 router.post("/register", rateLimitMiddleware(5, 3600), register);
 router.post("/login", rateLimitMiddleware(10, 900), login);
@@ -51,5 +52,9 @@ router.get("/check-verification/:userId", checkVerification);
 
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
+
+
+router.patch("/recently-viewed", authMiddleware, addRecentlyViewed);
+router.get("/recently-viewed",  authMiddleware, getRecentlyViewed);
 
 export default router;
