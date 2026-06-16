@@ -11,6 +11,7 @@ import MessagesPage from "../components/messages/MessagesPage.jsx";
 import Footer from "../components/reuse/Footer.jsx";
 import DashboardListingPanel from "../components/Dashboardlistingpanel";
 import Payments from "../components/Payments.jsx";
+import RecentlyViewed from "./RecentlyViewed.jsx";
 
 const todayStr = () =>
   new Date().toLocaleDateString("en-IN", {
@@ -198,10 +199,10 @@ export default function Dashboard() {
             {/* ── TOP STAT CARDS ── */}
             <div className="stats-grid">
               {[
-                { label: "Total Listings", value: statsData.total,  icon: "🏠", colorVar: "--color-blue",  bgVar: "--color-blue-bg" },
-                { label: "Featured",       value: statsData.active, icon: "⭐", colorVar: "--color-gold",  bgVar: "--color-gold-light" },
-                { label: "For Rent",       value: statsData.rent,   icon: "🔑", colorVar: "--color-green", bgVar: "--color-green-bg" },
-                { label: "For Sale",       value: statsData.buy,    icon: "💰", colorVar: "--color-red",   bgVar: "--color-red-bg" },
+                { label: "Total Listings", value: statsData.total, icon: "🏠", colorVar: "--color-blue", bgVar: "--color-blue-bg" },
+                { label: "Featured", value: statsData.active, icon: "⭐", colorVar: "--color-gold", bgVar: "--color-gold-light" },
+                { label: "For Rent", value: statsData.rent, icon: "🔑", colorVar: "--color-green", bgVar: "--color-green-bg" },
+                { label: "For Sale", value: statsData.buy, icon: "💰", colorVar: "--color-red", bgVar: "--color-red-bg" },
               ].map(s => (
                 <div key={s.label} className="stat-card">
                   <div className="stat-card-header">
@@ -286,7 +287,7 @@ export default function Dashboard() {
                               <div className="listing-meta">
                                 <div className="listing-price">{formatPrice(p.price, p.paymentType)}</div>
                                 <div className="listing-details-text">🛏 {p.details?.bedroomCount ?? 0} &nbsp; 🚿 {p.details?.bathroomCount ?? 0}</div>
-                                {p.isPromoted  && <span className="tag tag-gold">⭐ Featured</span>}
+                                {p.isPromoted && <span className="tag tag-gold">⭐ Featured</span>}
                               </div>
                             </div>
                           );
@@ -307,9 +308,11 @@ export default function Dashboard() {
                   <DashboardListingPanel token={token} />
                 )}
 
-                {activeNav === "saved"    && <SavedPropertiesPage embedded />}
+                {activeNav === "saved" && <SavedPropertiesPage embedded />}
                 {activeNav === "messages" && <MessagesPage currentUser={user} />}
-           {activeNav === "payments" && <Payments />}
+                {activeNav === "payments" && <Payments />}
+
+                {activeNav === "recent" && <RecentlyViewed token={token} />}
 
                 {activeNav === "settings" && (
                   <div className="card placeholder-card">
@@ -365,7 +368,7 @@ export default function Dashboard() {
                     <div className="profile-quickview">
                       <div className="profile-quickview-title">Your Profile</div>
                       {[
-                        ["📍", "City",  user.city || "Not set"],
+                        ["📍", "City", user.city || "Not set"],
                         ["📞", "Phone", user.phone || "Not set"],
                         ["✉️", "Email", user.email],
                         ["🏷️", "Prefs", user.preferences?.join(", ") || "None set"],
