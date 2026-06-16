@@ -1,7 +1,7 @@
 import Listing from "../models/Listings.js";
 import { redisDelete } from "../utils/redisClient.js";
-
-const REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+ 
+const REFRESH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 
 export const toggleHideListing = async (req, res) => {
   try {
