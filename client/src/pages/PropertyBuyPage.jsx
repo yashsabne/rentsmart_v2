@@ -456,19 +456,29 @@ export default function PropertyBuyPage() {
                           >
                             {p.buyOrSell || "Property"}
                           </span>
-
                         </div>
- 
-                        <SaveButton
-                          id={p._id}
-                          isSaved={savedIds.includes(p._id)}
-                          onToggle={toggleSave}
-                        />
 
+                     
+
+                        {p.isPromoted && (
+                          <span className="badge-promoted">
+                            🚀 Promoted
+                          </span>
+                        )}
 
                         <span className="prop-category-chip">
                           {p.type || "Property"}
                         </span>
+
+                        <div className="save-btn-wrap">
+                          <SaveButton
+                            id={p._id}
+                            isSaved={savedIds.includes(p._id)}
+                            onToggle={toggleSave}
+                          />
+                        </div>
+
+
                       </div>
 
                       {/* Body */}
@@ -476,8 +486,10 @@ export default function PropertyBuyPage() {
                         <div className="prop-price playfair">
                           {formattedPrice(p.price, p.paymentType)}
                         </div>
-                        <div className="prop-price pf">
+                        <div className="prop-price pf"  >
+
                           {p.priceLabel}
+
                         </div>
 
                         <div className="prop-title">
