@@ -17,7 +17,7 @@ export const activatePromotion = async (req, res) => {
       promotedPaymentId: paymentId,
     });
 
-        await redisDelete(`/cache/listing:${listingId}`);
+    await redisDelete(`/cache/listing:${listingId}`);
     
 
     return res.status(200).json({ success: true });
