@@ -6,6 +6,7 @@ import ContactCard from "../components/property/ContactCard";
 import { API } from "../../apis";
 import "./styles/listingdetails.css"
 import Footer from "../components/reuse/Footer";
+import { StatusBadge } from "../const_func/dashFunction";
 
 const tabs = ["Overview", "Amenities", "Location", "Similar"];
 
@@ -215,6 +216,29 @@ export default function ListingDetails() {
       alert(err.message);
     }
   };
+
+useEffect(() => {
+  if (!property?._id || !token) return; // unauthenticated users: skip silently
+
+  const markViewed = async () => {
+    try {
+      await fetch(`${API.AUTH}/api/auth/recently-viewed`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ listingId: property._id }),
+      });
+      // Fire-and-forget: we don't block render on this
+    } catch (err) {
+      // Non-critical — never surface this to the user
+      console.log("Recently viewed update failed (non-critical):", err);
+    }
+  };
+
+  markViewed();
+}, [property?._id]);   
 
   if (loading) {
     return (
@@ -432,8 +456,10 @@ export default function ListingDetails() {
                       <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 12px", borderRadius: 100, background: isRent ? C.greenBg : C.goldLight, color: isRent ? C.green : C.gold }}>
                         For {property.buyOrSell}
                       </span>
-                      {property.promoted && (
-                        <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 12px", borderRadius: 100, background: C.goldLight, color: C.gold }}>Featured</span>
+                      {/* ── STATUS BADGE ── */}
+                      <StatusBadge status={property.status || "AVAILABLE"} />
+                      {property.isPromoted && new Date(property.promotedUntil) > new Date() && (
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 12px", borderRadius: 100, background: C.goldLight, color: C.gold }}>⭐ Featured</span>
                       )}
                       <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 12px", borderRadius: 100, background: C.border, color: C.inkMuted }}>{property.category}</span>
                     </div>
@@ -544,17 +570,17 @@ export default function ListingDetails() {
                   <div className="card-inner" style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, padding: "26px 28px", boxShadow: C.cardShadow, marginBottom: 20 }}>
                     <h2 style={{ fontSize: 16, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Location</h2>
                     <p style={{ fontSize: 13, color: C.inkMuted, marginBottom: 20 }}>{fullAddress}</p>
-                   
-                      <iframe
-                        title="Google Map"
-                        width="100%"
-                        height="300"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        src={`https://maps.google.com/maps?q=${encodeURIComponent(property.address?.city)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
-                      ></iframe>
-             
+
+                    <iframe
+                      title="Google Map"
+                      width="100%"
+                      height="300"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(property.address?.city)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                    ></iframe>
+
                   </div>
                 </div>
               )}
