@@ -451,6 +451,7 @@ export const getMyListings = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const cacheKey = `listings:my:${userId}:page:${page}`;
+
     const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
 
     if (cached?.success && cached?.data) return res.status(200).json(cached.data);
@@ -483,7 +484,7 @@ export const getMyListings = async (req, res) => {
       currentPage: page
     };
 
-    await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 120 });
+    await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 300  });
 
     res.json(responseData);
   } catch (err) {
@@ -491,6 +492,7 @@ export const getMyListings = async (req, res) => {
     res.status(500).json({ message: "Error fetching listings" });
   }
 };
+
 export const getRecommended = async (req, res) => {
   try {
     const { city, preferences, limit = 10 } = req.query;
