@@ -16,6 +16,7 @@ RentSmart enables users to discover, list, and manage rental properties through 
 
 The application has been restructured from a monolithic system into multiple independent services, allowing better maintainability, fault isolation, and future scalability.
 
+ 
 ---
 
 ## Current Features
