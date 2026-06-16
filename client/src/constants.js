@@ -594,6 +594,7 @@ export const navItems = [
   { icon: "💳", label: "Payments", id: "payments" },
   { icon: "⚙️", label: "Settings", id: "settings" },
   { icon: "💬", label: "Messages", id: "messages" },
+  { icon: "👁️", label: "Recently Viewed", id: "recent" },
 ];
 
 export const AMENITY_ICONS = {
