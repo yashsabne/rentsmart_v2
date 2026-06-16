@@ -6,23 +6,38 @@ export function Avatar({ initials, size = 36 }) {
     </div>
   );
 }
+// Replace / update the StatusBadge export in dashFunction.jsx
 
- export function StatusBadge({ status }) {
-  const map = {
-    Active: { bg: C.greenBg, color: C.green },
-    Approved: { bg: C.greenBg, color: C.green },
-    Paused: { bg: "#FFF3E0", color: "#E67E22" },
-    Pending: { bg: C.blueBg, color: C.blue },
-    Rejected: { bg: C.redBg, color: C.red },
-  };
-  const s = map[status] || { bg: C.border, color: C.inkMuted };
+export const StatusBadge = ({ status }) => {
+  // Normalise — schema stores "AVAILABLE"/"RENTED"/"SOLD",
+  // but DashboardListingPanel also passes "Active"/"Paused" legacy strings
+  const normalised = (status || "").toUpperCase();
+
+  const config = {
+    AVAILABLE: { label: "Available", bg: "#EAF3DE", color: "#3B6D11" },
+    ACTIVE: { label: "Available", bg: "#EAF3DE", color: "#3B6D11" }, // legacy alias
+    RENTED: { label: "Rented", bg: "#EEEDFE", color: "#26215C" },
+    SOLD: { label: "Sold", bg: "#F3F4F6", color: "#6B7280" },
+    PAUSED: { label: "Paused", bg: "#FEF3C7", color: "#92400E" }, // legacy alias
+  }[normalised] || { label: status || "Unknown", bg: "#F3F4F6", color: "#6B7280" };
+
   return (
-    <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 100, background: s.bg, color: s.color }}>
-      {status}
+    <span
+      style={{
+        display: "inline-block",
+        fontSize: 11,
+        fontWeight: 600,
+        padding: "3px 10px",
+        borderRadius: 100,
+        background: config.bg,
+        color: config.color,
+        letterSpacing: "0.2px",
+      }}
+    >
+      {config.label}
     </span>
   );
-}
-
+};
 
 export const formatPrice = (price, paymentType) => {
   if (!price) return "Price on Request";
@@ -39,8 +54,8 @@ export const userInitials = (user) => {
 };
 
 
-export  const formattedPrice = (price, paymentType) => {
-    if (!price) return "Price on Request";
-    const formatted = `₹${price.toLocaleString("en-IN")}`;
-    return paymentType === "monthly" ? `${formatted}/mo` : formatted;
-  };
+export const formattedPrice = (price, paymentType) => {
+  if (!price) return "Price on Request";
+  const formatted = `₹${price.toLocaleString("en-IN")}`;
+  return paymentType === "monthly" ? `${formatted}/mo` : formatted;
+};
