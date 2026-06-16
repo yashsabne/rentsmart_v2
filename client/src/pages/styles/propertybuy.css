@@ -250,8 +250,58 @@
 }
 
 
+ .prop-card-img-wrap {
+  position: relative;
+}
+
+/* TOP LEFT — Rent/Sale badge */
+.badge-type {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 6px;
+  line-height: 1;
+  pointer-events: none;
+}
+.badge-type.rent { background: #0F6E56; color: #E1F5EE; }
+.badge-type.sale { background: #185FA5; color: #E6F1FB; }
+
+/* TOP RIGHT — Promoted */
+.badge-promoted {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px 4px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.48);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  line-height: 1;
+  pointer-events: none;
+}
  
-
-
+.prop-category-chip {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.48);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  line-height: 1;
+  pointer-events: none;
+  width: max-content;
+}
 
  
