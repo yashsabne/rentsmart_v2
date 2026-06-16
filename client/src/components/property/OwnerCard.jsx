@@ -144,7 +144,7 @@ const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => 
       key: import.meta.env.VITE_RAZORPAY_KEY_ID,
       amount: order.amount,
       currency: order.currency,
-      name: "PropApp",
+      name: "RENTSMART",
       description: "Promote listing — 30 days",
       order_id: order.id,
       handler: async (response) => {
