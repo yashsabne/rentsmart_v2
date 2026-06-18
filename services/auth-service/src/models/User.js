@@ -14,9 +14,10 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function () {
-        return !this.googleId; // Password required only if not using Google
+        return !this.googleId && !this.microsoftId;
       },
     },
+
 
     phone: {
       type: String,
@@ -68,6 +69,12 @@ const userSchema = new mongoose.Schema(
       unique: true,
     },
 
+
+    microsoftId: {
+      type: String,
+      sparse: true,
+      unique: true,
+    },
 
     savedProperties: {
       type: [String],
