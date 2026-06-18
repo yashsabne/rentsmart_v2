@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API } from "../../apis";
 import Footer from "../components/reuse/Footer";
+import SocialAuth from "../components/SocialAuth";
+import toast from "react-hot-toast";
+import { saveAuthToken } from "../services/authService";
 
 const C = {
   cream: "#FAFAF7",
@@ -295,16 +298,15 @@ export default function LoginPage() {
                   </div>
 
                   {/* Social */}
-                  <div style={{ display: "flex", gap: 10, marginBottom: 32 }}>
-                    {["Continue with Google", "Continue with Apple"].map((label) => (
-                      <button key={label}
-                        style={{ flex: 1, padding: "11px 8px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.white, color: C.ink, fontSize: 13, fontWeight: 500, transition: "border-color .2s" }}
-                        onMouseEnter={e => e.currentTarget.style.borderColor = C.ink}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+ 
+                  <SocialAuth
+                    mode="login"
+                    onSuccess={(provider, { user, token }) => {
+                      saveAuthToken(token);
+                      navigate("/dashboard");
+                    }}
+                    onError={(provider, err) => toast.error(err.message)}
+                  />
 
                   <p style={{ textAlign: "center", fontSize: 12, color: C.light, lineHeight: 1.7 }}>
                     By signing in, you agree to our{" "}
