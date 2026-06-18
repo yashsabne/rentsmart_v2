@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../../apis";
+import SocialAuth from "../components/SocialAuth";
+import { saveAuthToken } from "../services/authService";
+import { useEffect } from "react";
 
 const C = {
   cream:    "#FAFAF7",
@@ -120,6 +123,15 @@ export default function RegisterPage() {
   const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(true);
   const [smsUpdatesEnabled, setSmsUpdatesEnabled] = useState(true);
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+
+
+    useEffect(() => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        navigate("/dashboard");
+      }
+    }, []);
+  
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "",
@@ -376,16 +388,18 @@ export default function RegisterPage() {
                   <div style={{ flex: 1, height: 1, background: C.border }} />
                 </div>
 
-                <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-                  {["Continue with Google", "Continue with Apple"].map((label) => (
-                    <button key={label}
-                      style={{ flex: 1, padding: "11px 8px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.white, color: C.ink, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "border-color .2s" }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = C.ink}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
+
+                   <SocialAuth
+                    mode="login"
+                    onSuccess={(provider, { user, token }) => {
+                      saveAuthToken(token);
+                      navigate("/dashboard");
+                    }}
+                    onError={(provider, err) => toast.error(err.message)}
+                  />
+ 
+
+              
 
                 <p style={{ textAlign: "center", fontSize: 13, color: C.muted }}>
                   Already have an account?{" "}
