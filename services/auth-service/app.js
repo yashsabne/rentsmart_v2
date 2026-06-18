@@ -3,6 +3,11 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/authRoutes.js";
+import session from "express-session";
+import initPassport from "./src/config/passport.js";
+import socialAuthRoutes from "./src/routes/socialAuthRoutes.js";
+import passport from "passport";
+ 
 
 dotenv.config();
 
@@ -23,6 +28,19 @@ app.get("/test", (req, res) => {
 // routes
 app.use("/api/auth", authRoutes);
 
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === "production", httpOnly: true },
+}));
+ 
+initPassport(passport);
+app.use(passport.initialize());
+app.use(passport.session());
+  
+app.use("/auth/social", socialAuthRoutes);
 
 
 const PORT = process.env.PORT || 5000;
