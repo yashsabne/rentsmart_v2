@@ -621,7 +621,3 @@ cd client && npm install && npm run dev
 GitHub: [@yashsabne](https://github.com/yashsabne)
 
 ---
-
-## 📄 License
-
-This project is open source. See [LICENSE](LICENSE) for details.
