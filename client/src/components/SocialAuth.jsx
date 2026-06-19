@@ -31,7 +31,6 @@ export default function SocialAuth({
     setLoading(provider.key);
     try {
       const userData = await provider.init();
-      console.log(userData)
       onSuccess?.(provider.key, userData);
     } catch (err) {
       onError?.(provider.key, err);

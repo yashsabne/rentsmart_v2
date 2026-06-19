@@ -341,7 +341,7 @@ export default function Dashboard() {
                     ) : (
                       activities.map((activity, i) => {
                         const config = activityConfig[activity.type];
-                        console.log(config)
+                       
                         if (!config) return null;
                         return (
                           <div key={activity._id} className="activity-row"
