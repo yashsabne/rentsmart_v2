@@ -7,6 +7,7 @@ const PaymentUnlockCard = ({ owner, property, currentUser }) => {
   const [loading, setLoading] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [ownerPhone, setOwnerPhone] = useState(null);
+  const [paymentBlocked, setPaymentBlocked] = useState(false);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -33,6 +34,10 @@ const PaymentUnlockCard = ({ owner, property, currentUser }) => {
   const handleUnlockPhone = async () => {
     try {
       setLoading(true);
+      if (property?.isHidden || property?.status === "DELETED") {
+        setPaymentBlocked(true);
+        return;
+      }
       const token = localStorage.getItem("token");
 
       const orderRes = await fetch(`${API.PAYMENT}/api/payment/create-order`, {
@@ -64,10 +69,10 @@ const PaymentUnlockCard = ({ owner, property, currentUser }) => {
 
         handler: async function (response) {
 
-          
+
 
           try {
-                  setLoading(true);
+            setLoading(true);
 
             const verifyRes = await fetch(`${API.PAYMENT}/api/payment/verify-payment`, {
               method: "POST",
@@ -92,7 +97,7 @@ const PaymentUnlockCard = ({ owner, property, currentUser }) => {
             if (verifyData.success) {
               setUnlocked(true);
               setOwnerPhone(verifyData.payment.ownerPhone);
-                    setLoading(false);
+              setLoading(false);
 
               toast.success("Phone Number Unlocked Successfully");
             }
@@ -151,6 +156,22 @@ const PaymentUnlockCard = ({ owner, property, currentUser }) => {
           {loading ? "Processing..." : unlocked ? "Phone Number Unlocked" : "Reveal Phone Number • ₹39"}
         </button>
       </div>
+
+
+      {paymentBlocked && (
+        <div style={{
+          padding: "16px", background: "#fff3f3", borderRadius: 12,
+          border: "1px solid #fca5a5", marginTop: 12, textAlign: "center"
+        }}>
+          <p style={{ fontSize: 13, color: "#dc2626", fontWeight: 500 }}>
+            ⚠️ This listing is no longer active. Contact reveal is disabled.
+          </p>
+          <button onClick={() => setPaymentBlocked(false)}
+            style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", marginTop: 4 }}>
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div style={{ marginTop: 18, padding: "14px 16px", borderRadius: 18, background: "#fafafa", border: "1px solid rgba(0,0,0,0.05)" }}>
         <div style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.7 }}>
