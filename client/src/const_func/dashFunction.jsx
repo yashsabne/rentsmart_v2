@@ -15,10 +15,10 @@ export const StatusBadge = ({ status }) => {
 
   const config = {
     AVAILABLE: { label: "Available", bg: "#EAF3DE", color: "#3B6D11" },
-    ACTIVE: { label: "Available", bg: "#EAF3DE", color: "#3B6D11" }, // legacy alias
+    ACTIVE: { label: "Available", bg: "#EAF3DE", color: "#3B6D11" },  
     RENTED: { label: "Rented", bg: "#EEEDFE", color: "#26215C" },
     SOLD: { label: "Sold", bg: "#F3F4F6", color: "#6B7280" },
-    PAUSED: { label: "Paused", bg: "#FEF3C7", color: "#92400E" }, // legacy alias
+    PAUSED: { label: "Paused", bg: "#FEF3C7", color: "#92400E" }, 
   }[normalised] || { label: status || "Unknown", bg: "#F3F4F6", color: "#6B7280" };
 
   return (
