@@ -12,6 +12,7 @@ import Footer from "../components/reuse/Footer.jsx";
 import DashboardListingPanel from "../components/Dashboardlistingpanel";
 import Payments from "../components/Payments.jsx";
 import RecentlyViewed from "./RecentlyViewed.jsx";
+import SettingsPage from "../components/Settingspage.jsx";
 
 const todayStr = () =>
   new Date().toLocaleDateString("en-IN", {
@@ -20,7 +21,7 @@ const todayStr = () =>
 
 export default function Dashboard() {
   const [activeNav, setActiveNav] = useState(
-    () => localStorage.getItem("activeNav") || "overview"
+    () => sessionStorage.getItem("activeNav") || "overview"
   );
   const [sidebarHover, setSidebarHover] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -38,6 +39,7 @@ export default function Dashboard() {
 
   // ── Activities ──
   const [activities, setActivities] = useState([]);
+ 
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -89,7 +91,7 @@ export default function Dashboard() {
   // ── Nav persistence ──
   useEffect(() => {
     const currentNav = navItems.find(item => item.id === activeNav);
-    if (!currentNav?.tab) localStorage.setItem("activeNav", activeNav);
+    if (!currentNav?.tab) sessionStorage.setItem("activeNav", activeNav);
   }, [activeNav]);
 
   const handleNavClick = (item) => {
@@ -314,13 +316,8 @@ export default function Dashboard() {
 
                 {activeNav === "recent" && <RecentlyViewed token={token} />}
 
-                {activeNav === "settings" && (
-                  <div className="card placeholder-card">
-                    <div className="placeholder-icon">⚙️</div>
-                    <div className="placeholder-title">Settings Coming Soon</div>
-                    <div className="placeholder-sub">Account settings and preferences will appear here.</div>
-                  </div>
-                )}
+                {activeNav === "settings" &&  <SettingsPage token={token} onLogout={handleLogout} /> }
+
               </div>
 
               {/* RIGHT column: Activity + Profile */}
@@ -344,6 +341,7 @@ export default function Dashboard() {
                     ) : (
                       activities.map((activity, i) => {
                         const config = activityConfig[activity.type];
+                        console.log(config)
                         if (!config) return null;
                         return (
                           <div key={activity._id} className="activity-row"
