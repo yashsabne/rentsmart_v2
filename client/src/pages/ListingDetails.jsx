@@ -31,7 +31,7 @@ export default function ListingDetails() {
   const [cursor, setCursor] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-
+  const [msgBlocked, setMsgBlocked] = useState(false);
 
   const { id } = useParams();
   const navigate = useNavigate();
@@ -79,6 +79,10 @@ export default function ListingDetails() {
     fetchProperty();
   }, [id]);
 
+
+  const isDeleted = property?.isHidden || property?.status === "DELETED";
+
+
   const fetchSimilar = async (cursorVal = null) => {
     setLoadingMore(true);
     const url = `${API.PROPERTY}/api/property/similar?category=${property?.category}&type=${property?.buyOrSell}&excludeId=${id}`;
@@ -94,7 +98,7 @@ export default function ListingDetails() {
     if (property?._id && property?.category && property?.buyOrSell) {
       fetchSimilar();
     }
-  }, [property?._id, property?.category, property?.buyOrSell]);
+  }, [!property?.isHidden, property?._id, property?.category, property?.buyOrSell]);
 
 
   useEffect(() => {
@@ -127,6 +131,12 @@ export default function ListingDetails() {
 
   const handleSend = async () => {
     try {
+
+      if (isDeleted) {
+        setMsgBlocked(true)
+        return;
+      }
+
       if (!message.trim()) return;
 
       if (!currentUser?._id) {
@@ -217,28 +227,28 @@ export default function ListingDetails() {
     }
   };
 
-useEffect(() => {
-  if (!property?._id || !token) return; // unauthenticated users: skip silently
+  useEffect(() => {
+    if (!property?._id || !token) return; // unauthenticated users: skip silently
 
-  const markViewed = async () => {
-    try {
-      await fetch(`${API.AUTH}/api/auth/recently-viewed`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ listingId: property._id }),
-      });
-      // Fire-and-forget: we don't block render on this
-    } catch (err) {
-      // Non-critical — never surface this to the user
-      console.log("Recently viewed update failed (non-critical):", err);
-    }
-  };
+    const markViewed = async () => {
+      try {
+        await fetch(`${API.AUTH}/api/auth/recently-viewed`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ listingId: property._id }),
+        });
+        // Fire-and-forget: we don't block render on this
+      } catch (err) {
+        // Non-critical — never surface this to the user
+        console.log("Recently viewed update failed (non-critical):", err);
+      }
+    };
 
-  markViewed();
-}, [property?._id]);   
+    markViewed();
+  }, [property?._id]);
 
   if (loading) {
     return (
@@ -674,6 +684,79 @@ useEffect(() => {
           </div>
         </div>
       </div>
+
+      {isDeleted && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 999,
+          background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <div style={{
+            background: C.white, borderRadius: 20, padding: "40px 36px",
+            maxWidth: 420, width: "90%", textAlign: "center",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.2)"
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏚️</div>
+            <h2 style={{ fontFamily: "'DM Sans'", fontSize: 20, fontWeight: 700, color: C.ink, marginBottom: 10 }}>
+              This property is no longer available
+            </h2>
+            <p style={{ fontSize: 14, color: C.inkMuted, lineHeight: 1.7, marginBottom: 24 }}>
+              The owner may have removed this listing or deleted their account. This property cannot be contacted or booked.
+            </p>
+            <button onClick={() => navigate("/")} style={{
+              padding: "12px 28px", borderRadius: 100,
+              background: C.ink, color: "#fff", border: "none",
+              fontSize: 14, fontWeight: 600, cursor: "pointer"
+            }}>
+              Browse other listings
+            </button>
+          </div>
+        </div>
+      )}
+
+{msgBlocked && (
+  <div style={{
+    position: "fixed", inset: 0, zIndex: 1000,
+    background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)",
+    display: "flex", alignItems: "center", justifyContent: "center"
+  }}>
+    <div style={{
+      background: "#fff", borderRadius: 20, padding: "40px 36px",
+      maxWidth: 400, width: "90%", textAlign: "center",
+      boxShadow: "0 20px 60px rgba(0,0,0,0.2)"
+    }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a", marginBottom: 10 }}>
+        Listing No Longer Active
+      </h2>
+      <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7, marginBottom: 24 }}>
+        This property has been removed or the owner's account no longer exists. Messaging is disabled.
+      </p>
+      <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+        <button
+          onClick={() => navigate("/dashboard")}
+          style={{
+            padding: "11px 24px", borderRadius: 100,
+            background: "#1a1a1a", color: "#fff",
+            border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer"
+          }}>
+          Go to Dashboard
+        </button>
+        <button
+          onClick={() => setMsgBlocked(false)}
+          style={{
+            padding: "11px 24px", borderRadius: 100,
+            background: "none", color: "#6b7280",
+            border: "1px solid #e5e7eb", fontSize: 14, cursor: "pointer"
+          }}>
+          Dismiss
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
       <Footer />
     </>
   );
