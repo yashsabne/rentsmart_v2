@@ -145,3 +145,25 @@ export const getOwnerDashboard = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+// export const trackListingClick = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const identifier = req.user?.id || req.ip;
+
+//     const result = await redisPost("/rate-limit/check", {
+//       identifier: `click:${id}:${identifier}`,
+//       max: 1,
+//       ttl: 86400,  
+//     });
+
+//     if (result?.allowed) {
+//       await Listing.findByIdAndUpdate(id, { $inc: { viewCount: 1 } });
+//       await recalculateRankScore(id);
+//     }
+
+//     res.status(200).json({ success: true });
+//   } catch (err) {
+//     res.status(500).json({ success: false });
+//   }
+// };
