@@ -442,7 +442,7 @@ export default function Dashboard() {
                             </td>
                             <td className="table-location">{fullLocation(p.address)}</td>
                             <td>
-                              <StatusBadge status={p.buyOrSell === "Rent" ? "Active" : "Paused"} />
+                              <StatusBadge status={p.buyOrSell === "Rent" || p.buyOrSell==="Sell" ? "Active" : "Paused"} />
                               <div className="table-type-sub">{p.type}</div>
                             </td>
                             <td className="table-price">{formatPrice(p.price, p.paymentType)}</td>
