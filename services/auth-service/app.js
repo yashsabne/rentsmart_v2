@@ -6,6 +6,8 @@ import authRoutes from "./src/routes/authRoutes.js";
 import session from "express-session";
 import initPassport from "./src/config/passport.js";
 import socialAuthRoutes from "./src/routes/socialAuthRoutes.js";
+import settingsRoutes from "./src/routes/settingsRoutes.js";
+ 
 import passport from "passport";
  
 
@@ -27,6 +29,7 @@ app.get("/test", (req, res) => {
 
 // routes
 app.use("/api/auth", authRoutes);
+app.use("/api/auth/settings", settingsRoutes);
 
 
 app.use(session({
