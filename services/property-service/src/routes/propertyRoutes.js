@@ -13,7 +13,9 @@ import {
   uploadPhotos,
   getSimilarListings,
   getNotLoggedRecommended,
+  hideListingsByOwner,
 } from "../controllers/propertyController.js";
+import { verifyInternalSecret } from "../middleware/verifyInternalSecret.js";
 
 const router = express.Router();
 
@@ -40,5 +42,7 @@ router.get("/details/:id", getListingById);
 // PROTECTED ROUTES
 router.put("/:id",    authMiddleware, updateListing);
 router.delete("/:id", authMiddleware, deleteListing);
+
+router.post("/internal/users/:userId/hide-listings", verifyInternalSecret, hideListingsByOwner);
 
 export default router;

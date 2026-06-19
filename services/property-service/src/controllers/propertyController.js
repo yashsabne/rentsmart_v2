@@ -3,6 +3,7 @@ import { cloudinary } from "../config/cloudinary.js";
 import { logActivity } from "../utils/activityLogger.js";
 import { redisPost, redisGet, redisDelete } from "../utils/redisClient.js";
 import { POPULAR_LOCATIONS } from "../../const/popularCities.js";
+// import { recalculateRankScore } from "../utils/rankScore.js";
 
 const buildFilterCacheKey = (query) => {
   const {
@@ -109,6 +110,8 @@ export const createListing = async (req, res) => {
     });
 
     await newListing.save();
+
+    // await recalculateRankScore(newListing._id);
 
     await Promise.all([
       redisPost("/cache/flush", { pattern: "listings:filtered*" }),
@@ -314,7 +317,7 @@ export const getSimilarListings = async (req, res) => {
   try {
     const { category, type, excludeId, cursor, limit = 8 } = req.query;
 
- 
+
     const query = {
       _id: { $ne: excludeId },
       category,
@@ -340,7 +343,7 @@ export const getSimilarListings = async (req, res) => {
       hasMore,
       nextCursor: hasMore ? listings[listings.length - 1]._id : null,
     });
-  } catch (err) { 
+  } catch (err) {
     res.status(500).json({ message: "Failed to fetch similar listings" });
   }
 };
@@ -389,6 +392,9 @@ export const updateListing = async (req, res) => {
     }
 
     const updated = await Listing.findByIdAndUpdate(id, req.body, { new: true });
+
+        // await recalculateRankScore(id);
+
 
     await Promise.all([
       redisDelete(`/cache/listing:${id}`),
@@ -484,7 +490,7 @@ export const getMyListings = async (req, res) => {
       currentPage: page
     };
 
-    await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 300  });
+    await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 300 });
 
     res.json(responseData);
   } catch (err) {
@@ -639,5 +645,21 @@ export const getNotLoggedRecommended = async (req, res) => {
   } catch (err) {
     console.error("NOT_LOGGED_RECOMMENDED ERROR:", err);
     return res.status(500).json({ message: "Failed to fetch recommended listings", error: err.message });
+  }
+};
+
+
+export const hideListingsByOwner = async (req, res) => {
+  console.log("hitting the hide list 200 ok")
+  try {
+    const { userId } = req.params;
+    console.log(userId,"this is userid")
+    await Listing.updateMany(
+      { creatorId: userId },
+      { isHidden: true, hiddenAt: new Date(), status: "DELETED", statusChangedAt: new Date() }
+    );
+    res.status(200).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };
