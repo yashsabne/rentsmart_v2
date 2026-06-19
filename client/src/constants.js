@@ -462,31 +462,68 @@ export const AMENITIES_LIST = [
 ];
 
 export const PROPERTY_TYPES = ["Apartment", "Villa", "Bungalow", "Studio", "Penthouse", "Commercial", "Plot"];
-
 export const activityConfig = {
+
+  // ── Auth ─────────────────────────────────────────────────────────────────
+
   LOGIN: {
     icon: "🔐",
     color: "#4361EE",
     label: "Login",
     text: (meta) =>
-      `Successfully signed in${meta?.device ? ` userAgent ${meta.userAgent}` : ""}.`,
+      `Successfully signed in via ${meta?.device ?? "unknown device"}.`,
+  },
+ 
+  GOOGLE_LOGIN: {
+    icon: "🔐",
+    color: "#4361EE",
+    label: "Google Login",
+    text: (meta) =>
+      `Signed in with Google on ${meta?.device ?? "Desktop"}.`,
+  },
+
+  // Microsoft OAuth login
+  MICROSOFT_LOGIN: {
+    icon: "🔐",
+    color: "#4361EE",
+    label: "Microsoft Login",
+    text: (meta) =>
+      `Signed in with Microsoft on ${meta?.device ?? "Desktop"}.`,
   },
 
   LOGOUT: {
     icon: "🚪",
     color: "#888",
     label: "Logout",
-    text: () =>
-      "Signed out of your RentSmart account.",
+    text: () => "Signed out of your RentSmart account.",
   },
 
   PASSWORD_RESET: {
-  icon: "🔑",
-  color: "#2D6A4F",
-  label: "Password Reset",
-  text: (meta) =>
-    `Your password was successfully reset${meta?.ip ? ` from IP ${meta.ip}` : ""}.`,
-},
+    icon: "🔑",
+    color: "#2D6A4F",
+    label: "Password Reset",
+    text: (meta) =>
+      `Your password was successfully reset${meta?.ip ? ` from IP ${meta.ip}` : ""}.`,
+  },
+
+ 
+  PROFILE_UPDATED: {
+    icon: "👤",
+    color: "#4361EE",
+    label: "Profile Updated",
+    text: (meta) =>
+      `Updated your ${meta?.field ?? "profile"} information successfully.`,
+  },
+
+  EMAIL_VERIFIED: {
+    icon: "✅",
+    color: "#2D6A4F",
+    label: "Email Verified",
+    text: () =>
+      "Your email address has been successfully verified and your account security has been enhanced.",
+  },
+
+  // ── Properties ────────────────────────────────────────────────────────────
 
   PROPERTY_CREATED: {
     icon: "🏠",
@@ -528,6 +565,8 @@ export const activityConfig = {
       `Removed "${meta?.propertyTitle ?? "a property"}" from your saved properties.`,
   },
 
+  // ── Contact ───────────────────────────────────────────────────────────────
+
   CONTACT_REVEALED: {
     icon: "📞",
     color: "#7B2FBE",
@@ -544,12 +583,22 @@ export const activityConfig = {
       `${meta?.buyerName ?? "A user"} has unlocked your contact details for "${meta?.propertyTitle ?? "a property"}". Contact Information: ${meta?.buyerEmail ?? "Email unavailable"} • ${meta?.buyerPhone ?? "Phone unavailable"}. They may contact you soon regarding this property.`,
   },
 
+ 
   MESSAGE_SENT: {
     icon: "💬",
     color: "#4361EE",
     label: "Message Sent",
     text: (meta) =>
       `Sent an inquiry message regarding "${meta?.propertyTitle ?? "a property"}".`,
+  },
+
+  
+  PAYMENT_MADE: {
+    icon: "💳",
+    color: "#C8A96E",
+    label: "Payment Initiated",
+    text: (meta) =>
+      `Payment of ₹${meta?.amount?.toLocaleString("en-IN") ?? "—"} initiated for "${meta?.propertyTitle ?? "a listing"}".`,
   },
 
   PAYMENT_COMPLETED: {
@@ -559,7 +608,7 @@ export const activityConfig = {
     text: (meta) =>
       `Payment of ₹${meta?.amount?.toLocaleString("en-IN") ?? "—"} completed successfully for "${meta?.propertyTitle ?? "a listing"}".`,
   },
-
+ 
   LISTING_PROMOTED: {
     icon: "⭐",
     color: "#C8A96E",
@@ -567,24 +616,8 @@ export const activityConfig = {
     text: (meta) =>
       `"${meta?.propertyTitle ?? "a listing"}" has been promoted to featured status for increased visibility.`,
   },
-
-  PROFILE_UPDATED: {
-    icon: "👤",
-    color: "#4361EE",
-    label: "Profile Updated",
-    text: (meta) =>
-      `Updated your ${meta?.field ?? "profile"} information successfully.`,
-  },
-
-  EMAIL_VERIFIED: {
-    icon: "✅",
-    color: "#2D6A4F",
-    label: "Email Verified",
-    text: () =>
-      "Your email address has been successfully verified and your account security has been enhanced.",
-  },
 };
-
+ 
 export const navItems = [
   { icon: "⊞", label: "Overview", id: "overview" },
   { icon: "🏠", label: "My Listings", id: "listings" },
