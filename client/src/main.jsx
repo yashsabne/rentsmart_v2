@@ -6,6 +6,7 @@ import "./index.css"
 import { Toaster } from "react-hot-toast";
 import { SocketProvider } from './chat/socketContext.jsx';
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 
 createRoot(document.getElementById('root')).render(
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')).render(
 
     <App />
         <Analytics />
+        <SpeedInsights/>
     </SocketProvider>
   </StrictMode>,
   
