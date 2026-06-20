@@ -22,7 +22,7 @@ export const getActivities = async (req, res) => {
 
     const cacheKey = `activity:${userId}:limit:${limit}`;
 
-    const cached = await redisGet(`/cache/${cacheKey}`);
+    const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
     if (cached?.success && cached?.data) {
       return res.status(200).json({ success: true, activities: cached.data });
     }
