@@ -89,11 +89,11 @@ export default function Payments() {
           alignItems: "center", marginBottom: 22,
         }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: t.text, letterSpacing: "-0.3px" }}>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: t.text, letterSpacing: "-0.3px" }}>
               Payment History
             </h2>
             {summary && (
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: t.textMuted }}>
+              <p style={{ margin: "4px 0 0", fontSize: 12, color: t.textMuted }}>
                 ₹{summary.totalSpent} total spent across all transactions
               </p>
             )}
@@ -118,7 +118,7 @@ export default function Payments() {
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 padding: "10px 16px", fontSize: 14,
-                fontWeight: activeTab === tab.key ? 700 : 500,
+                fontWeight: activeTab === tab.key ? 600 : 400,
                 color: activeTab === tab.key ? t.text : t.textMuted,
                 borderBottom: activeTab === tab.key
                   ? `2px solid ${t.text}` : "2px solid transparent",

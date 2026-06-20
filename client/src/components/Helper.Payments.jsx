@@ -54,7 +54,7 @@ export function StatusBadge({ status }) {
   return (
     <span style={{
       background: s.bg, color: s.color,
-      fontSize: 11, fontWeight: 600, letterSpacing: "0.3px",
+      fontSize: 10, fontWeight: 500, letterSpacing: "0.3px",
       padding: "3px 9px", borderRadius: 20, textTransform: "uppercase",
     }}>
       {s.label}
@@ -62,15 +62,12 @@ export function StatusBadge({ status }) {
   );
 }
 
- 
- 
-
-
+  
 export function Chip({ label, color = t.textMid, bg = t.surface }) {
   return (
     <span style={{
       background: bg, color,
-      fontSize: 11, fontWeight: 500,
+      fontSize: 10, fontWeight: 500,
       padding: "3px 9px", borderRadius: 20,
     }}>
       {label}
@@ -85,9 +82,9 @@ export function SummaryCard({ icon, label, value }) {
       padding: "12px 16px", display: "flex", gap: 6,
       border: `1px solid ${t.border}`,
     }}>
-      <span style={{ fontSize: 20 }}>{icon}</span>
+      <span style={{ fontSize: 18 }}>{icon}</span>
       <div style={{ display: "flex", flexDirection: "column"}} >
-      <span style={{ fontSize: 20, fontWeight: 600, color: t.text, lineHeight: 1 }}>{value}</span>
+      <span style={{ fontSize: 18, fontWeight: 500, color: t.text, lineHeight: 1 }}>{value}</span>
       <span style={{ fontSize: 11, color: t.textMuted, fontWeight: 400 }}>{label}</span>
       </div>
     </div>
@@ -97,7 +94,7 @@ export function SummaryCard({ icon, label, value }) {
 export function RowIcon({ emoji, bg }) {
   return (
     <div style={{
-      width: 42, height: 42, borderRadius: t.radiusSm,
+      width: 38, height: 38, borderRadius: t.radiusSm,
       background: bg, display: "flex", alignItems: "center",
       justifyContent: "center", flexShrink: 0, fontSize: 18,
     }}>
@@ -112,7 +109,7 @@ export function Amount({ amount, visible = true }) {
       textAlign: "right", flexShrink: 0,
       display: visible ? undefined : "none",
     }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>₹{amount}</div>
+      <div style={{ fontWeight: 500, fontSize: 14, color: t.text }}>₹{amount}</div>
       <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>paid</div>
     </div>
   );
@@ -127,7 +124,7 @@ export function ContactRow({ item }) {
     <div className="ph-row">
       <RowIcon emoji="📞" bg={t.accentBg} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div style={{ fontWeight: 500, fontSize: 12, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {item.propertyTitle || "—"}
         </div>
         {(item.ownerName || item.ownerPhone) && (
@@ -141,7 +138,7 @@ export function ContactRow({ item }) {
           <Chip label="Contact Reveal" />
           <span style={{ fontSize: 11, color: t.textMuted }}>{fmtDate(item.createdAt)}</span>
           {/* mobile-only inline amount */}
-          <span className="ph-amount-inline" style={{ display: "none", fontSize: 13, fontWeight: 700, color: t.text, marginLeft: "auto" }}>
+          <span className="ph-amount-inline" style={{ display: "none", fontSize: 13, fontWeight: 500, color: t.text, marginLeft: "auto" }}>
             ₹{item.amount}
           </span>
         </div>
@@ -159,7 +156,7 @@ export function PromotionRow({ item }) {
     <div className="ph-row">
       <RowIcon emoji="⭐" bg="#fff8e6" />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div style={{ fontWeight: 400, fontSize: 13, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {item.propertyTitle || "—"}
         </div>
         {expires && (
