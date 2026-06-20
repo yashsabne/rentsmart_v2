@@ -251,11 +251,141 @@ export default function ListingDetails() {
   }, [property?._id]);
 
   if (loading) {
+    const shimmer = {
+      background: `linear-gradient(90deg, ${C.border} 25%, ${C.cream} 50%, ${C.border} 75%)`,
+      backgroundSize: "400% 100%",
+      animation: "skeleton-shimmer 1.4s ease-in-out infinite",
+    };
+    const Skel = ({ w = "100%", h = 14, r = 6, style = {} }) => (
+      <div style={{ width: w, height: h, borderRadius: r, ...shimmer, ...style }} />
+    );
+
     return (
-      <div style={{ minHeight: "100vh", background: C.cream, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 36, marginBottom: 16 }}>🏠</div>
-          <div style={{ fontSize: 16, color: C.inkMuted, fontWeight: 500 }}>Loading property details...</div>
+      <div style={{ minHeight: "100vh", background: C.cream, fontFamily: "'DM Sans', sans-serif", color: C.ink }}>
+        <style>{`
+        @keyframes skeleton-shimmer {
+          0% { background-position: 100% 0; }
+          100% { background-position: 0 0; }
+        }
+      `}</style>
+
+        {/* ── NAVBAR ── */}
+        <nav className="nav-inner" style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0 48px", height: 64,
+          background: "rgba(250,250,247,0.96)", backdropFilter: "blur(14px)",
+          borderBottom: `1px solid ${C.border}`,
+        }}>
+          <div className="pf" style={{ fontSize: 21, fontWeight: 700, color: C.ink, flexShrink: 0 }}>
+            Rent<span style={{ color: C.gold }}>Smart</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Skel w={40} h={12} />
+            <span style={{ color: C.border }}>›</span>
+            <Skel w={56} h={12} />
+            <span style={{ color: C.border }}>›</span>
+            <Skel w={150} h={12} />
+          </div>
+        </nav>
+
+        {/* ── IMAGE GALLERY ── */}
+        <div style={{ paddingTop: 64 }}>
+          <div className="gal-wrap">
+            <div style={{ position: "relative" }}>
+              <div className="gal-mosaic">
+                <div className="gal-cell gal-cell-hero"><Skel w="100%" h="100%" r={0} /></div>
+                <div className="gal-cell"><Skel w="100%" h="100%" r={0} /></div>
+                <div className="gal-cell"><Skel w="100%" h="100%" r={0} /></div>
+                <div className="gal-cell"><Skel w="100%" h="100%" r={0} /></div>
+                <div className="gal-cell"><Skel w="100%" h="100%" r={0} /></div>
+              </div>
+            </div>
+            <div className="gal-strip-wrap">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="gal-strip-thumb"><Skel w="100%" h="100%" r={0} /></div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── BODY ── */}
+        <div className="body-outer" style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 32px 80px" }}>
+          <div className="body-grid" style={{ display: "grid", gridTemplateColumns: "1fr 356px", gap: 32, alignItems: "start" }}>
+
+            {/* ── LEFT COLUMN ── */}
+            <div>
+              <div style={{ marginBottom: 24 }}>
+                <div className="title-row" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                      <Skel w={72} h={20} r={100} />
+                      <Skel w={72} h={20} r={100} />
+                      <Skel w={92} h={20} r={100} />
+                    </div>
+                    <Skel w="65%" h={34} r={6} style={{ marginBottom: 10 }} />
+                    <Skel w="38%" h={13} r={4} />
+                  </div>
+                  <div className="price-block" style={{ textAlign: "right", flexShrink: 0 }}>
+                    <Skel w={110} h={30} r={6} style={{ marginBottom: 8, marginLeft: "auto" }} />
+                    <Skel w={80} h={12} r={4} style={{ marginLeft: "auto" }} />
+                  </div>
+                </div>
+
+                {/* Quick meta strip */}
+                <div className="meta-strip" style={{ display: "flex", gap: 24, padding: "16px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, flexWrap: "wrap" }}>
+                  {[90, 95, 70, 80, 100].map((w, i) => <Skel key={i} w={w} h={15} r={4} />)}
+                </div>
+              </div>
+
+              {/* ── TABS ── */}
+              <div className="tab-bar" style={{ display: "flex", gap: 28, marginBottom: 28, borderBottom: `1px solid ${C.border}`, paddingBottom: 12 }}>
+                {[1, 2, 3, 4].map((i) => <Skel key={i} w={68} h={15} r={4} />)}
+              </div>
+
+              {/* About card */}
+              <div className="card-inner" style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, padding: "26px 28px", marginBottom: 22, boxShadow: C.cardShadow }}>
+                <Skel w={170} h={17} r={4} style={{ marginBottom: 16 }} />
+                <Skel w="100%" h={13} r={4} style={{ marginBottom: 8 }} />
+                <Skel w="96%" h={13} r={4} style={{ marginBottom: 8 }} />
+                <Skel w="78%" h={13} r={4} style={{ marginBottom: 16 }} />
+                <Skel w="100%" h={56} r={12} />
+              </div>
+
+              {/* Highlights card */}
+              <div className="card-inner" style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, padding: "26px 28px", boxShadow: C.cardShadow }}>
+                <Skel w={190} h={17} r={4} style={{ marginBottom: 20 }} />
+                <div className="highlights-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", paddingRight: i % 2 === 0 ? 24 : 0, paddingLeft: i % 2 === 1 ? 24 : 0 }}>
+                      <Skel w={80} h={13} r={4} />
+                      <Skel w={56} h={13} r={4} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── CONTACT CARD ── */}
+            <div className="contact-sticky" style={{ position: "sticky", top: 80 }}>
+              <div style={{ background: C.white, borderRadius: 18, border: `1px solid ${C.border}`, padding: 24, boxShadow: C.cardShadow }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+                  <Skel w={44} h={44} r={100} />
+                  <div style={{ flex: 1 }}>
+                    <Skel w="55%" h={14} r={4} style={{ marginBottom: 6 }} />
+                    <Skel w="78%" h={12} r={4} />
+                  </div>
+                </div>
+                <Skel w={130} h={11} r={4} style={{ marginBottom: 12 }} />
+                <Skel w="100%" h={70} r={12} style={{ marginBottom: 22 }} />
+                <Skel w={130} h={11} r={4} style={{ marginBottom: 12 }} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {[1, 2, 3, 4].map((i) => <Skel key={i} w="100%" h={46} r={10} />)}
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     );
@@ -714,47 +844,47 @@ export default function ListingDetails() {
         </div>
       )}
 
-{msgBlocked && (
-  <div style={{
-    position: "fixed", inset: 0, zIndex: 1000,
-    background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)",
-    display: "flex", alignItems: "center", justifyContent: "center"
-  }}>
-    <div style={{
-      background: "#fff", borderRadius: 20, padding: "40px 36px",
-      maxWidth: 400, width: "90%", textAlign: "center",
-      boxShadow: "0 20px 60px rgba(0,0,0,0.2)"
-    }}>
-      <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a", marginBottom: 10 }}>
-        Listing No Longer Active
-      </h2>
-      <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7, marginBottom: 24 }}>
-        This property has been removed or the owner's account no longer exists. Messaging is disabled.
-      </p>
-      <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-        <button
-          onClick={() => navigate("/dashboard")}
-          style={{
-            padding: "11px 24px", borderRadius: 100,
-            background: "#1a1a1a", color: "#fff",
-            border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer"
+      {msgBlocked && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 20, padding: "40px 36px",
+            maxWidth: 400, width: "90%", textAlign: "center",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.2)"
           }}>
-          Go to Dashboard
-        </button>
-        <button
-          onClick={() => setMsgBlocked(false)}
-          style={{
-            padding: "11px 24px", borderRadius: 100,
-            background: "none", color: "#6b7280",
-            border: "1px solid #e5e7eb", fontSize: 14, cursor: "pointer"
-          }}>
-          Dismiss
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a", marginBottom: 10 }}>
+              Listing No Longer Active
+            </h2>
+            <p style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7, marginBottom: 24 }}>
+              This property has been removed or the owner's account no longer exists. Messaging is disabled.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={() => navigate("/dashboard")}
+                style={{
+                  padding: "11px 24px", borderRadius: 100,
+                  background: "#1a1a1a", color: "#fff",
+                  border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer"
+                }}>
+                Go to Dashboard
+              </button>
+              <button
+                onClick={() => setMsgBlocked(false)}
+                style={{
+                  padding: "11px 24px", borderRadius: 100,
+                  background: "none", color: "#6b7280",
+                  border: "1px solid #e5e7eb", fontSize: 14, cursor: "pointer"
+                }}>
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
 
       <Footer />
