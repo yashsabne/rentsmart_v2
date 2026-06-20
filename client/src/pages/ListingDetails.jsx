@@ -80,7 +80,7 @@ export default function ListingDetails() {
   }, [id]);
 
 
-  const isDeleted = property?.isHidden || property?.status === "DELETED";
+  const isDeleted = property?.isHidden && property?.status === "DELETED";
 
 
   const fetchSimilar = async (cursorVal = null) => {
