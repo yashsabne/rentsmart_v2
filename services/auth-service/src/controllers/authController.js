@@ -178,13 +178,15 @@ export const getMe = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const cached = await redisGet(`/cache/user:${userId}`);
+    const cached = await redisGet(`/cache/${encodeURIComponent(`user:${userId}`)}`);
 
     if (cached?.success && cached?.data) {
       return res.status(200).json(cached.data);
     }
 
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findById(userId).select(
+      "-password -resetToken -resetTokenExpiry -emailVerificationToken -emailVerificationExpiry -deletedAt -googleId -microsoftId -contactAccess.monthlyEmailResetAt"
+    );
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -206,13 +208,15 @@ export const getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    const cached = await redisGet(`/cache/user:${userId}`);
+
+    const cached = await redisGet(`/cache/${encodeURIComponent(`user:public:${userId}`)}`);
+
     if (cached?.success && cached?.data) {
       return res.status(200).json(cached.data);
     }
 
     const user = await User.findById(userId).select(
-      "-password -phone -resetToken -resetTokenExpiry -emailVerificationToken -emailVerificationExpiry"
+      "-password -phone -resetToken -resetTokenExpiry -emailVerificationToken -emailVerificationExpiry -deletedAt -googleId -microsoftId -contactAccess -savedProperties -recentlyViewed -emailNotifications -smsNotifications -whatsappNotifications"
     );
 
     if (!user) {
@@ -220,7 +224,7 @@ export const getUserById = async (req, res) => {
     }
 
     await redisPost("/cache", {
-      key: `user:${userId}`,
+      key: `user:public:${userId}`,
       data: user.toObject(),
       ttl: 300,
     });
