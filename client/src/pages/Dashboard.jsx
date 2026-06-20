@@ -39,28 +39,39 @@ export default function Dashboard() {
 
   // ── Activities ──
   const [activities, setActivities] = useState([]);
- 
+
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // ── Fetch user ──
   useEffect(() => {
     const fetchUser = async () => {
+      if (!token) {
+        navigate("/login", { replace: true });
+        return;
+      }
       try {
         setUserLoading(true);
         const res = await fetch(`${API.AUTH}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) { navigate("/login"); return; }
+        if (!res.ok) {
+          localStorage.removeItem("token");           
+          navigate("/login?reason=token_expired", { replace: true });
+          return;
+        }
         setUser(await res.json());
-      } catch { navigate("/login"); }
-      finally { setUserLoading(false); }
+      } catch {
+        localStorage.removeItem("token");
+        navigate("/login?reason=token_expired", { replace: true });
+      } finally {
+        setUserLoading(false);
+      }
     };
     fetchUser();
-  }, []);
+  }, []); 
+    
 
-  // ── Fetch paginated properties ──
   const fetchProperties = async (pageNum = 1, append = false) => {
     try {
       setPropsLoading(true);
@@ -316,7 +327,7 @@ export default function Dashboard() {
 
                 {activeNav === "recent" && <RecentlyViewed token={token} />}
 
-                {activeNav === "settings" &&  <SettingsPage token={token} onLogout={handleLogout} /> }
+                {activeNav === "settings" && <SettingsPage token={token} onLogout={handleLogout} />}
 
               </div>
 
@@ -341,7 +352,7 @@ export default function Dashboard() {
                     ) : (
                       activities.map((activity, i) => {
                         const config = activityConfig[activity.type];
-                       
+
                         if (!config) return null;
                         return (
                           <div key={activity._id} className="activity-row"
