@@ -6,7 +6,7 @@ import { apiToggleHide, apiRefreshListing, apiUpdateStatus } from "../../service
 
 const PURPLE = { bg: "#EEEDFE", mid: "#534AB7", dark: "#26215C", border: "#CECBF6" };
 const GREEN = { bg: "#EAF3DE", mid: "#3B6D11", light: "#C0DD97" };
-const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => {
