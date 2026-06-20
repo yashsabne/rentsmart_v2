@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { API } from "../../apis";
 import Footer from "../components/reuse/Footer";
 import SocialAuth from "../components/SocialAuth";
@@ -70,14 +70,15 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
 
+  const [searchParams] = useSearchParams();
+  const reason = searchParams.get("reason");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     }
   }, []);
-
 
 
   const validate = () => {
@@ -298,7 +299,7 @@ export default function LoginPage() {
                   </div>
 
                   {/* Social */}
- 
+
                   <SocialAuth
                     mode="login"
                     onSuccess={(provider, { user, token }) => {
