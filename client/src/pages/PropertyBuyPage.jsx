@@ -13,6 +13,7 @@ import { formattedPrice } from "../const_func/dashFunction";
 import { API } from "../../apis";
 import "./styles/propertybuy.css"
 import Footer from "../components/reuse/Footer";
+import { trackInteraction } from "../utils/trackInteraction";
 
 const PAGE_SIZE = 15;
 
@@ -43,284 +44,90 @@ export default function PropertyBuyPage() {
 
   useEffect(() => {
     const query = new URLSearchParams();
+    const finalPropertyType = advFilters?.propertyType || typeFilter;
+    const finalBeds = advFilters?.beds || bedsFilter;
+    const activeSortBy = advFilters?.sortBy && advFilters.sortBy !== "Relevance" ? advFilters.sortBy : sortBy;
 
-    // BASIC
-    if (type) {
-      query.set("type", type);
-    }
-
-    if (search && search !== "all") {
-      query.set("search", search);
-    }
-
-    // PROPERTY TYPE
-    const finalPropertyType =
-      advFilters?.propertyType || typeFilter;
-
-    if (
-      finalPropertyType &&
-      finalPropertyType !== "All"
-    ) {
-      query.set(
-        "propertyType",
-        finalPropertyType
-      );
-    }
-
-    // BEDROOMS
-    const finalBeds =
-      advFilters?.beds || bedsFilter;
-
-    if (
-      finalBeds &&
-      finalBeds !== "Any"
-    ) {
-      query.set("bedrooms", finalBeds);
-    }
-
-    // BATHROOMS
-    if (
-      advFilters?.baths &&
-      advFilters.baths !== "Any"
-    ) {
-      query.set(
-        "bathrooms",
-        advFilters.baths
-      );
-    }
-
-    // CITY
-    if (advFilters?.city?.trim()) {
-      query.set("city", advFilters.city);
-    }
-
-    // TOGGLES
-    if (advFilters?.furnished) {
-      query.set("furnished", "true");
-    }
-
-    if (advFilters?.parking) {
-      query.set("parking", "true");
-    }
-
-    if (advFilters?.readyToMove) {
-      query.set("readyToMove", "true");
-    }
-
-    // AMENITIES
-    if (
-      advFilters?.amenities?.length > 0
-    ) {
-      advFilters.amenities.forEach((item) => {
-        query.append("amenities", item);
-      });
-    }
-
-    // SORT
-    const activeSortBy =
-      advFilters?.sortBy &&
-        advFilters.sortBy !== "Relevance"
-        ? advFilters.sortBy
-        : sortBy;
-
-    if (
-      activeSortBy &&
-      activeSortBy !== "Relevance"
-    ) {
-      query.set("sortBy", activeSortBy);
-    }
-
-    // PAGE
+    if (type) query.set("type", type);
+    if (search && search !== "all") query.set("search", search);
+    if (finalPropertyType && finalPropertyType !== "All") query.set("propertyType", finalPropertyType);
+    if (finalBeds && finalBeds !== "Any") query.set("bedrooms", finalBeds);
+    if (advFilters?.baths && advFilters.baths !== "Any") query.set("bathrooms", advFilters.baths);
+    if (advFilters?.city?.trim()) query.set("city", advFilters.city);
+    if (advFilters?.furnished) query.set("furnished", "true");
+    if (advFilters?.parking) query.set("parking", "true");
+    if (advFilters?.readyToMove) query.set("readyToMove", "true");
+    if (advFilters?.amenities?.length > 0) advFilters.amenities.forEach((item) => query.append("amenities", item));
+    if (activeSortBy && activeSortBy !== "Relevance") query.set("sortBy", activeSortBy);
     query.set("page", currentPage);
 
-    navigate(
-      {
-        pathname: window.location.pathname,
-        search: query.toString(),
-      },
-      { replace: true }
-    );
-
-  }, [
-    type,
-    search,
-    budgetIdx,
-    typeFilter,
-    bedsFilter,
-    sortBy,
-    advFilters,
-    currentPage,
-    navigate
-  ]);
+    navigate({ pathname: window.location.pathname, search: query.toString() }, { replace: true });
+  }, [type, search, budgetIdx, typeFilter, bedsFilter, sortBy, advFilters, currentPage, navigate]);
 
   const fetchProperties = useCallback(async () => {
     try {
       setLoading(true);
 
       const budget = budgetRanges[budgetIdx];
+      const finalPropertyType = advFilters?.propertyType || typeFilter;
+      const finalBeds = advFilters?.beds || bedsFilter;
+      const finalMinPrice = advFilters?.budgetMin || budget?.min || 0;
+      const finalMaxPrice = advFilters?.budgetMax || (budget?.max === Infinity ? 999999999 : budget?.max) || 999999999;
+      const activeSortBy = advFilters?.sortBy && advFilters.sortBy !== "Relevance" ? advFilters.sortBy : sortBy;
 
       const params = new URLSearchParams();
 
-      // ---------------- BASIC FILTERS ----------------
-
-      if (type) {
-        params.append("type", type);
-      }
-
-      if (search && search !== "all") {
-        params.append("search", search);
-      }
-
-      // ---------------- PRICE ----------------
-
-      const finalMinPrice =
-        advFilters?.budgetMin || budget?.min || 0;
-
-      const finalMaxPrice =
-        advFilters?.budgetMax ||
-        (budget?.max === Infinity ? 999999999 : budget?.max) ||
-        999999999;
+      if (type) params.append("type", type);
+      if (search && search !== "all") params.append("search", search);
 
       params.append("minPrice", finalMinPrice);
       params.append("maxPrice", finalMaxPrice);
 
-      // ---------------- PROPERTY TYPE ----------------
-
-      const finalPropertyType =
-        advFilters?.propertyType || typeFilter;
-
-      if (
-        finalPropertyType &&
-        finalPropertyType !== "All"
-      ) {
-        params.append("propertyType", finalPropertyType);
-      }
-
-      // ---------------- BEDROOMS ----------------
-
-      const finalBeds =
-        advFilters?.beds || bedsFilter;
-
-      if (finalBeds && finalBeds !== "Any") {
-        params.append("bedrooms", finalBeds);
-      }
-
-      // ---------------- BATHROOMS ----------------
-
-      if (
-        advFilters?.baths &&
-        advFilters.baths !== "Any"
-      ) {
-        params.append("bathrooms", advFilters.baths);
-      }
-
-      // ---------------- CITY ----------------
-
-      if (advFilters?.city?.trim()) {
-        params.append("city", advFilters.city);
-      }
-
-
-      // ---------------- TOGGLES ----------------
-
-      if (advFilters?.furnished) {
-        params.append("furnished", "true");
-      }
-
-      if (advFilters?.parking) {
-        params.append("parking", "true");
-      }
-
-      if (advFilters?.readyToMove) {
-        params.append("readyToMove", "true");
-      }
-
-      // ---------------- AMENITIES ----------------
-
-      if (
-        advFilters?.amenities &&
-        advFilters.amenities.length > 0
-      ) {
-        advFilters.amenities.forEach((item) => {
-          params.append("amenities", item);
-        });
-      }
-
-      // ---------------- SORTING ----------------
-
-      const activeSortBy =
-        advFilters?.sortBy &&
-          advFilters.sortBy !== "Relevance"
-          ? advFilters.sortBy
-          : sortBy;
-
-      if (
-        activeSortBy &&
-        activeSortBy !== "Relevance"
-      ) {
-        params.append("sortBy", activeSortBy);
-      }
-
+      if (finalPropertyType && finalPropertyType !== "All") params.append("propertyType", finalPropertyType);
+      if (finalBeds && finalBeds !== "Any") params.append("bedrooms", finalBeds);
+      if (advFilters?.baths && advFilters.baths !== "Any") params.append("bathrooms", advFilters.baths);
+      if (advFilters?.city?.trim()) params.append("city", advFilters.city);
+      if (advFilters?.furnished) params.append("furnished", "true");
+      if (advFilters?.parking) params.append("parking", "true");
+      if (advFilters?.readyToMove) params.append("readyToMove", "true");
+      if (advFilters?.amenities?.length > 0) advFilters.amenities.forEach((item) => params.append("amenities", item));
+      if (activeSortBy && activeSortBy !== "Relevance") params.append("sortBy", activeSortBy);
 
       params.append("page", currentPage);
       params.append("limit", PAGE_SIZE);
 
-      const url = `${API.PROPERTY}/api/property/filter?${params.toString()}`;
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API.PROPERTY}/api/property/filter?${params.toString()}`, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
 
-
-      const res = await fetch(url);
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch");
-      }
+      if (!res.ok) throw new Error("Failed to fetch");
 
       const data = await res.json();
-
-
       setProperties(data.listings || []);
       setTotalCount(data.totalCount || 0);
       setTotalPages(data.totalPages || 1);
-
     } catch (err) {
       console.error("Error fetching properties:", err);
-
       setProperties([]);
       setTotalCount(0);
       setTotalPages(1);
-
     } finally {
       setLoading(false);
     }
-  }, [
-    type,
-    search,
-    budgetIdx,
-    typeFilter,
-    bedsFilter,
-    sortBy,
-    advFilters,
-    currentPage
-  ]);
+  }, [type, search, budgetIdx, typeFilter, bedsFilter, sortBy, advFilters, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    type,
-    search,
-    budgetIdx,
-    typeFilter,
-    bedsFilter,
-    sortBy,
-    advFilters
-  ]);
+  }, [type, search, budgetIdx, typeFilter, bedsFilter, sortBy, advFilters]);
 
   useEffect(() => {
     fetchProperties();
   }, [fetchProperties]);
 
   const paginatedResults = properties || [];
-
-
 
   const toggleSave = (id) => {
     setSavedIds((prev) =>
@@ -421,7 +228,10 @@ export default function PropertyBuyPage() {
                       key={p._id}
                       className={`prop-card ${hoveredCard === p._id ? "hovered" : ""
                         }`}
-                      onClick={() => navigate(`/details/${p._id}`)}
+                      onClick={() => {
+                        navigate(`/details/${p._id}`);
+                        trackInteraction(p._id, "VIEW");
+                      }}
                       onMouseEnter={() => setHoveredCard(p._id)}
                       onMouseLeave={() => setHoveredCard(null)}
                       role="button"
@@ -458,7 +268,7 @@ export default function PropertyBuyPage() {
                           </span>
                         </div>
 
-                     
+
 
                         {p.isPromoted && (
                           <span className="badge-promoted">
