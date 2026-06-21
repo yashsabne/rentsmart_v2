@@ -5,11 +5,6 @@ const CALLBACK_BASE = process.env.BACKEND_URL_AUTH ?? "http://localhost:5000";
 
 export default function initPassport(passport) {
  
-  console.log(
-  "Google callback:",
-  `${CALLBACK_BASE}/auth/social/google/callback`
-);
- 
   passport.use(
     new GoogleStrategy(
       {
