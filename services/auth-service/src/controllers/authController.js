@@ -62,7 +62,13 @@ export const register = async (req, res) => {
       console.error("Verification email failed:", error);
     });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+    const token = jwt.sign({
+      id: user._id,
+      city: user.city || null,
+      preferences: user.preferences || [],
+    }, process.env.JWT_SECRET, { expiresIn: "5d" });
+
 
     const userResponse = user.toObject();
 
@@ -130,7 +136,12 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "5d" });
+    const token = jwt.sign({
+      id: user._id,
+      city: user.city || null,
+      preferences: user.preferences || [],
+    }, process.env.JWT_SECRET, { expiresIn: "5d" });
+
 
     const userAgent = req.headers["user-agent"] || "";
 
