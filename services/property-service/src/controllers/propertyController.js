@@ -181,15 +181,15 @@ export const getFilteredListings = async (req, res) => {
 
     if (isGuest) {
       const cacheKey = buildFilterCacheKey(req.query);
-        console.log("CACHE KEY:", cacheKey);
+      console.log("CACHE KEY:", cacheKey);
       const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
       if (cached?.success && cached?.data) {
-          console.log("CACHE HIT");
+        console.log("CACHE HIT");
 
         return res.status(200).json(cached.data);
       }
 
-        console.log("CACHE MISS");
+      console.log("CACHE MISS");
 
     }
 
@@ -203,7 +203,8 @@ export const getFilteredListings = async (req, res) => {
 
 
     if (type) {
-      filter.buyOrSell = type;
+      filter.buyOrSell =
+        type.toLowerCase() === "rent" ? "Rent" : "Sell";
     }
 
     if (propertyType && propertyType !== "All") filter.type = propertyType;
