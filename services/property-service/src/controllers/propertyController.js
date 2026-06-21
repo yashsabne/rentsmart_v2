@@ -3,13 +3,15 @@ import { cloudinary } from "../config/cloudinary.js";
 import { logActivity } from "../utils/activityLogger.js";
 import { redisPost, redisGet, redisDelete } from "../utils/redisClient.js";
 import { POPULAR_LOCATIONS } from "../../const/popularCities.js";
+import { buildUserPreferences } from "../utils/preferenceBuilder.js";
+
 // import { recalculateRankScore } from "../utils/rankScore.js";
 
 const buildFilterCacheKey = (query) => {
   const {
     type, search, minPrice, maxPrice, propertyType,
     bedrooms, bathrooms, city, furnished, parking,
-    readyToMove, amenities, sortBy, page = 1, limit = 15,
+    readyToMove, amenities, sortBy, page = 1, limit = 20,
   } = query;
 
   return [
@@ -31,6 +33,8 @@ const buildFilterCacheKey = (query) => {
     limit,
   ].join(":");
 };
+
+
 
 export const uploadPhotos = async (req, res) => {
   try {
@@ -142,13 +146,8 @@ export const createListing = async (req, res) => {
 };
 
 export const getFilteredListings = async (req, res) => {
+  
   try {
-    const cacheKey = buildFilterCacheKey(req.query);
-    const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
-    if (cached?.success && cached?.data) {
-      return res.status(200).json(cached.data);
-    }
-
     const {
       type, search, minPrice, maxPrice, propertyType,
       bedrooms, bathrooms, city, furnished,
@@ -156,7 +155,35 @@ export const getFilteredListings = async (req, res) => {
       page = 1, limit = 20,
     } = req.query;
 
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
     const now = new Date();
+
+    const isGuest = !req.user?.id;
+    let userPrefs = null;
+
+    if (!isGuest) {
+      const prefCached = await redisGet(`/cache/prefs:${req.user.id}`);
+      if (prefCached?.success && prefCached?.data) {
+        userPrefs = prefCached.data;
+      } else {
+        userPrefs = await buildUserPreferences(req.user.id, req.user);
+        await redisPost("/cache", {
+          key: `prefs:${req.user.id}`,
+          data: userPrefs,
+          ttl: 600,
+        });
+      }
+    }
+
+    if (isGuest) {
+      const cacheKey = buildFilterCacheKey(req.query);
+      const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
+      if (cached?.success && cached?.data) {
+        return res.status(200).json(cached.data);
+      }
+    }
 
     const filter = {
       isHidden: false,
@@ -171,8 +198,10 @@ export const getFilteredListings = async (req, res) => {
 
     if (minPrice || maxPrice) {
       filter.price = {};
-      if (minPrice) filter.price.$gte = Number(minPrice);
-      if (maxPrice) filter.price.$lte = Number(maxPrice);
+      const min = parseFloat(minPrice);
+      const max = parseFloat(maxPrice);
+      if (!isNaN(min)) filter.price.$gte = min;
+      if (!isNaN(max)) filter.price.$lte = max;
     }
 
     if (bedrooms && bedrooms !== "Any")
@@ -207,27 +236,49 @@ export const getFilteredListings = async (req, res) => {
       },
     };
 
-    let baseSortStage;
+    const personalScore = userPrefs ? {
+      $add: [
+        { $cond: [{ $regexMatch: { input: "$address.city", regex: userPrefs.topCity || "___", options: "i" } }, 20, 0] },
+        { $cond: [{ $regexMatch: { input: "$address.city", regex: userPrefs.baseCity || "___", options: "i" } }, 10, 0] },
+        { $cond: [{ $eq: ["$buyOrSell", userPrefs.topBuyOrSell] }, 10, 0] },
+        { $cond: [{ $in: ["$type", userPrefs.baseTypes?.length ? userPrefs.baseTypes : [""]] }, 12, 0] },
+        { $cond: [{ $eq: ["$type", userPrefs.topType] }, 8, 0] },
+        { $cond: [{ $eq: ["$details.bedroomCount", Number(userPrefs.topBedrooms) || -1] }, 6, 0] },
+      ],
+    } : 0;
 
+    const addFieldsStage = {
+      $addFields: {
+        _promoted: promotedSort,
+        _personalScore: personalScore,
+      },
+    };
+
+    const projectStage = {
+      $project: { _promoted: 0, _personalScore: 0 },
+    };
+
+    let baseSortStage;
     switch (sortBy) {
       case "Price: Low–High":
-        baseSortStage = { $sort: { _promoted: -1, price: 1 } };
+        baseSortStage = { $sort: { _promoted: -1, _personalScore: -1, price: 1 } };
         break;
       case "Price: High–Low":
-        baseSortStage = { $sort: { _promoted: -1, price: -1 } };
+        baseSortStage = { $sort: { _promoted: -1, _personalScore: -1, price: -1 } };
         break;
       case "Newest First":
-        baseSortStage = { $sort: { _promoted: -1, createdAt: -1 } };
+        baseSortStage = { $sort: { _promoted: -1, _personalScore: -1, createdAt: -1 } };
         break;
       default:
-        baseSortStage = { $sort: { _promoted: -1, lastRefreshedAt: -1, createdAt: -1 } };
+        baseSortStage = { $sort: { _promoted: -1, _personalScore: -1, lastRefreshedAt: -1, createdAt: -1 } };
     }
 
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
-    const skip = (pageNum - 1) * limitNum;
-
-    const addFieldsStage = { $addFields: { _promoted: promotedSort } };
+    const facetStage = {
+      $facet: {
+        listings: [{ $skip: skip }, { $limit: limitNum }, projectStage],
+        totalCount: [{ $count: "count" }],
+      },
+    };
 
     let listings = [];
     let totalCount = 0;
@@ -244,6 +295,8 @@ export const getFilteredListings = async (req, res) => {
 
       if (detectedCity) {
         filter["address.city"] = { $regex: `^${detectedCity}$`, $options: "i" };
+      } else if (hasCitySearch) {
+        filter["address.city"] = { $regex: city.trim(), $options: "i" };
       }
 
       const searchQuery = remainingSearch || detectedCity;
@@ -266,12 +319,7 @@ export const getFilteredListings = async (req, res) => {
         { $match: filter },
         addFieldsStage,
         baseSortStage,
-        {
-          $facet: {
-            listings: [{ $skip: skip }, { $limit: limitNum }, { $project: { _promoted: 0 } }],
-            totalCount: [{ $count: "count" }],
-          },
-        },
+        facetStage,
       ];
 
       const result = await Listing.aggregate(pipeline);
@@ -282,12 +330,7 @@ export const getFilteredListings = async (req, res) => {
         { $match: filter },
         addFieldsStage,
         baseSortStage,
-        {
-          $facet: {
-            listings: [{ $skip: skip }, { $limit: limitNum }, { $project: { _promoted: 0 } }],
-            totalCount: [{ $count: "count" }],
-          },
-        },
+        facetStage,
       ];
 
       const result = await Listing.aggregate(pipeline);
@@ -303,7 +346,10 @@ export const getFilteredListings = async (req, res) => {
       pageSize: limitNum,
     };
 
-    await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 300 });
+    if (isGuest) {
+      const cacheKey = buildFilterCacheKey(req.query);
+      await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 300 });
+    }
 
     return res.status(200).json(responseData);
   } catch (err) {
