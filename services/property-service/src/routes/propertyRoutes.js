@@ -16,6 +16,8 @@ import {
   hideListingsByOwner,
 } from "../controllers/propertyController.js";
 import { verifyInternalSecret } from "../middleware/verifyInternalSecret.js";
+import { trackInteraction } from "../controllers/interactionController.js";
+import { optionalAuth } from "../middleware/optionalAuth.js";
 
 const router = express.Router();
 
@@ -32,7 +34,12 @@ router.post(
 // CREATE LISTING
 router.post("/", authMiddleware, requireVerifiedEmail, createListing);
  
-router.get("/filter",      getFilteredListings);
+
+router.get("/filter", optionalAuth, getFilteredListings);
+
+router.post("/interactions", authMiddleware, trackInteraction);
+
+
 router.get("/similar",      getSimilarListings);
 router.get("/recommended", getRecommended);
 router.get("/search-notlogged", getNotLoggedRecommended);
