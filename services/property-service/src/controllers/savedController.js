@@ -10,12 +10,13 @@ const invalidateSavedCache = async (userId) => {
   ]);
 };
 
+
 export const toggleSavedProperty = async (req, res) => {
   try {
     const userId = req.user.id;
     const { propertyId } = req.params;
 
-    const listing = await Listing.findById(propertyId);
+    const listing = await Listing.findById(propertyId).select("title").lean();
 
     const existing = await SavedProperty.findOne({ userId, propertyId });
 
