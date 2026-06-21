@@ -146,7 +146,7 @@ export const createListing = async (req, res) => {
 };
 
 export const getFilteredListings = async (req, res) => {
-  
+
   try {
     const {
       type, search, minPrice, maxPrice, propertyType,
@@ -193,7 +193,11 @@ export const getFilteredListings = async (req, res) => {
     const hasCitySearch = city?.trim();
     const hasTextSearch = search && search !== "all" && search !== "undefined";
 
-    if (type) filter.buyOrSell = { $regex: `^${type}$`, $options: "i" };
+
+    if (type) {
+      filter.buyOrSell = type;
+    }
+
     if (propertyType && propertyType !== "All") filter.type = propertyType;
 
     if (minPrice || maxPrice) {
@@ -439,7 +443,7 @@ export const updateListing = async (req, res) => {
 
     const updated = await Listing.findByIdAndUpdate(id, req.body, { new: true });
 
-        // await recalculateRankScore(id);
+    // await recalculateRankScore(id);
 
 
     await Promise.all([
@@ -699,7 +703,7 @@ export const hideListingsByOwner = async (req, res) => {
   console.log("hitting the hide list 200 ok")
   try {
     const { userId } = req.params;
-    console.log(userId,"this is userid")
+    console.log(userId, "this is userid")
     await Listing.updateMany(
       { creatorId: userId },
       { isHidden: true, hiddenAt: new Date(), status: "DELETED", statusChangedAt: new Date() }

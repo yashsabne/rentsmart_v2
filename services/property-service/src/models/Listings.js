@@ -144,9 +144,38 @@ const listingSchema = new mongoose.Schema(
 );
 
 listingSchema.index({ "address.city": 1 });
+
 listingSchema.index({ price: 1 });
+
 listingSchema.index({ category: 1 });
 
-listingSchema.index({ isHidden: 1, status: 1, rankScore: -1 });
+listingSchema.index({ buyOrSell: 1 });
+
+listingSchema.index({
+  isHidden: 1,
+  status: 1,
+  rankScore: -1,
+});
+
+listingSchema.index({
+  isHidden: 1,
+  status: 1,
+  buyOrSell: 1,
+  price: 1,
+});
+
+listingSchema.index({
+  isHidden: 1,
+  status: 1,
+  buyOrSell: 1,
+  lastRefreshedAt: -1,
+});
+
+listingSchema.index({
+  isHidden: 1,
+  status: 1,
+  buyOrSell: 1,
+  createdAt: -1,
+});
 
 export default mongoose.model("Listing", listingSchema);
