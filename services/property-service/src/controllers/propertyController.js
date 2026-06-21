@@ -160,8 +160,7 @@ export const getFilteredListings = async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
     const now = new Date();
 
-    const isGuest = !req.user?.id;
-    console.log("IS GUEST:", isGuest);
+    const isGuest = !req.user?.id; 
 
     let userPrefs = null;
 
@@ -181,15 +180,11 @@ export const getFilteredListings = async (req, res) => {
 
     if (isGuest) {
       const cacheKey = buildFilterCacheKey(req.query);
-      console.log("CACHE KEY:", cacheKey);
       const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
       if (cached?.success && cached?.data) {
-        console.log("CACHE HIT");
-
         return res.status(200).json(cached.data);
       }
 
-      console.log("CACHE MISS");
 
     }
 
@@ -361,7 +356,6 @@ export const getFilteredListings = async (req, res) => {
 
     if (isGuest) {
       const cacheKey = buildFilterCacheKey(req.query);
-      console.log("CACHE SAVE");
 
       await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 300 });
     }
@@ -711,10 +705,8 @@ export const getNotLoggedRecommended = async (req, res) => {
 
 
 export const hideListingsByOwner = async (req, res) => {
-  console.log("hitting the hide list 200 ok")
-  try {
-    const { userId } = req.params;
-    console.log(userId, "this is userid")
+   try {
+    const { userId } = req.params; 
     await Listing.updateMany(
       { creatorId: userId },
       { isHidden: true, hiddenAt: new Date(), status: "DELETED", statusChangedAt: new Date() }
