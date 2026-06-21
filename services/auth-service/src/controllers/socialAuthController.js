@@ -7,10 +7,13 @@ import { redisPost, redisDelete } from "../utils/redisClient.js";
 
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173";
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
-
-function generateToken(userId) {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "5d" });
+ 
+function generateToken(user) {
+  return jwt.sign({
+    id: user._id,
+    city: user.city || null,
+    preferences: user.preferences || [],
+  }, process.env.JWT_SECRET, { expiresIn: "5d" });
 }
 
 /**
