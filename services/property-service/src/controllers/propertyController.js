@@ -161,6 +161,8 @@ export const getFilteredListings = async (req, res) => {
     const now = new Date();
 
     const isGuest = !req.user?.id;
+    console.log("IS GUEST:", isGuest);
+
     let userPrefs = null;
 
     if (!isGuest) {
@@ -179,10 +181,16 @@ export const getFilteredListings = async (req, res) => {
 
     if (isGuest) {
       const cacheKey = buildFilterCacheKey(req.query);
+        console.log("CACHE KEY:", cacheKey);
       const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
       if (cached?.success && cached?.data) {
+          console.log("CACHE HIT");
+
         return res.status(200).json(cached.data);
       }
+
+        console.log("CACHE MISS");
+
     }
 
     const filter = {
@@ -352,6 +360,8 @@ export const getFilteredListings = async (req, res) => {
 
     if (isGuest) {
       const cacheKey = buildFilterCacheKey(req.query);
+      console.log("CACHE SAVE");
+
       await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 300 });
     }
 
