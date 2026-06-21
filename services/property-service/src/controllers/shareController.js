@@ -1,4 +1,4 @@
- 
+
 import Share from "../models/Share.js";
 
 import {
@@ -20,19 +20,19 @@ export const createShareLink = async (
                 message: "Listing ID required",
             });
         }
- 
+
         const token =
             generateAdvancedShareToken(
                 listingId,
                 userId
             );
- 
+
         const share = await Share.create({
             token,
             listingId,
             sharedBy: userId || null,
         });
- 
+
         const shareUrl =
             `${process.env.SERVER_URL}/api/share/open/${token}?shared=True`;
 
@@ -77,7 +77,7 @@ export const openShareLink = async (
         const device =
             req.headers["user-agent"];
 
-            
+
 
         const rawIp =
             req.headers["x-forwarded-for"] ||
