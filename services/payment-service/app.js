@@ -17,7 +17,8 @@ connectDB();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://rentsmart-v2.vercel.app"
+    "https://rentsmart-v2.vercel.app",
+    "https://rentsmart.fun"
   ],
   credentials: true 
 }));

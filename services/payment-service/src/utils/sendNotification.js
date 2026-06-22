@@ -1,11 +1,14 @@
-const NOTIFICATION_SERVICE_URL=process.env.NOTIFICATION_SERVICE_URL
+const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL
 
 
 export const sendNotification = async (endpoint, payload) => {
   try {
     await fetch(`${NOTIFICATION_SERVICE_URL}/api/notify/${endpoint}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": process.env.INTERNAL_SECRET,
+      },
       body: JSON.stringify(payload),
     });
   } catch (err) {

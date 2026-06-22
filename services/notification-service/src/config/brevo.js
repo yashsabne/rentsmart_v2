@@ -1,6 +1,4 @@
-// Brevo (Sendinblue) API mailer
-// Replaces the old nodemailer SMTP transporter
-
+ 
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 export const sendBrevoEmail = async ({ to, name = "", subject, html }) => {

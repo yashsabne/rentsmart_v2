@@ -164,7 +164,7 @@ export const verifyPayment = async (req, res) => {
       buyerEmail: payment.buyerEmail,
       buyerPhone: payment.buyerPhone,
     });
- 
+
     return res.status(200).json({
       success: true,
       payment: {
@@ -199,7 +199,7 @@ export const checkAccess = async (req, res) => {
       return res.status(200).json({ accessGranted: false });
     }
 
- 
+
     return res.status(200).json({
       accessGranted: true,
       ownerPhone: payment.ownerPhone,
@@ -298,8 +298,10 @@ export const verifyPromotePayment = async (req, res) => {
       `${process.env.PROPERTY_SERVICE_URL}/api/promote/listings/promote/activate`,
       {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
+          "x-internal-secret": process.env.INTERNAL_SECRET,
         },
         body: JSON.stringify({
           listingId: payment.listingId,
