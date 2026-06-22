@@ -36,7 +36,7 @@ const formatCountdown = (ms) => {
 
 const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => {
 
- 
+
 
   const navigate = useNavigate();
   const [modal, setModal] = useState(null);
@@ -45,12 +45,12 @@ const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => 
   const [toast, setToast] = useState(null);
   const [refreshRemaining, setRefreshRemaining] = useState(0);
 
- 
+
 
   const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
   }, []);
- 
+
 
   useEffect(() => {
     if (!property.lastRefreshedAt) return;
@@ -72,7 +72,7 @@ const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => 
     setLoading(l => ({ ...l, hide: true }));
     try {
       const data = await apiToggleHide(token, property._id);
- 
+
       if (data.success) {
         onPropertyUpdate(data.listing);
         showToast(data.listing.isHidden ? "Listing hidden" : "Listing visible again");
@@ -186,7 +186,12 @@ const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => 
       const res = await fetch(`${API.PAYMENT}/api/payment/promote/order`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ listingId: property._id, propertyTitle: property.title }),
+        body: JSON.stringify({
+          listingId: property._id,
+          propertyTitle: property.title,
+          email: owner?.email ?? "",
+          name: `${owner?.firstName ?? ""} ${owner?.lastName ?? ""}`.trim(),
+        }),
       });
       const data = await res.json();
       if (!data.success) { setError("Could not create order. Please try again."); return; }
@@ -207,7 +212,7 @@ const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => 
     property?.promotedUntil &&
     new Date(property?.promotedUntil) > new Date();
 
- 
+
   const isAvailable = property.status === "AVAILABLE";
   const statusLabel = !isAvailable
     ? "↩️ Mark Available Again"
@@ -243,7 +248,7 @@ const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => 
 
         <div style={{ padding: 16 }}>
           <div style={{ fontSize: 11, color: "#9ca3af", letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 10 }}>Listing overview</div>
- 
+
           {!promoted ? (
             <div style={{ background: PURPLE.bg, borderRadius: 12, padding: 14, marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: PURPLE.border, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: PURPLE.dark, fontSize: 18 }}>🚀</div>
