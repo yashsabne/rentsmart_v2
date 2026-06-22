@@ -245,11 +245,13 @@ const Navbar = () => {
               </Link>
             )
           }
-          <button style={{ border: "none", background: C.ink, color: "#fff" }}
+    
+              <Link to="/create" > <button style={{ fontSize: 13, fontWeight: 500, padding: "9px 22px", borderRadius: 100, border: "none", background: C.ink, color: "#fff", cursor: "pointer", transition: "all .2s" }}
             onMouseEnter={e => e.currentTarget.style.background = C.gold}
             onMouseLeave={e => e.currentTarget.style.background = C.ink}>
             List Property
           </button>
+          </Link>
         </div>
       </div>
     </>
