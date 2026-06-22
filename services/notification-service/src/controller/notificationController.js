@@ -1,66 +1,177 @@
 import sendEmail from "../services/sendEmail.js";
- 
-export const paymentSuccess = async (req, res) => {
-  try {
-    const { email, ownerName, propertyTitle, tenantName = "" } = req.body;
 
-    await sendEmail({
+const logEmail = (event, data = {}) => {
+  console.log(
+    `[EMAIL] ${event}`,
+    JSON.stringify(
+      {
+        timestamp: new Date().toISOString(),
+        ...data,
+      },
+      null,
+      2
+    )
+  );
+};
+
+export const paymentSuccess = async (req, res) => {
+  const requestId = Date.now();
+
+  try {
+    const {
+      email,
+      ownerName,
+      propertyTitle,
+      tenantName = "",
+    } = req.body;
+
+    logEmail("PAYMENT_SUCCESS_STARTED", {
+      requestId,
+      email,
+      propertyTitle,
+      ownerName,
+    });
+
+    const response = await sendEmail({
       to: email,
       name: tenantName,
-      subject: "Payment Successful - RentSmart",
+      subject: "Payment Successful • RentSmart",
       html: `
-        <div style="font-family:Arial;padding:20px">
-          <h2>Payment Successful 🎉</h2>
-          <p>You successfully unlocked contact details for:</p>
-          <h3>${propertyTitle}</h3>
-          <p>Owner: ${ownerName}</p>
-          <br/>
-          <p>Thank you for using RentSmart.</p>
+      <div style="max-width:600px;margin:auto;font-family:Arial,sans-serif;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:30px;">
+        
+        <h1 style="color:#2563eb;margin-bottom:10px;">
+          Payment Successful 🎉
+        </h1>
+
+        <p>Hello ${tenantName || "User"},</p>
+
+        <p>
+          Your payment has been successfully processed and the property owner's
+          contact information has been unlocked.
+        </p>
+
+        <div style="background:#f8fafc;padding:16px;border-radius:8px;margin:20px 0;">
+          <p><strong>Property:</strong> ${propertyTitle}</p>
+          <p><strong>Owner:</strong> ${ownerName}</p>
         </div>
+
+        <p>
+          Thank you for choosing RentSmart.
+        </p>
+
+        <hr style="margin:25px 0;" />
+
+        <p style="font-size:12px;color:#6b7280;">
+          This is an automated email from RentSmart.
+        </p>
+      </div>
       `,
     });
 
-    res.status(200).json({
+    logEmail("PAYMENT_SUCCESS_SENT", {
+      requestId,
+      email,
+      brevoResponse: response,
+    });
+
+    return res.status(200).json({
       success: true,
       message: "Payment email sent",
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    console.error("[PAYMENT_SUCCESS_ERROR]", {
+      requestId,
+      message: error.message,
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
       success: false,
-      message: "Failed to send email",
+      message: "Failed to send payment email",
     });
   }
 };
- 
-export const contactRevealed = async (req, res) => {
-  try {
-    const { email, ownerName, ownerPhone, tenantName = "" } = req.body;
 
-    await sendEmail({
+export const contactRevealed = async (req, res) => {
+  const requestId = Date.now();
+
+  try {
+    const {
+      email,
+      ownerName,
+      ownerPhone,
+      tenantName = "",
+    } = req.body;
+
+    logEmail("CONTACT_UNLOCK_STARTED", {
+      requestId,
+      email,
+      ownerName,
+      ownerPhone,
+    });
+
+    const response = await sendEmail({
       to: email,
       name: tenantName,
-      subject: "Owner Contact Unlocked - RentSmart",
+      subject: "Owner Contact Unlocked • RentSmart",
       html: `
-        <div style="font-family:Arial;padding:20px">
-          <h2>Contact Unlocked 🔓</h2>
-          <p>Owner Name: ${ownerName}</p>
-          <p>Phone: ${ownerPhone}</p>
-          <br/>
-          <p>Use responsibly and stay safe.</p>
+      <div style="max-width:600px;margin:auto;font-family:Arial,sans-serif;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:30px;">
+
+        <h1 style="color:#16a34a;">
+          Contact Details Unlocked 🔓
+        </h1>
+
+        <p>Hello ${tenantName || "User"},</p>
+
+        <p>
+          You can now contact the property owner directly.
+        </p>
+
+        <div style="background:#f8fafc;padding:16px;border-radius:8px;margin:20px 0;">
+          <p><strong>Owner Name:</strong> ${ownerName}</p>
+          <p><strong>Phone Number:</strong> ${ownerPhone}</p>
         </div>
+
+        <p>
+          Please communicate respectfully and verify all property details
+          before making any financial commitments.
+        </p>
+
+        <p>
+          Regards,<br/>
+          RentSmart Team
+        </p>
+      </div>
       `,
     });
 
-    res.status(200).json({ success: true });
+    logEmail("CONTACT_UNLOCK_SENT", {
+      requestId,
+      email,
+      brevoResponse: response,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Contact details sent",
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false });
+    console.error("[CONTACT_UNLOCK_ERROR]", {
+      requestId,
+      message: error.message,
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send contact details",
+    });
   }
 };
 
- 
 export const ownerContactRevealed = async (req, res) => {
+  const requestId = Date.now();
+
   try {
     const {
       email,
@@ -70,43 +181,67 @@ export const ownerContactRevealed = async (req, res) => {
       buyerPhone,
       propertyTitle,
     } = req.body;
-    
 
- 
-    await sendEmail({
+    logEmail("OWNER_NOTIFICATION_STARTED", {
+      requestId,
+      email,
+      buyerName,
+      propertyTitle,
+    });
+
+    const response = await sendEmail({
       to: email,
       name: ownerName,
-      subject: "Someone Unlocked Your Contact Details - RentSmart",
+      subject: "A User Viewed Your Contact Details • RentSmart",
       html: `
-        <div style="font-family:Arial;padding:20px">
-          <h2>Contact Details Viewed 👀</h2>
+      <div style="max-width:600px;margin:auto;font-family:Arial,sans-serif;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:30px;">
 
-          <p>Someone unlocked your contact details for:</p>
+        <h1 style="color:#2563eb;">
+          New Interested User 👀
+        </h1>
 
-          <h3>${propertyTitle}</h3>
+        <p>
+          Someone has unlocked your contact details for one of your listings.
+        </p>
 
-          <hr/>
-
-          <p><strong>Buyer Name:</strong> ${buyerName}</p>
-          <p><strong>Buyer Email:</strong> ${buyerEmail}</p>
-          <p><strong>Buyer Phone:</strong> ${buyerPhone}</p>
-
-          <br/>
-
-          <p>You may contact the interested tenant if needed.</p>
-
-          <p>Thank you,<br/>RentSmart Team</p>
+        <div style="background:#f8fafc;padding:16px;border-radius:8px;margin:20px 0;">
+          <p><strong>Property:</strong> ${propertyTitle}</p>
         </div>
+
+        <h3>Interested User Details</h3>
+
+        <p><strong>Name:</strong> ${buyerName}</p>
+        <p><strong>Email:</strong> ${buyerEmail}</p>
+        <p><strong>Phone:</strong> ${buyerPhone}</p>
+
+        <p style="margin-top:20px;">
+          You may contact this user directly if you'd like to continue the conversation.
+        </p>
+
+        <p>
+          Regards,<br/>
+          RentSmart Team
+        </p>
+      </div>
       `,
     });
 
- 
+    logEmail("OWNER_NOTIFICATION_SENT", {
+      requestId,
+      email,
+      brevoResponse: response,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Owner notification sent",
     });
   } catch (error) {
-    console.error(error);
+    console.error("[OWNER_NOTIFICATION_ERROR]", {
+      requestId,
+      message: error.message,
+      stack: error.stack,
+    });
 
     return res.status(500).json({
       success: false,
