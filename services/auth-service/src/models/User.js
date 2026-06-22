@@ -21,8 +21,11 @@ const userSchema = new mongoose.Schema(
 
     phone: {
       type: String,
-      required: true,
       trim: true,
+        required: function () {
+        return !this.googleId && !this.microsoftId;
+      },
+
     },
 
     firstName: {
