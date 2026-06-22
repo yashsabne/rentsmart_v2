@@ -463,9 +463,7 @@ export const AMENITIES_LIST = [
 
 export const PROPERTY_TYPES = ["Apartment", "Villa", "Bungalow", "Studio", "Penthouse", "Commercial", "Plot"];
 export const activityConfig = {
-
-  // ── Auth ─────────────────────────────────────────────────────────────────
-
+ 
   LOGIN: {
     icon: "🔐",
     color: "#4361EE",
@@ -622,12 +620,12 @@ export const navItems = [
   { icon: "⊞", label: "Overview", id: "overview" },
   { icon: "🏠", label: "My Listings", id: "listings" },
   { icon: "❤️", label: "Saved", id: "saved" },
+  { icon: "👁️", label: "Recently Viewed", id: "recent" },
   { icon: "🔎", label: "Search For Rent", id: "rent", link: "/search-for-property/rent", tab: true },
   { icon: "🔎", label: "Search For Buy", id: "buy", link: "/search-for-property/sell", tab: true },
+  { icon: "💬", label: "Messages", id: "messages" },
   { icon: "💳", label: "Payments", id: "payments" },
   { icon: "⚙️", label: "Settings", id: "settings" },
-  { icon: "💬", label: "Messages", id: "messages" },
-  { icon: "👁️", label: "Recently Viewed", id: "recent" },
 ];
 
 export const AMENITY_ICONS = {

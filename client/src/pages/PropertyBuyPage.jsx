@@ -183,8 +183,8 @@ export default function PropertyBuyPage() {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 40, marginBottom: 20 }}>
               <div >
-                <span className="pf" style={{ fontSize: 22, fontWeight: 700, color: C.ink }}>{loading?"getting results":totalCount}</span>
-                <span style={{ fontSize: 14, color: C.inkMuted, marginLeft: 8 }}>{loading?" ":"properties found"}   </span>
+                <span className="pf" style={{ fontSize: 22, fontWeight: 700, color: C.ink }}>{loading?"":totalCount}</span>
+                <span style={{ fontSize: 14, color: C.inkMuted, marginLeft: 8 }}>{loading?"getting results...":"properties found"}   </span>
                 {search && search !== "all" && <span style={{ fontSize: 13, color: C.gold, marginLeft: 8 }}>for "{search}"</span>}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
