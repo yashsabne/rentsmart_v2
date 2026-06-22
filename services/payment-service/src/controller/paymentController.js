@@ -213,13 +213,20 @@ export const checkAccess = async (req, res) => {
 
 export const createPromoteOrder = async (req, res) => {
   try {
-    const { listingId, propertyTitle } = req.body;
+    const { listingId, propertyTitle, email, name } = req.body;
     const userId = req.user.id;
 
     if (!listingId) {
       return res.status(400).json({
         success: false,
         message: "Listing ID is required",
+      });
+    }
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
       });
     }
 
@@ -235,6 +242,8 @@ export const createPromoteOrder = async (req, res) => {
       userId,
       listingId,
       propertyTitle,
+      email,
+      name,
       amount: 39,
       razorpayOrderId: order.id,
       status: "pending",
@@ -272,9 +281,8 @@ export const verifyPromotePayment = async (req, res) => {
         message: "Payment verification failed",
       });
     }
-
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
     const payment = await PromotePayment.findOneAndUpdate(
       { razorpayOrderId: razorpay_order_id },
@@ -326,8 +334,11 @@ export const verifyPromotePayment = async (req, res) => {
 
     await sendNotification("promote-success", {
       userId: payment.userId,
+      email: payment.email,
+      name: payment.name,
       propertyTitle: payment.propertyTitle,
     });
+
 
     return res.status(200).json({
       success: true,

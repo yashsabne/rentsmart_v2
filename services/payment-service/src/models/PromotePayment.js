@@ -1,52 +1,61 @@
 import mongoose from "mongoose";
 
 const promotePaymentSchema = new mongoose.Schema({
-  userId:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"User",
-    required:true
+  userId: {
+    type: String,
+    required: true
   },
 
-  listingId:{
-    type:String,
-    required:true
+  listingId: {
+    type: String,
+    required: true
   },
 
-  propertyTitle:{
-    type:String,
-    required:true
+  propertyTitle: {
+    type: String,
+    required: true
   },
 
-  amount:{
-    type:Number,
-    default:39
+  email: {
+    type: String,
+    required: true
   },
 
-  razorpayOrderId:{
-    type:String,
-    required:true
+  name: {
+    type: String,
+    default: ""
   },
 
-  razorpayPaymentId:{
-    type:String,
-    default:null
+  amount: {
+    type: Number,
+    default: 39
   },
 
-  status:{
-    type:String,
-    enum:["pending","paid","failed"],
-    default:"pending"
+  razorpayOrderId: {
+    type: String,
+    required: true
   },
 
-  promotedAt:{
-    type:Date
+  razorpayPaymentId: {
+    type: String,
+    default: null
   },
 
-  expiresAt:{
-    type:Date
+  status: {
+    type: String,
+    enum: ["pending", "paid", "failed"],
+    default: "pending"
+  },
+
+  promotedAt: {
+    type: Date
+  },
+
+  expiresAt: {
+    type: Date
   }
 
-},{timestamps:true});
+}, { timestamps: true });
 
 export default mongoose.model(
   "PromotePayment",
