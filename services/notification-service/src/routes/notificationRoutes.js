@@ -4,6 +4,7 @@ import {
   paymentSuccess,
   contactRevealed,
   ownerContactRevealed,
+  promoteSuccess,
 } from "../controller/notificationController.js";
 import { verifyInternalSecret } from "../middleware/verifyInternalSecret.js";
 
@@ -18,5 +19,8 @@ router.post("/payment-success",verifyInternalSecret,paymentSuccess);
 router.post("/contact-revealed",verifyInternalSecret,contactRevealed);
 
 router.post("/owner-contact-revealed",verifyInternalSecret,ownerContactRevealed);
+
+router.post("/promote-success",verifyInternalSecret,promoteSuccess);
+
 
 export default router;
