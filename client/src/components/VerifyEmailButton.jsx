@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { API } from "../../apis";
 
-const VerifyEmailButton = ({ user, token }) => {
+const VerifyEmailButton = ({ user, token,userLoading }) => {
 
   const [open,setOpen] = useState(false);
   const [loading,setLoading] = useState(false);
@@ -40,7 +40,7 @@ const VerifyEmailButton = ({ user, token }) => {
 
   };
 
-  if(user?.isEmailVerified){
+  if(user?.isEmailVerified && !userLoading ){
     return (
       <div
         style={{
@@ -71,7 +71,7 @@ const VerifyEmailButton = ({ user, token }) => {
           cursor:"pointer"
         }}
       >
-        Verify Email
+     {userLoading?"....": "Verify Email" }  
       </button>
 
       {open && (

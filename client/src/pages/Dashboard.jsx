@@ -80,7 +80,7 @@ export default function Dashboard() {
     };
     init();
   }, []); 
-  
+
   useEffect(() => {
     if (!user?._id) return;
     fetch(`${API.ACTIVITY}/api/activities/${user._id}`)
@@ -189,7 +189,7 @@ export default function Dashboard() {
               <p className="topbar-date">{todayStr()}</p>
             </div>
             <div className="topbar-right">
-              <VerifyEmailButton user={user} token={token} />
+              <VerifyEmailButton user={user} token={token} userLoading={userLoading} />
               <div className="topbar-avatar-chip">
                 <div className="topbar-avatar">{initials}</div>
                 <span className="topbar-username">{userLoading ? "..." : user?.firstName}</span>
