@@ -371,7 +371,7 @@ export default function RegisterPage() {
                   <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
                     style={{ marginTop: 2, accentColor: C.ink, width: 15, height: 15, cursor: "pointer", flexShrink: 0 }} />
                   <span style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
-                    I agree to the <a href="#" style={{ color: C.ink, fontWeight: 500, borderBottom: `1px solid ${C.border}` }}>Terms of Service</a> and <a href="#" style={{ color: C.ink, fontWeight: 500, borderBottom: `1px solid ${C.border}` }}>Privacy Policy</a>
+                    I agree to the <a href="/terms" style={{ color: C.ink, fontWeight: 500, borderBottom: `1px solid ${C.border}` }}>Terms of Service</a> and <a href="/privacy" style={{ color: C.ink, fontWeight: 500, borderBottom: `1px solid ${C.border}` }}>Privacy Policy</a>
                   </span>
                 </label>
 

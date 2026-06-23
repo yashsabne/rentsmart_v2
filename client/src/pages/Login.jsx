@@ -311,8 +311,8 @@ export default function LoginPage() {
 
                   <p style={{ textAlign: "center", fontSize: 12, color: C.light, lineHeight: 1.7 }}>
                     By signing in, you agree to our{" "}
-                    <a href="/terms" target="_blank" style={{ color: C.muted, borderBottom: `1px solid ${C.border}` }}>Terms</a> and{" "}
-                    <a href="/privacy" target="_blank" style={{ color: C.muted, borderBottom: `1px solid ${C.border}` }}>Privacy Policy</a>
+                    <a href="/terms"  style={{ color: C.muted, borderBottom: `1px solid ${C.border}` }}>Terms</a> and{" "}
+                    <a href="/privacy"  style={{ color: C.muted, borderBottom: `1px solid ${C.border}` }}>Privacy Policy</a>
                   </p>
                 </div>
               )}
