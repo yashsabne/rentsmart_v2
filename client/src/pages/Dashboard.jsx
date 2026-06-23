@@ -45,52 +45,42 @@ export default function Dashboard() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!token) {
-        navigate("/login", { replace: true });
-        return;
-      }
+    const init = async () => {
+      if (!token) { navigate("/login", { replace: true }); return; }
+
       try {
         setUserLoading(true);
-        const res = await fetch(`${API.AUTH}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          localStorage.removeItem("token");           
+        setPropsLoading(true);
+ 
+        const [userRes, propsRes] = await Promise.all([
+          fetch(`${API.AUTH}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API.PROPERTY}/api/property/my?page=1`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+
+        if (!userRes.ok) {
+          localStorage.removeItem("token");
           navigate("/login?reason=token_expired", { replace: true });
           return;
         }
-        setUser(await res.json());
+
+        const [userData, propsData] = await Promise.all([userRes.json(), propsRes.json()]);
+
+        setUser(userData);
+        setProperties(propsData.listings || []);
+        setHasMore(propsData.hasMore);
+        setStatsData({ total: propsData.total, active: propsData.active, rent: propsData.rent, buy: propsData.buy });
+
       } catch {
         localStorage.removeItem("token");
         navigate("/login?reason=token_expired", { replace: true });
       } finally {
         setUserLoading(false);
+        setPropsLoading(false);
       }
     };
-    fetchUser();
+    init();
   }, []); 
-    
-
-  const fetchProperties = async (pageNum = 1, append = false) => {
-    try {
-      setPropsLoading(true);
-      const res = await fetch(`${API.PROPERTY}/api/property/my?page=${pageNum}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setProperties(prev => append ? [...prev, ...(data.listings || [])] : (data.listings || []));
-      setHasMore(data.hasMore);
-      if (!append) {
-        setStatsData({ total: data.total, active: data.active, rent: data.rent, buy: data.buy });
-      }
-    } catch (err) { console.log(err); }
-    finally { setPropsLoading(false); }
-  };
-
-  useEffect(() => { fetchProperties(1); }, []);
-
-  // ── Activities ──
+  
   useEffect(() => {
     if (!user?._id) return;
     fetch(`${API.ACTIVITY}/api/activities/${user._id}`)
