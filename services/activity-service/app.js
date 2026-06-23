@@ -16,6 +16,11 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
+app.get("/test", (req, res) => {
+  res.send("activity runn");
+});
+
+
 app.use("/api/activities", activityRoutes);
 
 const PORT = process.env.PORT || 5004;
