@@ -15,6 +15,7 @@ import MessagesPage from './components/messages/MessagesPage';
 import Help from './pages/Help';
 import ForgotPasswordPage from './pages/Forgotpassword';
 import ResetPasswordPage from './pages/ResetPassword';
+import ScrollToTop from './components/ScrollToTop';
 
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop/>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path='/register' element={<RegisterPage />} />
