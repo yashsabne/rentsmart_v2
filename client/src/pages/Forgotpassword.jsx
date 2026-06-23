@@ -2,20 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { API } from "../../apis";
 import Footer from "../components/reuse/Footer";
+import { C } from "../constants";
 
-const C = {
-    cream: "#FAFAF7",
-    white: "#FFFFFF",
-    ink: "#141414",
-    muted: "#6B6B6B",
-    light: "#9A9A9A",
-    gold: "#C8A96E",
-    goldBg: "#F5EDD8",
-    border: "#E8E8E3",
-    green: "#2D6A4F",
-    greenBg: "#EAF4EE",
-    red: "#C0392B",
-};
 
 function Field({ label, type = "text", placeholder, value, onChange, error }) {
     const [focused, setFocused] = useState(false);

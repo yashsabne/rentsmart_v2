@@ -1,16 +1,27 @@
 export const C = {
+  // Base colors
   cream: "#FAFAF7",
   white: "#FFFFFF",
 
+  // Text colors
   ink: "#141414",
   inkMuted: "#6B6B6B",
   inkLight: "#9A9A9A",
 
+  // Legacy aliases (DO NOT REMOVE)
+  muted: "#6B6B6B",
+  light: "#9A9A9A",
+
+  // Accent colors
   gold: "#C8A96E",
+
+  // Legacy aliases (DO NOT REMOVE)
+  goldBg: "#F5EDD8",
   goldLight: "#F5EDD8",
 
   border: "#E8E8E3",
 
+  // Status colors
   green: "#2D6A4F",
   greenBg: "#EAF4EE",
 
@@ -19,8 +30,12 @@ export const C = {
 
   blue: "#4361EE",
   blueBg: "#EEF2FF",
+
+  // Layout colors
   dark: "#141414",
   sidebar: "#141414",
+
+  // Shadows
   cardShadow: "0 2px 16px rgba(0,0,0,0.06)",
   cardHover: "0 12px 40px rgba(0,0,0,0.13)",
 };
