@@ -16,6 +16,8 @@ import Help from './pages/Help';
 import ForgotPasswordPage from './pages/Forgotpassword';
 import ResetPasswordPage from './pages/ResetPassword';
 import ScrollToTop from './components/ScrollToTop';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/Privacypolicy';
 
 
 function App() {
@@ -23,7 +25,7 @@ function App() {
 
   return (
     <Router>
-      <ScrollToTop/>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path='/register' element={<RegisterPage />} />
@@ -40,11 +42,15 @@ function App() {
         <Route path='/developer' element={<RentSmartDev />} />
         <Route path="/dashboard/messages" element={<Dashboard initialSection="messages" />} />
         <Route path="/dashboard/messages/:slug" element={<Dashboard initialSection="messages" />} />
-        <Route path='/help' element={<Help/> } />
-        
+        <Route path='/help' element={<Help />} />
+
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-<Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-         
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+
+
 
       </Routes>
     </Router>
