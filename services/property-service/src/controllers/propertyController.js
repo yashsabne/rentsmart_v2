@@ -512,42 +512,82 @@ export const getMyListings = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const cacheKey = `listings:my:${userId}:page:${page}`;
+    const statsCacheKey = `listings:stats:${userId}`;
 
+    // Check listings cache
     const cached = await redisGet(`/cache/${encodeURIComponent(cacheKey)}`);
-
     if (cached?.success && cached?.data) return res.status(200).json(cached.data);
 
-    const [listings, stats] = await Promise.all([
-      Listing.find({ creatorId: userId }).sort({ createdAt: -1 }).skip(skip).limit(limit),
-      Listing.aggregate([
-        { $match: { creatorId: userId } },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            active: { $sum: { $cond: ["$isPromoted", 1, 0] } },
-            rent: { $sum: { $cond: [{ $eq: [{ $toLower: "$buyOrSell" }, "rent"] }, 1, 0] } },
-            buy: { $sum: { $cond: [{ $eq: [{ $toLower: "$buyOrSell" }, "sell"] }, 1, 0] } }
-          }
-        }
-      ])
-    ]);
+    if (page === 1) {
+      // Page 1: fetch listings + stats together
+      const [listings, stats] = await Promise.all([
+        Listing.find({ creatorId: userId }, { creatorId: 0, __v: 0 })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        Listing.aggregate([
+          { $match: { creatorId: userId } },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              active: { $sum: { $cond: ["$isPromoted", 1, 0] } },
+              rent: { $sum: { $cond: [{ $eq: [{ $toLower: "$buyOrSell" }, "rent"] }, 1, 0] } },
+              buy: { $sum: { $cond: [{ $eq: [{ $toLower: "$buyOrSell" }, "sell"] }, 1, 0] } },
+            },
+          },
+        ]),
+      ]);
 
-    const statsData = stats[0] || { total: 0, active: 0, rent: 0, buy: 0 };
+      const statsData = stats[0] || { total: 0, active: 0, rent: 0, buy: 0 };
 
-    const responseData = {
-      listings,
-      total: statsData.total,
-      active: statsData.active,
-      rent: statsData.rent,
-      buy: statsData.buy,
-      hasMore: skip + listings.length < statsData.total,
-      currentPage: page
-    };
+      const responseData = {
+        listings,
+        total: statsData.total,
+        active: statsData.active,
+        rent: statsData.rent,
+        buy: statsData.buy,
+        hasMore: skip + listings.length < statsData.total,
+        currentPage: page,
+      };
+ 
+      Promise.all([
+        redisPost("/cache", { key: cacheKey, data: responseData, ttl: 600 }),
+        redisPost("/cache", { key: statsCacheKey, data: statsData, ttl: 600 }),
+      ]).catch(err => console.error("Cache write failed:", err));
 
-    await redisPost("/cache", { key: cacheKey, data: responseData, ttl: 300 });
+      return res.json(responseData);
 
-    res.json(responseData);
+    } else { 
+      const [listings, cachedStats] = await Promise.all([
+        Listing.find({ creatorId: userId }, { creatorId: 0, __v: 0 })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        redisGet(`/cache/${encodeURIComponent(statsCacheKey)}`),
+      ]);
+ 
+      const statsData = cachedStats?.success && cachedStats?.data
+        ? cachedStats.data
+        : { total: await Listing.countDocuments({ creatorId: userId }), active: 0, rent: 0, buy: 0 };
+
+      const responseData = {
+        listings,
+        total: statsData.total,
+        active: statsData.active,
+        rent: statsData.rent,
+        buy: statsData.buy,
+        hasMore: skip + listings.length < statsData.total,
+        currentPage: page,
+      };
+ 
+      redisPost("/cache", { key: cacheKey, data: responseData, ttl: 600 })
+        .catch(err => console.error("Cache write failed:", err));
+
+      return res.json(responseData);
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error fetching listings" });
