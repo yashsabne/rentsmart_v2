@@ -2,7 +2,7 @@
 
 **RentSmart v2** is a production-ready, scalable property rental platform built on a **containerized microservices architecture** using Docker. It is a complete ground-up redesign of RentSmart v1 (monolithic), rebuilt to achieve independent service deployment, better fault isolation, and real-world scalability.
 
-🔗 **Live Demo:** [rentsmart-v2.vercel.app](https://rentsmart-v2.vercel.app)
+🔗 **Live Demo:** [rentsmart-v2.vercel.app](https://rentsmart-v2.vercel.app) now on dedicated domain [rentsmart.fun](https://rentsmart.fun)
 📦 **Repository:** [github.com/yashsabne/rentsmart_v2](https://github.com/yashsabne/rentsmart_v2)
 
 ---
