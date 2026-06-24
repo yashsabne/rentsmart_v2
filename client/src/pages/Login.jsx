@@ -7,6 +7,7 @@ import SocialAuth from "../components/SocialAuth";
 import toast from "react-hot-toast";
 import { saveAuthToken } from "../services/authService";
 import { C } from "../constants";
+import { redirectAfterLogin } from "../utils/redirectAfterLogin";
 
 function Field({ label, type = "text", placeholder, value, onChange, error, right }) {
   const [focused, setFocused] = useState(false);
@@ -119,7 +120,7 @@ export default function LoginPage() {
 
 
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        redirectAfterLogin(navigate);
       }, 2000);
 
     } catch (err) {
