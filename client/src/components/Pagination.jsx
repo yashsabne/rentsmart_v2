@@ -1,14 +1,7 @@
 import { useEffect } from "react";
+import { C } from "../constants";
 
-const C = {
-  ink: "#1a1a2e",
-  inkMuted: "#7a7a8a",
-  border: "#e8e8f0",
-  white: "#ffffff",
-  cream: "#f9f8f5",
-  gold: "#c8a96e",
-  goldLight: "rgba(200,169,110,0.12)",
-};
+
 
  
 export default function Pagination({
