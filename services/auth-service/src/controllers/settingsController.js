@@ -12,10 +12,20 @@ export const getSettings = async (req, res) => {
         const user = await User.findById(req.user.id).select(
             "firstName lastName email phone city preferences " +
             "emailNotifications smsNotifications whatsappNotifications " +
-            "isEmailVerified premiumMember googleId microsoftId createdAt"
+            "isEmailVerified premiumMember googleId microsoftId createdAt password"  // ← add password just to check
         );
         if (!user) return res.status(404).json({ success: false, message: "User not found" });
-        return res.status(200).json({ success: true, data: user });
+
+        const userData = user.toObject();
+        delete userData.password;  
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                ...userData,
+                hasPassword: !!user.password,  
+            }
+        });
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
     }

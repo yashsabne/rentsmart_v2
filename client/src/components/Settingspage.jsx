@@ -14,32 +14,31 @@ import {
 const PROPERTY_TYPES = ["1 BHK", "2 BHK", "3 BHK", "Villa", "Studio", "Commercial"];
 
 const TABS = [
-  { id: "profile",       emoji: "👤", label: "Profile"        },
-  { id: "notifications", emoji: "🔔", label: "Notifications"  },
-  { id: "security",      emoji: "🔒", label: "Security"       },
-  { id: "preferences",   emoji: "⚙️", label: "Preferences"    },
+  { id: "profile", emoji: "👤", label: "Profile" },
+  { id: "notifications", emoji: "🔔", label: "Notifications" },
+  { id: "security", emoji: "🔒", label: "Security" },
+  { id: "preferences", emoji: "⚙️", label: "Preferences" },
 ];
 
 /* ── tiny helpers ────────────────────────────────────────────────────────────── */
 const initials = (first = "", last = "") =>
   `${first[0] || ""}${last[0] || ""}`.toUpperCase() || "?";
 
-/* ── theme tokens (matches your dashboard screenshot) ───────────────────────── */
 const T = {
-  cream:       "#F5F0E8",
-  white:       "#FFFFFF",
-  dark:        "#1C1C2E",
-  accent:      "#C8A96E",   // gold from your sidebar button
+  cream: "#F5F0E8",
+  white: "#FFFFFF",
+  dark: "#1C1C2E",
+  accent: "#C8A96E",   // gold from your sidebar button
   accentHover: "#B8914A",
-  purple:      "#6B4EFF",   // used in some badges
-  border:      "#E8E0D0",
-  text:        "#1a1a2e",
-  muted:       "#888",
-  error:       "#C0392B",
-  success:     "#2D6A4F",
-  inputBg:     "#FDFAF5",
-  cardBg:      "#FFFFFF",
-  rowHover:    "#FAF7F2",
+  purple: "#6B4EFF",   // used in some badges
+  border: "#E8E0D0",
+  text: "#1a1a2e",
+  muted: "#888",
+  error: "#C0392B",
+  success: "#2D6A4F",
+  inputBg: "#FDFAF5",
+  cardBg: "#FFFFFF",
+  rowHover: "#FAF7F2",
 };
 
 /* ── reusable styled pieces ─────────────────────────────────────────────────── */
@@ -151,9 +150,9 @@ const SettingsPage = ({ token, onLogout }) => {
   const { toast, show: showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState("profile");
-  const [loading,   setLoading]   = useState(true);
-  const [saving,    setSaving]    = useState(false);
-  const [settings,  setSettings]  = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState(null);
 
   /* profile */
   const [profile, setProfile] = useState({ firstName: "", lastName: "", phone: "", city: "" });
@@ -167,13 +166,13 @@ const SettingsPage = ({ token, onLogout }) => {
   const [prefs, setPrefs] = useState({ preferences: [], city: "" });
 
   /* password */
-  const [pwForm,  setPwForm]  = useState({ current: "", next: "", confirm: "" });
-  const [pwErr,   setPwErr]   = useState({});
-  const [showPw,  setShowPw]  = useState({ current: false, next: false, confirm: false });
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwErr, setPwErr] = useState({});
+  const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
 
   /* delete modal */
   const [delModal, setDelModal] = useState(false);
-  const [delPw,    setDelPw]    = useState("");
+  const [delPw, setDelPw] = useState("");
   const [deleting, setDeleting] = useState(false);
 
   /* resend */
@@ -218,6 +217,8 @@ const SettingsPage = ({ token, onLogout }) => {
   const handleChangePw = async () => {
     const errs = {};
     if (!pwForm.current) errs.current = "Required";
+    if (pwForm.current === pwForm.next) errs.next = "Must differ from current";
+
     if (!pwForm.next || pwForm.next.length < 8) errs.next = "Min 8 characters";
     if (pwForm.next !== pwForm.confirm) errs.confirm = "Passwords don't match";
     if (pwForm.current === pwForm.next) errs.next = "Must differ from current";
@@ -225,7 +226,10 @@ const SettingsPage = ({ token, onLogout }) => {
     setPwErr({});
     setSaving(true);
     try {
-      await changePassword(token, { currentPassword: pwForm.current, newPassword: pwForm.next });
+      await changePassword(token, {
+        currentPassword: pwForm.current,
+        newPassword: pwForm.next,
+      });
       setPwForm({ current: "", next: "", confirm: "" });
       showToast("Password updated");
     } catch (e) { showToast(e.message, "error"); }
@@ -253,8 +257,12 @@ const SettingsPage = ({ token, onLogout }) => {
       : [...p.preferences, type],
   }));
 
-  const isOAuth = settings && (settings.googleId || settings.microsoftId) && !settings.password;
- 
+
+  const isOAuth = settings && !!(settings.googleId || settings.microsoftId);
+  const hasPassword = settings && !!settings.hasPassword;
+
+  console.log(hasPassword)
+
   const pwStrength = (() => {
     const s = pwForm.next;
     if (!s) return null;
@@ -267,14 +275,14 @@ const SettingsPage = ({ token, onLogout }) => {
     const col = [T.error, "#C8A96E", "#2D6A4F", "#4361EE"];
     return { score, label: map[score - 1] || "Too short", color: col[score - 1] || T.muted };
   })();
- 
+
   const [isMobile, setIsMobile] = useState(window.innerWidth < 700);
   useEffect(() => {
     const fn = () => setIsMobile(window.innerWidth < 700);
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
- 
+
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 80, gap: 14, color: T.muted }}>
       <div style={{ width: 22, height: 22, border: `2.5px solid ${T.border}`, borderTopColor: T.accent, borderRadius: "50%", animation: "spin .7s linear infinite" }} />
@@ -282,13 +290,13 @@ const SettingsPage = ({ token, onLogout }) => {
       Loading settings…
     </div>
   );
- 
+
   return (
     <div style={{ fontFamily: "inherit", position: "relative" }}>
- 
+
       {toast && (
         <div style={{
-          position: "fixed",top: 28,left: "50%",transform: "translateX(-50%)",zIndex: 9999,
+          position: "fixed", top: 28, left: "50%", transform: "translateX(-50%)", zIndex: 9999,
           background: toast.type === "error" ? T.error : T.dark,
           color: "#fff", padding: "12px 22px", borderRadius: 12,
           fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,.18)",
@@ -298,7 +306,7 @@ const SettingsPage = ({ token, onLogout }) => {
           {toast.type === "error" ? "✕" : "✓"} {toast.msg}
         </div>
       )}
- 
+
       {delModal && (
         <div onClick={() => setDelModal(false)} style={{
           position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000,
@@ -325,19 +333,19 @@ const SettingsPage = ({ token, onLogout }) => {
           </div>
         </div>
       )}
- 
+
       <div style={{
         display: "flex", flexDirection: isMobile ? "column" : "row",
         background: T.white, borderRadius: 16, overflow: "hidden",
         border: `1px solid ${T.border}`, minHeight: 560,
       }}>
- 
+
         <div style={{
           width: isMobile ? "100%" : 210, flexShrink: 0,
           background: T.cream, borderRight: isMobile ? "none" : `1px solid ${T.border}`,
           borderBottom: isMobile ? `1px solid ${T.border}` : "none",
         }}>
- 
+
           {!isMobile && (
             <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{
@@ -470,8 +478,8 @@ const SettingsPage = ({ token, onLogout }) => {
 
               <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
                 {[
-                  { key: "emailNotifications",    icon: "📧", label: "Email notifications",    desc: "Property alerts, saved search updates, and account activity via email" },
-                  { key: "smsNotifications",      icon: "📱", label: "SMS notifications",      desc: "Text messages for urgent property alerts and OTPs" },
+                  { key: "emailNotifications", icon: "📧", label: "Email notifications", desc: "Property alerts, saved search updates, and account activity via email" },
+                  { key: "smsNotifications", icon: "📱", label: "SMS notifications", desc: "Text messages for urgent property alerts and OTPs" },
                   { key: "whatsappNotifications", icon: "💬", label: "WhatsApp notifications", desc: "Receive property recommendations and messages on WhatsApp" },
                 ].map(({ key, icon, label, desc }, i, arr) => (
                   <div key={key} style={{
@@ -515,13 +523,18 @@ const SettingsPage = ({ token, onLogout }) => {
                 </div>
               </div>
 
-              {isOAuth ? (
+              {isOAuth && (
                 <div style={{ background: "#EEF2FF", border: "1.5px solid #C7D2FE", borderRadius: 10, padding: "12px 16px", fontSize: 13, color: "#4361EE", marginBottom: 20 }}>
-                  🔗 Your account uses Google / Microsoft login — no password to manage.
+                  🔗 Your account is linked with Google login
                 </div>
-              ) : (
+              )}
+
+              {/* Password form — show if they have a password */}
+              {hasPassword && (
                 <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 16 }}>Change password</div>
+
+                  {/* Current password — skip if OAuth is also linked */}
 
                   <div style={{ marginBottom: 14 }}>
                     <Label>Current password</Label>
@@ -535,10 +548,12 @@ const SettingsPage = ({ token, onLogout }) => {
                     {pwErr.current && <div style={{ color: T.error, fontSize: 11.5, marginTop: 4 }}>{pwErr.current}</div>}
                   </div>
 
+
+                  {/* New + Confirm — always shown */}
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginBottom: 10 }}>
                     {[
-                      { key: "next",    label: "New password",     ph: "Min. 8 characters" },
-                      { key: "confirm", label: "Confirm password",  ph: "Repeat new password" },
+                      { key: "next", label: "New password", ph: "Min. 8 characters" },
+                      { key: "confirm", label: "Confirm password", ph: "Repeat new password" },
                     ].map(({ key, label, ph }) => (
                       <div key={key}>
                         <Label>{label}</Label>
@@ -554,11 +569,10 @@ const SettingsPage = ({ token, onLogout }) => {
                     ))}
                   </div>
 
-                  {/* strength meter */}
                   {pwStrength && (
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
                       <div style={{ display: "flex", gap: 4 }}>
-                        {[0,1,2,3].map(i => (
+                        {[0, 1, 2, 3].map(i => (
                           <div key={i} style={{ width: 34, height: 4, borderRadius: 2, background: i < pwStrength.score ? pwStrength.color : T.border, transition: "background .3s" }} />
                         ))}
                       </div>
@@ -569,6 +583,13 @@ const SettingsPage = ({ token, onLogout }) => {
                   <FormActions>
                     <Btn variant="primary" onClick={handleChangePw} disabled={saving}>{saving ? "Saving…" : "Update password"}</Btn>
                   </FormActions>
+                </div>
+              )}
+
+              {/* Pure OAuth only — no password set */}
+              {isOAuth && !hasPassword && (
+                <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 20px", marginBottom: 20, fontSize: 13, color: T.muted }}>
+                  You don't have a password set. You sign in exclusively via Google / Microsoft.
                 </div>
               )}
 
