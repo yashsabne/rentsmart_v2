@@ -5,10 +5,11 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat&logo=mongodb&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-Cache-DC382D?style=flat&logo=redis&logoColor=white)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=flat&logo=githubactions&logoColor=white)
 ![Deployed on Render](https://img.shields.io/badge/Backend-Render-46E3B7?style=flat&logo=render&logoColor=white)
 ![Frontend on Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?style=flat&logo=vercel&logoColor=white)
 
-**RentSmart v2** is a production-ready property rental platform rebuilt from the ground up on a **containerized microservices architecture** using Docker. It is a complete redesign of RentSmart v1 (monolithic), with each business domain running as an independent service — enabling isolated deployments, fault containment, and real-world scalability.
+**RentSmart v2** is a production-ready property rental and sale platform rebuilt from the ground up on a **containerized microservices architecture** using Docker. It is a complete redesign of RentSmart v1 (monolithic), with each business domain running as an independent service — enabling isolated deployments, fault containment, and real-world scalability.
 
 🔗 **Live:** [rentsmart.fun](https://rentsmart.fun)
 📦 **Repo:** [github.com/yashsabne/rentsmart_v2](https://github.com/yashsabne/rentsmart_v2)
@@ -27,7 +28,9 @@
   - [Notification Service](#-notification-service-port-5003)
   - [Activity Service](#-activity-service-port-5004)
   - [Chat Service](#-chat-service-port-5005)
+  - [Redis Service](#-redis-service-port-5006)
 - [Frontend](#-frontend-client)
+- [CI/CD Pipeline](#-cicd-pipeline)
 - [Performance & Load Testing](#-performance--load-testing)
 - [Docker Setup](#-docker-setup)
 - [Environment Variables](#-environment-variables)
@@ -46,7 +49,7 @@ RentSmart v1 was a traditional Express monolith. It worked — but as features g
 - **No independent scaling.** The property filter endpoint took the most load but couldn't be scaled without scaling everything else.
 - **Tight coupling made iteration slow.** Auth logic was entangled with property logic, making changes risky.
 
-v2 separates every domain into its own service. Auth, property, payments, chat, notifications, and activity each run in their own container, own database namespace, and own deploy lifecycle. A crash in the notification service doesn't affect a user creating a listing.
+v2 separates every domain into its own service. Auth, property, payments, chat, notifications, activity, and Redis each run in their own container, own database namespace, and own deploy lifecycle. A crash in the notification service doesn't affect a user creating a listing.
 
 ---
 
@@ -64,23 +67,25 @@ v2 separates every domain into its own service. Auth, property, payments, chat, 
 │ Auth Service│ │Property Serv.│ │ Payment Service │
 │  Port 5000  │ │  Port 5001   │ │   Port 5002     │
 │  MongoDB    │ │  MongoDB +   │ │  Razorpay +     │
-│  Redis      │ │  Cloudinary  │ │  MongoDB        │
+│             │ │  Cloudinary  │ │  MongoDB        │
 └─────────────┘ └──────────────┘ └─────────────────┘
         ▼            ▼                    ▼
 ┌─────────────┐ ┌──────────────┐ ┌─────────────────┐
 │Notification │ │ Activity Svc │ │  Chat Service   │
 │  Port 5003  │ │  Port 5004   │ │  Port 5005      │
-│  Nodemailer │ │  MongoDB     │ │  Socket.IO +    │
-│             │ │  Morgan logs │ │  MongoDB        │
+│  Brevo API  │ │  MongoDB     │ │  Socket.IO +    │
+│             │ │              │ │  MongoDB        │
 └─────────────┘ └──────────────┘ └─────────────────┘
                      ▲
               ┌──────┴──────┐
-              │    Redis     │
-              │  (Shared)    │
+              │Redis Service│
+              │  Port 5006  │
+              │  (Shared    │
+              │  HTTP API)  │
               └─────────────┘
 ```
 
-All services share a single MongoDB Atlas cluster and a Redis instance for caching and rate limiting. Inter-service calls are authenticated via an `x-internal-secret` header to prevent unauthorized cross-service access.
+All persistent services share a single MongoDB Atlas cluster. Redis is abstracted as its own dedicated microservice — rather than each service holding a direct Redis connection, all caching, rate limiting, and session calls go through `redis-service` over a clean internal HTTP API. Inter-service calls are authenticated via an `x-internal-secret` header.
 
 ---
 
@@ -91,7 +96,7 @@ All services share a single MongoDB Atlas cluster and a Redis instance for cachi
 | Technology | Purpose |
 |---|---|
 | React 19 | UI framework |
-| Vite 8 | Build tool & dev server |
+| Vite | Build tool & dev server |
 | React Router DOM v7 | Client-side routing |
 | Tailwind CSS v4 | Utility-first styling |
 | Socket.IO Client | Real-time chat |
@@ -106,13 +111,13 @@ All services share a single MongoDB Atlas cluster and a Redis instance for cachi
 | Node.js + Express 5 | HTTP server |
 | MongoDB + Mongoose | Primary database |
 | JWT (jsonwebtoken) | Stateless authentication |
-| Redis | Rate limiting, caching, inter-service state |
+| Redis (via redis-service) | Rate limiting, caching, session store |
 | bcryptjs | Password hashing |
 | Socket.IO | Real-time chat |
 | Cloudinary + Multer | Image storage |
-| Razorpay | Payment gateway |
-| Nodemailer | Email delivery |
-| Passport.js | OAuth (Google + Microsoft) |
+| Razorpay | Payment gateway (HMAC-SHA256 verified) |
+| Nodemailer / Brevo API | Email delivery |
+| Passport.js | Google OAuth |
 | Morgan | HTTP request logging |
 
 ### Infrastructure
@@ -120,7 +125,7 @@ All services share a single MongoDB Atlas cluster and a Redis instance for cachi
 | Technology | Purpose |
 |---|---|
 | Docker + Docker Compose | Containerization & orchestration |
-| Redis (dedicated container) | Shared in-memory store |
+| GitHub Actions | CI/CD — path-filtered per-service deployments |
 | Vercel | Frontend hosting |
 | Render | Backend service hosting |
 
@@ -134,10 +139,10 @@ Handles all authentication and user identity management.
 
 **Key Features:**
 - User registration with email verification
-- Login with JWT issuance
+- Login with JWT issuance (JWT blacklisting on logout via redis-service)
 - Forgot password / reset password via secure email token
-- Rate-limited registration (5 attempts/hr) and login (10 attempts/15 min) via Redis
-- Google OAuth and Microsoft OAuth via Passport.js
+- Rate-limited registration (5 attempts/hr) and login (10 attempts/15 min) via redis-service
+- Google OAuth via Passport.js
 - Internal user lookup endpoint (protected by internal secret)
 - Recently viewed properties tracking per user
 
@@ -147,7 +152,7 @@ Handles all authentication and user identity management.
 |---|---|---|---|
 | POST | `/register` | ❌ | Register new user |
 | POST | `/login` | ❌ | Login and receive JWT |
-| POST | `/logout` | ✅ | Logout user |
+| POST | `/logout` | ✅ | Logout + blacklist JWT |
 | GET | `/me` | ✅ | Get current user |
 | GET | `/user/:id` | ❌ | Get user by ID |
 | GET | `/internal/user/:id` | 🔒 Internal | Fetch user for other services |
@@ -159,23 +164,22 @@ Handles all authentication and user identity management.
 | PATCH | `/recently-viewed` | ✅ | Add to recently viewed |
 | GET | `/recently-viewed` | ✅ | Get recently viewed |
 
-**User Model Fields:**
-`email`, `password`, `firstName`, `lastName`, `phone`, `city`, `preferences` (1BHK/2BHK/3BHK/Villa/Studio/Commercial), `emailNotifications`, `smsNotifications`, `whatsappNotifications`, `googleId`, `microsoftId`, `emailVerificationToken`, `emailVerificationExpiry`
-
 ---
 
 ### 🏘 Property Service (Port 5001)
 
-Manages all property listing CRUD, image uploads, filtering, search, and recommendations.
+Manages all property listing CRUD, image uploads, filtering, search, saved properties, and recommendations.
 
 **Key Features:**
 - Create, update, delete property listings (verified email required)
 - Upload up to 8 photos per listing via Cloudinary
-- Filter listings by type, city, price range, BHK
-- Similar property recommendations
-- Personalized recommendations based on user city and preferences
-- Search for non-logged-in users (latest listings)
-- Internal endpoint to hide listings by owner (e.g. when account is suspended)
+- MongoDB Atlas full-text `$search` with fuzzy matching on title, description, and address
+- Personalized search ranking weighted by user preferences and interaction history (views, saves, contacts, shares — decayed by recency)
+- Promoted listings (`isPromoted: true`) boosted in search ranking
+- Saved properties / wishlist (userId ↔ propertyId join)
+- Listing sharing with trackable links
+- Interaction tracking for future personalization
+- Internal endpoint to hide listings by owner (e.g. account suspension)
 
 **API Routes (`/api/property/...`):**
 
@@ -183,7 +187,7 @@ Manages all property listing CRUD, image uploads, filtering, search, and recomme
 |---|---|---|---|
 | POST | `/upload-photos` | ✅ + Verified | Upload listing photos to Cloudinary |
 | POST | `/` | ✅ + Verified | Create a new listing |
-| GET | `/filter` | ❌ | Filter listings |
+| GET | `/filter` | ❌ | Filter + full-text search listings |
 | GET | `/similar` | ❌ | Get similar listings |
 | GET | `/recommended` | ❌ | Personalized recommendations |
 | GET | `/search-notlogged` | ❌ | Latest listings for unauthenticated users |
@@ -197,36 +201,36 @@ Manages all property listing CRUD, image uploads, filtering, search, and recomme
 
 ### 💳 Payment Service (Port 5002)
 
-Handles all Razorpay-powered payment flows for property access and listing promotion.
+Handles all Razorpay-powered payment flows for property contact unlock and listing promotion.
 
 **Key Features:**
-- Create Razorpay payment orders
-- Verify payment signatures server-side
-- Property access gating (check if user has paid for a listing)
-- Promote listing payment flow (pay to boost a listing)
-- Payment history tracking
+- Server-side price enforcement (client cannot alter the amount)
+- HMAC-SHA256 Razorpay signature verification on all payments
+- Contact unlock flow — sets `accessGranted: true`, triggers email notification to both parties via notification-service
+- Promote listing flow — sets `isPromoted: true` on the listing with an expiry
+- Payment history and spend summary per user
 
 **API Routes (`/api/payment/...`):**
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | POST | `/create-order` | ✅ + Verified | Create a Razorpay order |
-| POST | `/verify-payment` | ✅ + Verified | Verify Razorpay payment |
-| GET | `/check-access` | ✅ | Check if user has access to a property |
+| POST | `/verify-payment` | ✅ + Verified | Verify Razorpay signature + grant access |
+| GET | `/check-access` | ✅ | Check if user has paid for a property |
 | POST | `/promote/order` | ✅ | Create a promo boost order |
-| POST | `/promote/verify` | ✅ | Verify promo payment |
-| GET | `/history` | ✅ | Get payment history |
+| POST | `/promote/verify` | ✅ | Verify promo payment + activate boost |
+| GET | `/history` | ✅ | Get payment history & spend summary |
 
 ---
 
 ### 🔔 Notification Service (Port 5003)
 
-Lightweight, stateless email delivery service decoupled from auth so email failures never block registration or login flows.
+Lightweight, stateless email delivery service using the Brevo (Sendinblue) transactional email API. Decoupled from auth so email failures never block registration or login flows.
 
 **Key Features:**
-- Email-based notifications (verification, password reset)
-- Consumed internally by other services — no direct user-facing endpoints
-- No database — pure send-and-forget
+- Verification, password reset, payment receipt, and contact-reveal emails
+- Called internally by other services — no direct user-facing endpoints
+- No database — stateless send-and-forget
 
 ---
 
@@ -235,7 +239,7 @@ Lightweight, stateless email delivery service decoupled from auth so email failu
 Centralized service for logging and retrieving all user activity events across the platform.
 
 **Key Features:**
-- Log any user activity (login events, property views, searches)
+- Ingests events from all other services (logins, listing changes, payments, chat events)
 - Retrieve activity history per user
 - Used for analytics, audit trails, and future trust scoring
 
@@ -250,12 +254,13 @@ Centralized service for logging and retrieving all user activity events across t
 
 ### 💬 Chat Service (Port 5005)
 
-Real-time, socket-powered messaging between users.
+Real-time, socket-powered messaging between property seekers and owners.
 
 **Key Features:**
 - Socket.IO-based real-time messaging
 - Conversation creation and management
-- Message delivery status tracking (`sent` → `delivered` → `read`)
+- Message delivery state tracking (`sent` → `delivered` → `read`)
+- Typing indicators
 - Online user tracking (Map-based in-memory)
 - JWT-authenticated socket connections
 - Slug-based conversation identifiers via nanoid
@@ -277,24 +282,48 @@ Real-time, socket-powered messaging between users.
 
 ---
 
+### 🗄 Redis Service (Port 5006)
+
+Redis abstracted as a dedicated microservice. Rather than each service holding its own Redis client, all Redis access goes through a single internal HTTP API — effectively "Redis-as-a-microservice."
+
+**Key Features:**
+- Cache: `get`, `set`, `delete`, pattern-delete
+- Session: `create`, `get`, `destroy` (used for JWT blacklisting on logout)
+- Rate limiting: `check` / `reset` per key
+- Called by all other services via a shared `redisClient.js` (axios) helper — no direct `ioredis`/`node-redis` connections elsewhere
+- No external endpoints — internal-secret protected
+
+---
+
 ## 🖥 Frontend (Client)
 
 A React 19 SPA built with Vite, deployed on Vercel.
+
+### Listing Draft Auto-Save
+
+The create-listing flow includes a client-side draft system that preserves form state across sessions without any backend round-trips:
+
+- `loadDraft()` — reads the saved draft from `localStorage` on mount
+- `saveDraft(form, step)` — writes current form state and multi-step progress
+- `clearDraft()` — called after a successful publish to wipe the saved draft
+- `useListingDraft(form, step)` — React hook that debounces auto-saves by 600ms on every form/step change
+
+If a user navigates away mid-creation and returns, their progress is automatically restored.
 
 ### Pages & Routes
 
 | Route | Page | Description |
 |---|---|---|
-| `/` | HomePage | Landing, property search, personalized or latest listings |
+| `/` | HomePage | Landing, search, personalized or latest listings |
 | `/register` | RegisterPage | User registration with preferences |
 | `/login` | LoginPage | JWT login |
-| `/dashboard` | Dashboard | User dashboard |
+| `/dashboard` | Dashboard | User dashboard with listing stats |
 | `/dashboard/messages` | Dashboard (Messages) | Chat inbox |
 | `/dashboard/messages/:slug` | Dashboard (Chat) | Individual chat conversation |
-| `/saved-properties` | SavedPropertiesPage | Bookmarked listings |
-| `/details/:id` | ListingDetails | Full property detail page |
+| `/saved-properties` | SavedPropertiesPage | Bookmarked / wishlisted listings |
+| `/details/:id` | ListingDetails | Full property detail + unlock contact flow |
 | `/search-for-property/:type` | PropertyBuyPage | Filtered property search |
-| `/create` | CreateListing | Create a new property listing |
+| `/create` | CreateListing | Create a new property listing (with draft auto-save) |
 | `/edit-property/:id` | EditListing | Edit existing listing |
 | `/verify-email/:token` | VerifyEmailPage | Email verification handler |
 | `/forgot-password` | ForgotPasswordPage | Request password reset |
@@ -308,14 +337,69 @@ A React 19 SPA built with Vite, deployed on Vercel.
 - **`client/src/pages/`** — Page-level components
 - **`client/src/components/`** — Reusable components (Navbar, Footer, Hero, Messages)
 - **`client/src/constants/`** — App-wide constants and stats
-- **`client/src/const_func/`** — Utility functions (e.g. `formattedPrice`)
+- **`client/src/const_func/`** — Utility functions (e.g. `formattedPrice`, `loadDraft`, `saveDraft`, `clearDraft`)
 - Token stored in `localStorage`, sent as `Authorization: Bearer <token>` header
+
+---
+
+## ⚙ CI/CD Pipeline
+
+RentSmart v2 uses a **path-filtered GitHub Actions pipeline** that triggers only on pushes to `main`. Instead of redeploying all services on every commit, the pipeline detects which service directories actually changed and fires Render deploy hooks only for those services — keeping deploys fast and avoiding unnecessary cold starts.
+
+### How It Works
+
+```
+push to main
+      │
+      ▼
+detect-changes (dorny/paths-filter)
+      │
+      ├─ services/auth-service/**      → deploy-auth
+      ├─ services/property-service/**  → deploy-property
+      ├─ services/payment-service/**   → deploy-payment
+      ├─ services/notification-service/** → deploy-notification
+      ├─ services/activity-service/**  → deploy-activity
+      └─ services/chat-service/**      → deploy-chat
+                                              │
+                                              ▼
+                                   summary job (always runs)
+                                   prints per-service change
+                                   + deploy status table
+```
+
+### Pipeline Jobs
+
+| Job | Trigger condition | What it does |
+|---|---|---|
+| `detect-changes` | Always | Uses `dorny/paths-filter` to output a boolean per service |
+| `deploy-auth` | `auth == 'true'` | Calls `RENDER_DEPLOY_HOOK_AUTH` |
+| `deploy-property` | `property == 'true'` | Calls `RENDER_DEPLOY_HOOK_PROPERTY` |
+| `deploy-payment` | `payment == 'true'` | Calls `RENDER_DEPLOY_HOOK_PAYMENT` |
+| `deploy-notification` | `notification == 'true'` | Calls `RENDER_DEPLOY_HOOK_NOTIFICATION` |
+| `deploy-activity` | `activity == 'true'` | Calls `RENDER_DEPLOY_HOOK_ACTIVITY` |
+| `deploy-chat` | `chat == 'true'` | Calls `RENDER_DEPLOY_HOOK_CHAT` |
+| `summary` | Always (after all) | Posts a service/changed/status table to GitHub Actions summary |
+
+### Required Secrets
+
+Add these to your GitHub repository's **Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|---|---|
+| `RENDER_DEPLOY_HOOK_AUTH` | Render deploy hook URL for auth-service |
+| `RENDER_DEPLOY_HOOK_PROPERTY` | Render deploy hook URL for property-service |
+| `RENDER_DEPLOY_HOOK_PAYMENT` | Render deploy hook URL for payment-service |
+| `RENDER_DEPLOY_HOOK_NOTIFICATION` | Render deploy hook URL for notification-service |
+| `RENDER_DEPLOY_HOOK_ACTIVITY` | Render deploy hook URL for activity-service |
+| `RENDER_DEPLOY_HOOK_CHAT` | Render deploy hook URL for chat-service |
+
+The workflow file lives at `.github/workflows/deploy.yml`.
 
 ---
 
 ## 📈 Performance & Load Testing
 
-The property filter endpoint (`GET /api/property/filter`) was load tested using **k6** to validate behavior under real traffic conditions. The backend services are deployed on Render's free tier (512 MB RAM, shared CPU, no horizontal scaling).
+The property filter/search endpoint (`GET /api/property/filter`) was load tested using **k6** against the deployed Render instance.
 
 ### Test Configuration
 
@@ -343,11 +427,7 @@ The property filter endpoint (`GET /api/property/filter`) was load tested using 
 | p99 | 22.83s |
 | Max | 30.00s |
 
-### What these numbers mean
-
-The median at **3.87s is acceptable** for a free-tier instance under 500 concurrent users. The real story is the **jump from p50 → p90 (3.87s → 20.13s)** — a 5x spike that signals the instance hitting its CPU/RAM ceiling and queuing requests rather than processing them. Once the queue fills, requests approach the 30s timeout, which accounts for the 0.97% failure rate.
-
-**This is an infrastructure constraint, not a code problem.** The same service on a paid Render instance or a horizontally scaled container setup would flatten this latency curve significantly. The microservices architecture means the property service can be scaled independently without touching auth, payments, or chat.
+The median at **3.87s is acceptable** for a free-tier instance under 500 concurrent users. The jump from **p50 → p90 (3.87s → 20.13s)** signals the instance hitting its CPU/RAM ceiling and queuing requests. This is an infrastructure constraint, not a code problem — the microservices architecture means the property service can be scaled independently without touching auth, payments, or chat.
 
 ---
 
@@ -359,12 +439,13 @@ The project includes a full `docker-compose.yml` at the root that orchestrates a
 
 | Service | Port | Depends On |
 |---|---|---|
-| auth-service | 5000 | mongo, redis |
-| property-service | 5001 | mongo, redis |
-| payment-service | 5002 | mongo, redis |
-| notification-service | 5003 | mongo, redis |
+| auth-service | 5000 | mongo, redis-service |
+| property-service | 5001 | mongo, redis-service |
+| payment-service | 5002 | mongo, redis-service |
+| notification-service | 5003 | — |
 | activity-service | 5004 | mongo |
 | chat-service | 5005 | mongo |
+| redis-service | 5006 | redis |
 | mongo | 27017 | — |
 | redis | 6379 | — |
 
@@ -408,14 +489,12 @@ PORT=5000
 MONGO_URI=mongodb://mongo:27017/rentsmart-auth
 JWT_SECRET=your_jwt_secret
 CLIENT_URL=http://localhost:5173
-REDIS_SERVICE_URL=http://redis-service:6379
+REDIS_SERVICE_URL=http://redis-service:5006
 INTERNAL_SECRET=your_internal_secret
 EMAIL_USER=your_email@example.com
 EMAIL_PASS=your_email_password
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-MICROSOFT_CLIENT_ID=
-MICROSOFT_CLIENT_SECRET=
 ```
 
 ### Property Service (`services/property-service/.env`)
@@ -429,6 +508,7 @@ CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 INTERNAL_SECRET=your_internal_secret
 AUTH_SERVICE_URL=http://auth-service:5000
+REDIS_SERVICE_URL=http://redis-service:5006
 ```
 
 ### Payment Service (`services/payment-service/.env`)
@@ -439,12 +519,17 @@ MONGO_URI=mongodb://mongo:27017/rentsmart-payment
 JWT_SECRET=your_jwt_secret
 RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
+INTERNAL_SECRET=your_internal_secret
+NOTIFICATION_SERVICE_URL=http://notification-service:5003
+ACTIVITY_SERVICE_URL=http://activity-service:5004
 ```
 
 ### Notification Service (`services/notification-service/.env`)
 
 ```env
 PORT=5003
+BREVO_API_KEY=your_brevo_api_key
+INTERNAL_SECRET=your_internal_secret
 ```
 
 ### Activity Service (`services/activity-service/.env`)
@@ -461,6 +546,14 @@ PORT=5005
 MONGO_URI=mongodb://mongo:27017/rentsmart-chat
 JWT_SECRET=your_jwt_secret
 FRONTEND_URL=http://localhost:5173
+```
+
+### Redis Service (`services/redis-service/.env`)
+
+```env
+PORT=5006
+REDIS_URL=redis://redis:6379
+INTERNAL_SECRET=your_internal_secret
 ```
 
 ### Production (Render-hosted services)
@@ -480,6 +573,9 @@ VITE_CHAT_API=https://chat-service.onrender.com
 
 ```
 rentsmart_v2/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml              # Path-filtered CI/CD pipeline
 ├── docker-compose.yml
 ├── README.md
 ├── showcase/                       # Screenshots / demo assets
@@ -495,23 +591,25 @@ rentsmart_v2/
 │       │   └── Hero.jsx
 │       ├── constants/
 │       └── const_func/
+│           ├── formattedPrice.js
+│           └── draftUtils.js       # loadDraft, saveDraft, clearDraft, useListingDraft
 └── services/
     ├── auth-service/
     │   ├── Dockerfile
     │   └── src/
-    │       ├── controllers/        # authController, recentlyViewedController
+    │       ├── controllers/
     │       ├── middleware/         # authMiddleware, rateLimitMiddleware, verifyInternalSecret
     │       ├── models/             # User.js
     │       ├── routes/
     │       ├── services/           # sendVerificationEmail, sendForgotPasswordEmail
-    │       └── utils/             # activityLogger, redisClient
+    │       └── utils/              # activityLogger, redisClient
     ├── property-service/
     │   ├── Dockerfile
     │   └── src/
-    │       ├── config/            # cloudinary.js, db.js
+    │       ├── config/             # cloudinary.js, db.js
     │       ├── controllers/
     │       ├── middleware/
-    │       ├── models/            # Property.js
+    │       ├── models/             # Listing.js, SavedProperty.js, UserInteraction.js
     │       └── routes/
     ├── payment-service/
     │   ├── Dockerfile
@@ -528,16 +626,22 @@ rentsmart_v2/
     │   └── src/
     │       ├── controllers/
     │       └── routes/
-    └── chat-service/
+    ├── chat-service/
+    │   ├── Dockerfile
+    │   └── src/
+    │       ├── app.js              # Express + Socket.IO setup
+    │       ├── config/
+    │       ├── constants/          # events.js (socket event names)
+    │       ├── middleware/
+    │       ├── models/             # Conversation.js, Message.js
+    │       ├── routes/
+    │       └── sockets/            # chatSocket.js
+    └── redis-service/
         ├── Dockerfile
         └── src/
-            ├── app.js             # Express + Socket.IO setup
-            ├── config/
-            ├── constants/         # events.js (socket event names)
-            ├── middleware/
-            ├── models/            # Conversation.js, Message.js
-            ├── routes/
-            └── sockets/           # chatSocket.js
+            ├── app.js
+            ├── routes/             # cache, session, rateLimit
+            └── middleware/         # verifyInternalSecret
 ```
 
 ---
@@ -546,25 +650,25 @@ rentsmart_v2/
 
 ### Implemented
 
-- **JWT Authentication** — stateless, shared secret across all services
-- **Redis Rate Limiting** — registration (5/hr), login (10/15 min)
+- **JWT Authentication** — stateless, shared HS256 secret across all services; blacklisted on logout via redis-service
+- **Redis Rate Limiting** — registration (5/hr), login (10/15 min) via redis-service
 - **Email Verification** — required before creating listings or making payments
 - **Internal Secret Header** — `x-internal-secret` guards all service-to-service endpoints
 - **bcryptjs Password Hashing** — passwords never stored in plain text
+- **Razorpay HMAC-SHA256 Signature Verification** — payment authenticity validated server-side; price enforced server-side (client cannot alter amount)
 - **Environment-based Config** — secrets never hardcoded
 - **CORS Whitelisting** — each service allows only known origins
 - **Activity Logging** — all user actions tracked centrally
-- **Razorpay Signature Verification** — payment authenticity validated server-side
 
 ### Planned
 
 - Suspicious activity monitoring and alerts
 - User reporting and moderation system
-- Security audit logs
 - Role-based access control (RBAC)
 - Fraud prevention and risk scoring
 - User trust and reputation scoring
 - Property verification workflow
+- Security audit logs
 
 ---
 
@@ -572,25 +676,27 @@ rentsmart_v2/
 
 ### ✅ Phase 1 — Complete
 
-- [x] Microservices architecture established
-- [x] Auth service (register, login, email verify, forgot/reset password)
-- [x] Property service (CRUD, image upload, filter, search, recommendations)
-- [x] Payment service (Razorpay, access gating, promote)
-- [x] Chat service (real-time Socket.IO messaging)
+- [x] Microservices architecture (7 services)
+- [x] Auth service (register, login, email verify, forgot/reset password, Google OAuth)
+- [x] Property service (CRUD, image upload, full-text search, filter, recommendations)
+- [x] Payment service (Razorpay contact-unlock + listing promotion, HMAC-verified)
+- [x] Chat service (real-time Socket.IO with delivery/read receipts and typing indicators)
 - [x] Activity service (logging & retrieval)
-- [x] Notification service (email delivery)
-- [x] Redis rate limiting and caching
+- [x] Notification service (email via Brevo API)
+- [x] Redis service (dedicated HTTP microservice for cache, sessions, rate limiting)
+- [x] Saved properties / wishlist
+- [x] Listing draft auto-save (client-side, debounced 600ms, persists across sessions)
 - [x] Docker Compose setup
 - [x] Vercel frontend deployment
 - [x] Render backend deployment
-- [x] k6 load testing on property filter endpoint
+- [x] k6 load testing on property search endpoint
+- [x] CI/CD pipeline (GitHub Actions — path-filtered per-service deploys)
 
 ### 🔄 Phase 2 — In Progress
 
-- [ ] Google / Microsoft OAuth login (backend ready, frontend integration pending)
+- [ ] Microsoft OAuth login (backend ready, frontend integration pending)
 - [ ] Admin dashboard and moderation tools
 - [ ] Advanced property recommendation engine
-- [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Property analytics dashboard
 
 ### 🔮 Phase 3 — Planned
@@ -615,6 +721,7 @@ rentsmart_v2/
 - Redis instance (or use Docker)
 - Cloudinary account
 - Razorpay account
+- Brevo (Sendinblue) account for transactional email
 
 ### Local Development (without Docker)
 
@@ -624,6 +731,7 @@ git clone https://github.com/yashsabne/rentsmart_v2.git
 cd rentsmart_v2
 
 # 2. Start each service
+cd services/redis-service && npm install && npm start
 cd services/auth-service && npm install && npm start
 cd services/property-service && npm install && npm start
 cd services/payment-service && npm install && npm start
