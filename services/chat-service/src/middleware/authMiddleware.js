@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
+const { redisGet } = require("../utils/redisClient.js");
 
- 
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -10,14 +10,21 @@ const protect = (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
+
+    const blacklistResult = await redisGet(`/token/blacklist/${token}`);
+    if (blacklistResult?.blacklisted) {
+      return res.status(401).json({ message: "Token revoked." });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-     req.user = decoded;
+    req.user = decoded;
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired token." });
   }
 };
+
 
  
 const socketAuth = (socket, next) => {
