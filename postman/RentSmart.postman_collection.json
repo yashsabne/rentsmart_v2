@@ -1,0 +1,491 @@
+{
+  "info": {
+    "_postman_id": "rentsmart-v1-collection",
+    "name": "RentSmart API",
+    "description": "Complete API collection for RentSmart — a microservices-based property rental & sale platform.\n\n**Setup:**\n1. Import this collection\n2. Create an environment with the variables listed below\n3. Run `Auth / Register` or `Auth / Login` — the JWT is auto-saved to `{{token}}`\n\n**Environment Variables Required:**\n- `AUTH_URL` = http://localhost:5000\n- `PROPERTY_URL` = http://localhost:5001\n- `PAYMENT_URL` = http://localhost:5002\n- `NOTIFICATION_URL` = http://localhost:5003\n- `ACTIVITY_URL` = http://localhost:5004\n- `CHAT_URL` = http://localhost:5005\n- `REDIS_URL` = http://localhost:5006\n- `INTERNAL_SECRET` = your_internal_secret\n- `token` = (auto-set by login/register scripts)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "listingId", "value": "", "type": "string" },
+    { "key": "conversationSlug", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth Service",
+      "description": "Authentication, registration, OAuth, and account settings (port 5000)",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) { pm.environment.set('token', res.token); }",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has token', () => pm.expect(res.token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test@1234\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": { "raw": "{{AUTH_URL}}/api/auth/register", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) { pm.environment.set('token', res.token); }",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has token', () => pm.expect(res.token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test@1234\"\n}"
+            },
+            "url": { "raw": "{{AUTH_URL}}/api/auth/login", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{AUTH_URL}}/api/auth/me", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "me"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{AUTH_URL}}/api/auth/logout", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "logout"] }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"test@example.com\"\n}" },
+            "url": { "raw": "{{AUTH_URL}}/api/auth/forgot-password", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "forgot-password"] }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"password\": \"NewPass@1234\"\n}" },
+            "url": { "raw": "{{AUTH_URL}}/api/auth/reset-password/:token", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "reset-password", ":token"], "variable": [{ "key": "token", "value": "RESET_TOKEN_HERE" }] }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{AUTH_URL}}/api/auth/verify-email/:token", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "verify-email", ":token"], "variable": [{ "key": "token", "value": "VERIFY_TOKEN_HERE" }] }
+          }
+        },
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{AUTH_URL}}/api/auth/settings", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "settings"] }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\",\n  \"phone\": \"9876543210\"\n}" },
+            "url": { "raw": "{{AUTH_URL}}/api/auth/settings/profile", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "settings", "profile"] }
+          }
+        },
+        {
+          "name": "Update Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"preferences\": {\n    \"city\": \"Mumbai\",\n    \"propertyType\": \"rent\",\n    \"budgetRange\": { \"min\": 5000, \"max\": 25000 },\n    \"bedrooms\": 2\n  }\n}" },
+            "url": { "raw": "{{AUTH_URL}}/api/auth/settings/preferences", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "settings", "preferences"] }
+          }
+        },
+        {
+          "name": "Recently Viewed",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{AUTH_URL}}/api/auth/recently-viewed", "host": ["{{AUTH_URL}}"], "path": ["api", "auth", "recently-viewed"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Property Service",
+      "description": "Listings, search, recommendations, saved properties, sharing (port 5001)",
+      "item": [
+        {
+          "name": "Search Listings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{PROPERTY_URL}}/api/property/filter?q=2bhk&city=Mumbai&buyOrSell=rent&minPrice=5000&maxPrice=20000&bedrooms=2&page=1&limit=10",
+              "host": ["{{PROPERTY_URL}}"],
+              "path": ["api", "property", "filter"],
+              "query": [
+                { "key": "q", "value": "2bhk" },
+                { "key": "city", "value": "Mumbai" },
+                { "key": "buyOrSell", "value": "rent" },
+                { "key": "minPrice", "value": "5000" },
+                { "key": "maxPrice", "value": "20000" },
+                { "key": "bedrooms", "value": "2" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Guest Recommendations",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{PROPERTY_URL}}/api/property/search-notlogged", "host": ["{{PROPERTY_URL}}"], "path": ["api", "property", "search-notlogged"] }
+          }
+        },
+        {
+          "name": "Personalized Recommendations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PROPERTY_URL}}/api/property/recommended", "host": ["{{PROPERTY_URL}}"], "path": ["api", "property", "recommended"] }
+          }
+        },
+        {
+          "name": "Get Listing Details",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{PROPERTY_URL}}/api/property/details/{{listingId}}", "host": ["{{PROPERTY_URL}}"], "path": ["api", "property", "details", "{{listingId}}"] }
+          }
+        },
+        {
+          "name": "Create Listing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data._id) { pm.environment.set('listingId', res.data._id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Spacious 2BHK in Bandra\",\n  \"description\": \"Well-ventilated 2BHK apartment with modular kitchen and parking.\",\n  \"buyOrSell\": \"rent\",\n  \"price\": 35000,\n  \"paymentType\": \"monthly\",\n  \"address\": {\n    \"street\": \"14 Hill Road\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"400050\"\n  },\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"areaSqft\": 950,\n  \"furnished\": \"semi-furnished\",\n  \"parking\": true,\n  \"amenities\": [\"gym\", \"security\", \"lift\"],\n  \"photos\": []\n}"
+            },
+            "url": { "raw": "{{PROPERTY_URL}}/api/property", "host": ["{{PROPERTY_URL}}"], "path": ["api", "property"] }
+          }
+        },
+        {
+          "name": "Update Listing",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 32000,\n  \"description\": \"Updated description.\"\n}" },
+            "url": { "raw": "{{PROPERTY_URL}}/api/property/{{listingId}}", "host": ["{{PROPERTY_URL}}"], "path": ["api", "property", "{{listingId}}"] }
+          }
+        },
+        {
+          "name": "Delete Listing",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PROPERTY_URL}}/api/property/{{listingId}}", "host": ["{{PROPERTY_URL}}"], "path": ["api", "property", "{{listingId}}"] }
+          }
+        },
+        {
+          "name": "My Listings (Dashboard)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PROPERTY_URL}}/api/property/my?page=1&limit=10", "host": ["{{PROPERTY_URL}}"], "path": ["api", "property", "my"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+          }
+        },
+        {
+          "name": "Toggle Hide Listing",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PROPERTY_URL}}/api/actions/{{listingId}}/hide", "host": ["{{PROPERTY_URL}}"], "path": ["api", "actions", "{{listingId}}", "hide"] }
+          }
+        },
+        {
+          "name": "Refresh Listing",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PROPERTY_URL}}/api/actions/{{listingId}}/refresh", "host": ["{{PROPERTY_URL}}"], "path": ["api", "actions", "{{listingId}}", "refresh"] }
+          }
+        },
+        {
+          "name": "Toggle Save Listing",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"propertyId\": \"{{listingId}}\"\n}" },
+            "url": { "raw": "{{PROPERTY_URL}}/api/saved/toggle", "host": ["{{PROPERTY_URL}}"], "path": ["api", "saved", "toggle"] }
+          }
+        },
+        {
+          "name": "Get Saved Listings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PROPERTY_URL}}/api/saved", "host": ["{{PROPERTY_URL}}"], "path": ["api", "saved"] }
+          }
+        },
+        {
+          "name": "Create Share Link",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"propertyId\": \"{{listingId}}\"\n}" },
+            "url": { "raw": "{{PROPERTY_URL}}/api/share", "host": ["{{PROPERTY_URL}}"], "path": ["api", "share"] }
+          }
+        },
+        {
+          "name": "Track Interaction",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"propertyId\": \"{{listingId}}\",\n  \"action\": \"view\"\n}" },
+            "url": { "raw": "{{PROPERTY_URL}}/api/property/interactions", "host": ["{{PROPERTY_URL}}"], "path": ["api", "property", "interactions"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Service",
+      "description": "Contact unlock and listing promotion payments (port 5002)",
+      "item": [
+        {
+          "name": "Create Contact Unlock Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"listingId\": \"{{listingId}}\"\n}" },
+            "url": { "raw": "{{PAYMENT_URL}}/api/payment/create-order", "host": ["{{PAYMENT_URL}}"], "path": ["api", "payment", "create-order"] }
+          }
+        },
+        {
+          "name": "Verify Contact Unlock Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listingId}}\",\n  \"razorpayOrderId\": \"order_XXXX\",\n  \"razorpayPaymentId\": \"pay_XXXX\",\n  \"razorpaySignature\": \"HMAC_SIGNATURE\"\n}"
+            },
+            "url": { "raw": "{{PAYMENT_URL}}/api/payment/verify-payment", "host": ["{{PAYMENT_URL}}"], "path": ["api", "payment", "verify-payment"] }
+          }
+        },
+        {
+          "name": "Check Contact Access",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PAYMENT_URL}}/api/payment/check-access?listingId={{listingId}}", "host": ["{{PAYMENT_URL}}"], "path": ["api", "payment", "check-access"], "query": [{ "key": "listingId", "value": "{{listingId}}" }] }
+          }
+        },
+        {
+          "name": "Create Promotion Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"listingId\": \"{{listingId}}\"\n}" },
+            "url": { "raw": "{{PAYMENT_URL}}/api/payment/promote/order", "host": ["{{PAYMENT_URL}}"], "path": ["api", "payment", "promote", "order"] }
+          }
+        },
+        {
+          "name": "Verify Promotion Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listingId}}\",\n  \"razorpayOrderId\": \"order_XXXX\",\n  \"razorpayPaymentId\": \"pay_XXXX\",\n  \"razorpaySignature\": \"HMAC_SIGNATURE\"\n}"
+            },
+            "url": { "raw": "{{PAYMENT_URL}}/api/payment/promote/verify", "host": ["{{PAYMENT_URL}}"], "path": ["api", "payment", "promote", "verify"] }
+          }
+        },
+        {
+          "name": "Payment History (Contacts)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PAYMENT_URL}}/api/payments/history/contacts?page=1&limit=10", "host": ["{{PAYMENT_URL}}"], "path": ["api", "payments", "history", "contacts"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+          }
+        },
+        {
+          "name": "Payment History (Promotions)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PAYMENT_URL}}/api/payments/history/promotions?page=1&limit=10", "host": ["{{PAYMENT_URL}}"], "path": ["api", "payments", "history", "promotions"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+          }
+        },
+        {
+          "name": "Payment Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{PAYMENT_URL}}/api/payments/history/summary", "host": ["{{PAYMENT_URL}}"], "path": ["api", "payments", "history", "summary"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat Service",
+      "description": "Real-time conversations and messages (port 5005)",
+      "item": [
+        {
+          "name": "Start Conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.propertySlug) { pm.environment.set('conversationSlug', res.data.propertySlug); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{listingId}}\",\n  \"propertyTitle\": \"Spacious 2BHK in Bandra\",\n  \"owner\": {\n    \"userId\": \"OWNER_USER_ID\",\n    \"fullName\": \"Owner Name\",\n    \"email\": \"owner@example.com\"\n  }\n}"
+            },
+            "url": { "raw": "{{CHAT_URL}}/conversations/start", "host": ["{{CHAT_URL}}"], "path": ["conversations", "start"] }
+          }
+        },
+        {
+          "name": "List Conversations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{CHAT_URL}}/conversations", "host": ["{{CHAT_URL}}"], "path": ["conversations"] }
+          }
+        },
+        {
+          "name": "Get Conversation Messages",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{CHAT_URL}}/messages/{{conversationSlug}}?page=1&limit=20", "host": ["{{CHAT_URL}}"], "path": ["messages", "{{conversationSlug}}"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] }
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"CONVERSATION_ID\",\n  \"text\": \"Hello, I am interested in this property.\"\n}" },
+            "url": { "raw": "{{CHAT_URL}}/messages/send", "host": ["{{CHAT_URL}}"], "path": ["messages", "send"] }
+          }
+        },
+        {
+          "name": "Mark Messages Read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"CONVERSATION_ID\"\n}" },
+            "url": { "raw": "{{CHAT_URL}}/messages/read", "host": ["{{CHAT_URL}}"], "path": ["messages", "read"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Activity Service",
+      "description": "Cross-service audit log (port 5004)",
+      "item": [
+        {
+          "name": "Get Activity Feed",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{ACTIVITY_URL}}/api/activities/:userId", "host": ["{{ACTIVITY_URL}}"], "path": ["api", "activities", ":userId"], "variable": [{ "key": "userId", "value": "USER_ID_HERE" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Redis Service (Internal)",
+      "description": "Internal infrastructure API — requires INTERNAL_SECRET header (port 5006)",
+      "item": [
+        {
+          "name": "Cache Set",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "x-internal-secret", "value": "{{INTERNAL_SECRET}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"key\": \"test:key\",\n  \"data\": { \"hello\": \"world\" },\n  \"ttl\": 600\n}" },
+            "url": { "raw": "{{REDIS_URL}}/api/redis/cache", "host": ["{{REDIS_URL}}"], "path": ["api", "redis", "cache"] }
+          }
+        },
+        {
+          "name": "Cache Get",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-internal-secret", "value": "{{INTERNAL_SECRET}}" }],
+            "url": { "raw": "{{REDIS_URL}}/api/redis/cache/test%3Akey", "host": ["{{REDIS_URL}}"], "path": ["api", "redis", "cache", "test%3Akey"] }
+          }
+        },
+        {
+          "name": "Check Token Blacklist",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-internal-secret", "value": "{{INTERNAL_SECRET}}" }],
+            "url": { "raw": "{{REDIS_URL}}/api/redis/token/blacklist/{{token}}", "host": ["{{REDIS_URL}}"], "path": ["api", "redis", "token", "blacklist", "{{token}}"] }
+          }
+        },
+        {
+          "name": "Rate Limit Check",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "x-internal-secret", "value": "{{INTERNAL_SECRET}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"127.0.0.1\",\n  \"route\": \"login\",\n  \"limit\": 10,\n  \"windowSeconds\": 900\n}" },
+            "url": { "raw": "{{REDIS_URL}}/api/redis/rate-limit/check", "host": ["{{REDIS_URL}}"], "path": ["api", "redis", "rate-limit", "check"] }
+          }
+        }
+      ]
+    }
+  ]
+}
