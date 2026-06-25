@@ -1,4 +1,4 @@
-name: RentSmart v2 — Backend CI/CD
+name: RentSmart v2 - Backend CI/CD
 
 on:
   push:
@@ -6,18 +6,17 @@ on:
       - main
 
 jobs:
-  # JOB 1: DETECT which services actually change
 
   detect-changes:
     name: Detect Changed Services
     runs-on: ubuntu-latest
     outputs:
-      auth:         ${{ steps.filter.outputs.auth }}
-      property:     ${{ steps.filter.outputs.property }}
-      payment:      ${{ steps.filter.outputs.payment }}
+      auth: ${{ steps.filter.outputs.auth }}
+      property: ${{ steps.filter.outputs.property }}
+      payment: ${{ steps.filter.outputs.payment }}
       notification: ${{ steps.filter.outputs.notification }}
-      activity:     ${{ steps.filter.outputs.activity }}
-      chat:         ${{ steps.filter.outputs.chat }}
+      activity: ${{ steps.filter.outputs.activity }}
+      chat: ${{ steps.filter.outputs.chat }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,77 +38,61 @@ jobs:
             chat:
               - 'services/chat-service/**'
 
-  
-  # JOB 2: DEPLOY each service — only if changed
-
-   deploy-auth:
-    name: Deploy Auth Service → Render
+  deploy-auth:
+    name: Deploy Auth Service
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.auth == 'true'
     steps:
       - name: Trigger deploy hook
-        run: |
-          curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_AUTH }}"
-          echo " Auth service deploy triggered"
+        run: curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_AUTH }}"
 
   deploy-property:
-    name: Deploy Property Service → Render
+    name: Deploy Property Service
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.property == 'true'
     steps:
       - name: Trigger deploy hook
-        run: |
-          curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_PROPERTY }}"
-          echo "Property service deploy triggered"
+        run: curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_PROPERTY }}"
 
   deploy-payment:
-    name: Deploy Payment Service → Render
+    name: Deploy Payment Service
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.payment == 'true'
     steps:
       - name: Trigger deploy hook
-        run: |
-          curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_PAYMENT }}"
-          echo "Payment service deploy triggered"
+        run: curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_PAYMENT }}"
 
   deploy-notification:
-    name: Deploy Notification Service → Render
+    name: Deploy Notification Service
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.notification == 'true'
     steps:
       - name: Trigger deploy hook
-        run: |
-          curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_NOTIFICATION }}"
-          echo "Notification service deploy triggered"
+        run: curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_NOTIFICATION }}"
 
   deploy-activity:
-    name: Deploy Activity Service → Render
+    name: Deploy Activity Service
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.activity == 'true'
     steps:
       - name: Trigger deploy hook
-        run: |
-          curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_ACTIVITY }}"
-          echo "Activity service deploy triggered"
+        run: curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_ACTIVITY }}"
 
   deploy-chat:
-    name: Deploy Chat Service → Render
+    name: Deploy Chat Service
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.chat == 'true'
     steps:
       - name: Trigger deploy hook
-        run: |
-          curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_CHAT }}"
-          echo " Chat service deploy triggered"
+        run: curl --fail "${{ secrets.RENDER_DEPLOY_HOOK_CHAT }}"
 
-   # JOB 3: SUMMARY — what got deployed
-   summary:
+  summary:
     name: Deployment Summary
     runs-on: ubuntu-latest
     needs:
@@ -124,15 +107,13 @@ jobs:
     steps:
       - name: Print summary
         run: |
-          echo "## RentSmart v2 — Deploy Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## RentSmart v2 - Deploy Summary" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Changed | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "|  Auth Service      | ${{ needs.detect-changes.outputs.auth }}         | ${{ needs.deploy-auth.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Property Service  | ${{ needs.detect-changes.outputs.property }}     | ${{ needs.deploy-property.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "|  Payment Service   | ${{ needs.detect-changes.outputs.payment }}      | ${{ needs.deploy-payment.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "|  Notification Svc  | ${{ needs.detect-changes.outputs.notification }} | ${{ needs.deploy-notification.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "|  Activity Service  | ${{ needs.detect-changes.outputs.activity }}     | ${{ needs.deploy-activity.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "|  Chat Service      | ${{ needs.detect-changes.outputs.chat }}         | ${{ needs.deploy-chat.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Pushed by: **${{ github.actor }}** on \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "| Auth | ${{ needs.detect-changes.outputs.auth }} | ${{ needs.deploy-auth.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | ${{ needs.detect-changes.outputs.property }} | ${{ needs.deploy-property.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Payment | ${{ needs.detect-changes.outputs.payment }} | ${{ needs.deploy-payment.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Notification | ${{ needs.detect-changes.outputs.notification }} | ${{ needs.deploy-notification.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Activity | ${{ needs.detect-changes.outputs.activity }} | ${{ needs.deploy-activity.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Chat | ${{ needs.detect-changes.outputs.chat }} | ${{ needs.deploy-chat.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "Pushed by ${{ github.actor }} on ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
