@@ -1,15 +1,23 @@
 # 🏠 RentSmart v2
 
-**RentSmart v2** is a production-ready, scalable property rental platform built on a **containerized microservices architecture** using Docker. It is a complete ground-up redesign of RentSmart v1 (monolithic), rebuilt to achieve independent service deployment, better fault isolation, and real-world scalability.
+![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=flat&logo=node.js&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat&logo=mongodb&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-Cache-DC382D?style=flat&logo=redis&logoColor=white)
+![Deployed on Render](https://img.shields.io/badge/Backend-Render-46E3B7?style=flat&logo=render&logoColor=white)
+![Frontend on Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?style=flat&logo=vercel&logoColor=white)
 
-🔗 **Live Demo:** [rentsmart-v2.vercel.app](https://rentsmart-v2.vercel.app) now on dedicated domain [rentsmart.fun](https://rentsmart.fun)
-📦 **Repository:** [github.com/yashsabne/rentsmart_v2](https://github.com/yashsabne/rentsmart_v2)
+**RentSmart v2** is a production-ready property rental platform rebuilt from the ground up on a **containerized microservices architecture** using Docker. It is a complete redesign of RentSmart v1 (monolithic), with each business domain running as an independent service — enabling isolated deployments, fault containment, and real-world scalability.
+
+🔗 **Live:** [rentsmart.fun](https://rentsmart.fun)
+📦 **Repo:** [github.com/yashsabne/rentsmart_v2](https://github.com/yashsabne/rentsmart_v2)
 
 ---
 
 ## 📌 Table of Contents
 
-- [Overview](#-overview)
+- [Why v2?](#-why-v2)
 - [Architecture](#-architecture)
 - [Tech Stack](#-tech-stack)
 - [Services](#-services)
@@ -19,28 +27,26 @@
   - [Notification Service](#-notification-service-port-5003)
   - [Activity Service](#-activity-service-port-5004)
   - [Chat Service](#-chat-service-port-5005)
-- [Frontend (Client)](#-frontend-client)
+- [Frontend](#-frontend-client)
+- [Performance & Load Testing](#-performance--load-testing)
 - [Docker Setup](#-docker-setup)
 - [Environment Variables](#-environment-variables)
 - [Project Structure](#-project-structure)
 - [Security](#-security)
-- [Current Status & Roadmap](#-current-status--roadmap)
+- [Roadmap](#-current-status--roadmap)
 - [Getting Started](#-getting-started)
 
 ---
 
-## 🧭 Overview
+## 💡 Why v2?
 
-RentSmart v2 enables users to **discover, list, manage, and transact on rental properties** through a modern, service-oriented platform. Each business domain (Auth, Property, Payments, Chat, Notifications, Activity) runs as its own independent microservice, communicating over HTTP and real-time sockets.
+RentSmart v1 was a traditional Express monolith. It worked — but as features grew, so did the pain:
 
-Key improvements over v1:
-- Monolith → Microservices
-- Stateless JWT auth shared across services
-- Redis-backed rate limiting and caching
-- Razorpay payment integration
-- Real-time chat with Socket.IO
-- Cloudinary-based image uploads
-- Docker Compose for unified local/production deployment
+- **One deploy = all-or-nothing.** A bug in the chat module could take down payments and auth with it.
+- **No independent scaling.** The property filter endpoint took the most load but couldn't be scaled without scaling everything else.
+- **Tight coupling made iteration slow.** Auth logic was entangled with property logic, making changes risky.
+
+v2 separates every domain into its own service. Auth, property, payments, chat, notifications, and activity each run in their own container, own database namespace, and own deploy lifecycle. A crash in the notification service doesn't affect a user creating a listing.
 
 ---
 
@@ -48,7 +54,7 @@ Key improvements over v1:
 
 ```
 ┌──────────────────────────────────────────────────┐
-│                  React + Vite (Client)           │
+│              React + Vite (Client)               │
 │              Deployed on: Vercel                  │
 └────────────────────┬─────────────────────────────┘
                      │ REST / Socket.IO
@@ -62,10 +68,10 @@ Key improvements over v1:
 └─────────────┘ └──────────────┘ └─────────────────┘
         ▼            ▼                    ▼
 ┌─────────────┐ ┌──────────────┐ ┌─────────────────┐
-│Notification │ │ Activity Svc │ │  Chat Service    │
-│  Port 5003  │ │  Port 5004   │ │  Port 5005       │
-│  Nodemailer │ │  MongoDB     │ │  Socket.IO +     │
-│             │ │  Morgan logs │ │  MongoDB         │
+│Notification │ │ Activity Svc │ │  Chat Service   │
+│  Port 5003  │ │  Port 5004   │ │  Port 5005      │
+│  Nodemailer │ │  MongoDB     │ │  Socket.IO +    │
+│             │ │  Morgan logs │ │  MongoDB        │
 └─────────────┘ └──────────────┘ └─────────────────┘
                      ▲
               ┌──────┴──────┐
@@ -74,13 +80,14 @@ Key improvements over v1:
               └─────────────┘
 ```
 
-All services share a single MongoDB cluster and a Redis instance for caching and rate limiting. Services communicate with each other using an internal secret header (`x-internal-secret`) for protected inter-service calls.
+All services share a single MongoDB Atlas cluster and a Redis instance for caching and rate limiting. Inter-service calls are authenticated via an `x-internal-secret` header to prevent unauthorized cross-service access.
 
 ---
 
 ## 🛠 Tech Stack
 
 ### Frontend
+
 | Technology | Purpose |
 |---|---|
 | React 19 | UI framework |
@@ -93,12 +100,13 @@ All services share a single MongoDB cluster and a Redis instance for caching and
 | @vercel/analytics | Analytics |
 
 ### Backend (per service)
+
 | Technology | Purpose |
 |---|---|
 | Node.js + Express 5 | HTTP server |
 | MongoDB + Mongoose | Primary database |
 | JWT (jsonwebtoken) | Stateless authentication |
-| Redis | Rate limiting, caching, inter-service |
+| Redis | Rate limiting, caching, inter-service state |
 | bcryptjs | Password hashing |
 | Socket.IO | Real-time chat |
 | Cloudinary + Multer | Image storage |
@@ -108,10 +116,11 @@ All services share a single MongoDB cluster and a Redis instance for caching and
 | Morgan | HTTP request logging |
 
 ### Infrastructure
+
 | Technology | Purpose |
 |---|---|
-| Docker + Docker Compose | Containerization |
-| Redis (dedicated service) | Shared in-memory store |
+| Docker + Docker Compose | Containerization & orchestration |
+| Redis (dedicated container) | Shared in-memory store |
 | Vercel | Frontend hosting |
 | Render | Backend service hosting |
 
@@ -126,11 +135,11 @@ Handles all authentication and user identity management.
 **Key Features:**
 - User registration with email verification
 - Login with JWT issuance
-- Forgot password / Reset password via secure email token
-- Rate-limited registration (5 attempts/hr) and login (10 attempts/15 min) using Redis
-- Google OAuth and Microsoft OAuth support (Passport.js)
+- Forgot password / reset password via secure email token
+- Rate-limited registration (5 attempts/hr) and login (10 attempts/15 min) via Redis
+- Google OAuth and Microsoft OAuth via Passport.js
 - Internal user lookup endpoint (protected by internal secret)
-- Recently Viewed properties tracking per user
+- Recently viewed properties tracking per user
 
 **API Routes (`/api/auth/...`):**
 
@@ -152,8 +161,6 @@ Handles all authentication and user identity management.
 
 **User Model Fields:**
 `email`, `password`, `firstName`, `lastName`, `phone`, `city`, `preferences` (1BHK/2BHK/3BHK/Villa/Studio/Commercial), `emailNotifications`, `smsNotifications`, `whatsappNotifications`, `googleId`, `microsoftId`, `emailVerificationToken`, `emailVerificationExpiry`
-
-**Dependencies:** `bcryptjs`, `jsonwebtoken`, `mongoose`, `nodemailer`, `passport`, `passport-google-oauth20`, `passport-microsoft`, `express-session`, `dotenv`, `cors`
 
 ---
 
@@ -186,17 +193,15 @@ Manages all property listing CRUD, image uploads, filtering, search, and recomme
 | DELETE | `/:id` | ✅ | Delete listing |
 | POST | `/internal/users/:userId/hide-listings` | 🔒 Internal | Hide all listings of a user |
 
-**Dependencies:** `axios`, `cloudinary`, `multer`, `multer-storage-cloudinary`, `mongoose`, `jsonwebtoken`, `cors`, `dotenv`, `bcryptjs`
-
 ---
 
 ### 💳 Payment Service (Port 5002)
 
-Handles all Razorpay-powered payment flows for property access and property promotion.
+Handles all Razorpay-powered payment flows for property access and listing promotion.
 
 **Key Features:**
 - Create Razorpay payment orders
-- Verify payment signatures
+- Verify payment signatures server-side
 - Property access gating (check if user has paid for a listing)
 - Promote listing payment flow (pay to boost a listing)
 - Payment history tracking
@@ -210,30 +215,18 @@ Handles all Razorpay-powered payment flows for property access and property prom
 | GET | `/check-access` | ✅ | Check if user has access to a property |
 | POST | `/promote/order` | ✅ | Create a promo boost order |
 | POST | `/promote/verify` | ✅ | Verify promo payment |
-
-**API Routes (`/api/payments/...`):**
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/history` | Get payment history |
-
-**Dependencies:** `razorpay`, `crypto`, `mongoose`, `jsonwebtoken`, `cors`, `dotenv`
+| GET | `/history` | ✅ | Get payment history |
 
 ---
 
 ### 🔔 Notification Service (Port 5003)
 
-Lightweight email notification delivery service.
+Lightweight, stateless email delivery service decoupled from auth so email failures never block registration or login flows.
 
 **Key Features:**
-- Handles email-based notifications (e.g. verification emails, password reset)
-- Decoupled from the auth service so email failures don't block registration
-- Stateless — no database, just sends emails via the notification routes
-
-**API Routes (`/api/notify/...`):**
-- Internal email sending endpoints consumed by other services
-
-**Dependencies:** `express`, `cors`, `dotenv`
+- Email-based notifications (verification, password reset)
+- Consumed internally by other services — no direct user-facing endpoints
+- No database — pure send-and-forget
 
 ---
 
@@ -253,35 +246,34 @@ Centralized service for logging and retrieving all user activity events across t
 | POST | `/` | Log a new activity event |
 | GET | `/:userId` | Get activity log for a user |
 
-**Dependencies:** `mongoose`, `morgan`, `express`, `cors`, `dotenv`
-
 ---
 
 ### 💬 Chat Service (Port 5005)
 
-Real-time, socket-powered messaging service between users.
+Real-time, socket-powered messaging between users.
 
 **Key Features:**
 - Socket.IO-based real-time messaging
 - Conversation creation and management
 - Message delivery status tracking (`sent` → `delivered` → `read`)
-- Online user tracking (Map-based)
+- Online user tracking (Map-based in-memory)
 - JWT-authenticated socket connections
-- Slug-based conversation identifiers (nanoid)
+- Slug-based conversation identifiers via nanoid
 
 **Socket Events:**
-- `USER_ONLINE` — broadcasts when a user connects
-- `JOIN_CONVERSATION` — join a socket room by conversation slug
-- `LEAVE_CONVERSATION` — leave a room
-- `MESSAGE_DELIVERED` — broadcast delivery status updates
-- `ONLINE_USERS` — emit current online users list
+
+| Event | Direction | Description |
+|---|---|---|
+| `USER_ONLINE` | Emit | Broadcasts when a user connects |
+| `JOIN_CONVERSATION` | Listen | Join a socket room by conversation slug |
+| `LEAVE_CONVERSATION` | Listen | Leave a room |
+| `MESSAGE_DELIVERED` | Emit | Broadcast delivery status updates |
+| `ONLINE_USERS` | Emit | Emit current online users list |
 
 **REST Routes:**
 - `/conversations` — CRUD for conversations
 - `/messages` — message history per conversation
 - `/health` — service health check
-
-**Dependencies:** `socket.io`, `mongoose`, `jsonwebtoken`, `nanoid`, `express-validator`, `cors`, `dotenv`
 
 ---
 
@@ -312,12 +304,50 @@ A React 19 SPA built with Vite, deployed on Vercel.
 
 ### Client Architecture
 
-- **`client/apis.js`** — Centralised API base URL map (`API.AUTH`, `API.PROPERTY`, `API.PAYMENT`, etc.)
+- **`client/apis.js`** — Centralized API base URL map (`API.AUTH`, `API.PROPERTY`, `API.PAYMENT`, etc.)
 - **`client/src/pages/`** — Page-level components
 - **`client/src/components/`** — Reusable components (Navbar, Footer, Hero, Messages)
 - **`client/src/constants/`** — App-wide constants and stats
 - **`client/src/const_func/`** — Utility functions (e.g. `formattedPrice`)
 - Token stored in `localStorage`, sent as `Authorization: Bearer <token>` header
+
+---
+
+## 📈 Performance & Load Testing
+
+The property filter endpoint (`GET /api/property/filter`) was load tested using **k6** to validate behavior under real traffic conditions. The backend services are deployed on Render's free tier (512 MB RAM, shared CPU, no horizontal scaling).
+
+### Test Configuration
+
+| Parameter | Value |
+|---|---|
+| Tool | k6 |
+| Target endpoint | `GET /api/property/filter` |
+| Virtual users (VUs) | 500 |
+| Test duration | 10 minutes |
+| Request timeout | 30s |
+| Infrastructure | Render free tier — 512 MB RAM |
+
+### Results
+
+| Metric | Value |
+|---|---|
+| Total requests | 20,235 |
+| Throughput | 32.87 req/s |
+| Success rate | 99.03% (20,038 / 20,235) |
+| Failed requests | 0.97% (197) — all timeouts |
+| Avg response time | 7.96s |
+| Median (p50) | 3.87s |
+| p90 | 20.13s |
+| p95 | 20.90s |
+| p99 | 22.83s |
+| Max | 30.00s |
+
+### What these numbers mean
+
+The median at **3.87s is acceptable** for a free-tier instance under 500 concurrent users. The real story is the **jump from p50 → p90 (3.87s → 20.13s)** — a 5x spike that signals the instance hitting its CPU/RAM ceiling and queuing requests rather than processing them. Once the queue fills, requests approach the 30s timeout, which accounts for the 0.97% failure rate.
+
+**This is an infrastructure constraint, not a code problem.** The same service on a paid Render instance or a horizontally scaled container setup would flatten this latency curve significantly. The microservices architecture means the property service can be scaled independently without touching auth, payments, or chat.
 
 ---
 
@@ -450,70 +480,64 @@ VITE_CHAT_API=https://chat-service.onrender.com
 
 ```
 rentsmart_v2/
-├── docker-compose.yml              # Orchestrates all services
+├── docker-compose.yml
 ├── README.md
 ├── showcase/                       # Screenshots / demo assets
 ├── client/                         # React + Vite frontend
-│   ├── apis.js                     # Centralised API base URL map
+│   ├── apis.js                     # Centralized API base URL map
 │   ├── package.json
 │   └── src/
-│       ├── App.jsx                 # Route definitions
-│       ├── pages/                  # Page components
-│       ├── components/             # Reusable UI components
+│       ├── App.jsx
+│       ├── pages/
+│       ├── components/
 │       │   ├── reuse/              # Navbar, Footer
 │       │   ├── messages/           # Chat UI
 │       │   └── Hero.jsx
-│       ├── constants/              # App constants & stats
-│       └── const_func/            # Utility functions
+│       ├── constants/
+│       └── const_func/
 └── services/
     ├── auth-service/
     │   ├── Dockerfile
-    │   ├── package.json
     │   └── src/
     │       ├── controllers/        # authController, recentlyViewedController
     │       ├── middleware/         # authMiddleware, rateLimitMiddleware, verifyInternalSecret
     │       ├── models/             # User.js
-    │       ├── routes/             # authRoutes.js
+    │       ├── routes/
     │       ├── services/           # sendVerificationEmail, sendForgotPasswordEmail
     │       └── utils/             # activityLogger, redisClient
     ├── property-service/
     │   ├── Dockerfile
-    │   ├── package.json
     │   └── src/
     │       ├── config/            # cloudinary.js, db.js
-    │       ├── controllers/       # propertyController.js
-    │       ├── middleware/        # authMiddleware, requireVerifiedEmail, verifyInternalSecret
+    │       ├── controllers/
+    │       ├── middleware/
     │       ├── models/            # Property.js
-    │       └── routes/            # propertyRoutes.js
+    │       └── routes/
     ├── payment-service/
     │   ├── Dockerfile
-    │   ├── app.js
     │   └── src/
-    │       ├── config/            # db.js
-    │       ├── controller/        # paymentController.js
-    │       ├── middleware/        # authMiddleware, requireVerifiedEmail
-    │       └── routes/            # paymentRoutes.js, historyRoutes.js
+    │       ├── config/
+    │       ├── controller/
+    │       ├── middleware/
+    │       └── routes/
     ├── notification-service/
     │   ├── Dockerfile
-    │   ├── app.js
-    │   └── src/
-    │       └── routes/            # notificationRoutes.js
+    │   └── src/routes/
     ├── activity-service/
     │   ├── Dockerfile
     │   └── src/
-    │       ├── controllers/       # activityController.js
-    │       └── routes/            # activityRoutes.js
+    │       ├── controllers/
+    │       └── routes/
     └── chat-service/
         ├── Dockerfile
-        ├── package.json
         └── src/
             ├── app.js             # Express + Socket.IO setup
-            ├── config/            # db.js
+            ├── config/
             ├── constants/         # events.js (socket event names)
-            ├── middleware/        # authMiddleware (JWT + socket)
+            ├── middleware/
             ├── models/            # Conversation.js, Message.js
-            ├── routes/            # conversationRoutes.js, messageRoutes.js
-            └── sockets/           # chatSocket.js (online users, delivery tracking)
+            ├── routes/
+            └── sockets/           # chatSocket.js
 ```
 
 ---
@@ -521,10 +545,11 @@ rentsmart_v2/
 ## 🔒 Security
 
 ### Implemented
+
 - **JWT Authentication** — stateless, shared secret across all services
-- **Redis Rate Limiting** — registration (5/hr), login (10/15min), via dedicated Redis service
+- **Redis Rate Limiting** — registration (5/hr), login (10/15 min)
 - **Email Verification** — required before creating listings or making payments
-- **Internal Secret Header** — `x-internal-secret` guards service-to-service endpoints
+- **Internal Secret Header** — `x-internal-secret` guards all service-to-service endpoints
 - **bcryptjs Password Hashing** — passwords never stored in plain text
 - **Environment-based Config** — secrets never hardcoded
 - **CORS Whitelisting** — each service allows only known origins
@@ -532,11 +557,12 @@ rentsmart_v2/
 - **Razorpay Signature Verification** — payment authenticity validated server-side
 
 ### Planned
-- Suspicious activity monitoring & alerts
+
+- Suspicious activity monitoring and alerts
 - User reporting and moderation system
 - Security audit logs
-- Advanced authorization (RBAC)
-- Fraud prevention & risk scoring
+- Role-based access control (RBAC)
+- Fraud prevention and risk scoring
 - User trust and reputation scoring
 - Property verification workflow
 
@@ -544,7 +570,8 @@ rentsmart_v2/
 
 ## 🗺 Current Status & Roadmap
 
-### ✅ Phase 1 — Complete (Current)
+### ✅ Phase 1 — Complete
+
 - [x] Microservices architecture established
 - [x] Auth service (register, login, email verify, forgot/reset password)
 - [x] Property service (CRUD, image upload, filter, search, recommendations)
@@ -556,29 +583,34 @@ rentsmart_v2/
 - [x] Docker Compose setup
 - [x] Vercel frontend deployment
 - [x] Render backend deployment
+- [x] k6 load testing on property filter endpoint
 
 ### 🔄 Phase 2 — In Progress
-- [ ] Google / Microsoft OAuth login (backend ready, frontend integration)
+
+- [ ] Google / Microsoft OAuth login (backend ready, frontend integration pending)
 - [ ] Admin dashboard and moderation tools
 - [ ] Advanced property recommendation engine
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Property analytics dashboard
 
 ### 🔮 Phase 3 — Planned
+
 - [ ] Suspicious activity monitoring
-- [ ] Trust & reputation scoring
+- [ ] Trust and reputation scoring
 - [ ] Emergency contact and safety features
 - [ ] Rate limiting at API gateway level
 - [ ] Full observability (logging, metrics, tracing)
 - [ ] Production-grade Kubernetes deployment
+- [ ] Upgrade property service to dedicated paid instance and re-run load tests
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 20+
-- Docker & Docker Compose
+- Docker and Docker Compose
 - MongoDB Atlas or local MongoDB
 - Redis instance (or use Docker)
 - Cloudinary account
@@ -606,7 +638,6 @@ cd client && npm install && npm run dev
 ### With Docker Compose
 
 ```bash
-# Build and start all containers
 docker compose up --build
 
 # Frontend runs separately on Vercel or:
@@ -619,5 +650,3 @@ cd client && npm install && npm run dev
 
 **Yash Sabne**
 GitHub: [@yashsabne](https://github.com/yashsabne)
-
----
