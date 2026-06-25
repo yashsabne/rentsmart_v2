@@ -490,10 +490,15 @@ export default function ListingDetails() {
                     {/* HERO */}
                     <div className="gal-cell gal-cell-hero" onClick={() => { setLightboxOpen(true); setLightboxIdx(0); }}>
                       <img src={images[0]} alt="Hero view" loading="eager" />
-                      <div className="gal-hero-badge">
-                        <div className="gal-hero-dot" />
-                        Premium Property
-                      </div>
+
+                      {property?.isPromoted && (
+                        <div className="gal-hero-badge">
+                          <div className="gal-hero-dot"></div>
+                          Premium Property
+                        </div>
+                      )}
+
+
                     </div>
                     {/* TOP ROW thumbnails: slots 1–2 */}
                     {images.slice(1, 3).map((img, i) => (
