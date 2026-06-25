@@ -9,7 +9,7 @@
 | Unit tests | ❌ None |
 | Integration tests | ❌ None |
 | E2E tests | ❌ None |
-| Load tests | ✅ k6 (documented in `services/testreport.md`) |
+| Load tests | ✅ k6 (documented in `/testreport.md`) |
 | Linting / formatting | ❌ No ESLint or Prettier configured |
 | Pre-commit hooks | ❌ None |
 
