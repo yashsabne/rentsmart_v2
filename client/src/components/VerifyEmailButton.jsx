@@ -1,57 +1,63 @@
 import { useState } from "react";
 import { API } from "../../apis";
+import { useSearchParams } from "react-router-dom";
 
-const VerifyEmailButton = ({ user, token,userLoading }) => {
+const VerifyEmailButton = ({ user, token, userLoading, onVerified }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [open,setOpen] = useState(false);
-  const [loading,setLoading] = useState(false);
-  const [sent,setSent] = useState(false);
+  const open = searchParams.get("verifying-email") === "true";
+
+  const setOpen = (val) => {
+    const params = new URLSearchParams(searchParams);
+    if (val) params.set("verifying-email", "true");
+    else params.delete("verifying-email");
+    setSearchParams(params, { replace: true });
+  };
+
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const sendVerification = async () => {
-
     try {
-
       setLoading(true);
-
-      const res = await fetch(
-        `${API.AUTH}/api/auth/resend-verification`,  
-        {
-          method:"POST",
-          headers:{
-            Authorization:`Bearer ${token}`
-          }
-        }
-      );
-
+      const res = await fetch(`${API.AUTH}/api/auth/resend-verification`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
- 
-
-      if(!res.ok){
-        throw new Error(data.message);
-      }
-
+      if (!res.ok) throw new Error(data.message);
       setSent(true);
-
-    } catch(err){
+    } catch (err) {
       alert(err.message);
     } finally {
       setLoading(false);
     }
-
   };
 
-  if(user?.isEmailVerified && !userLoading ){
+  const handleConfirmVerified = async () => {
+    try {
+      setChecking(true);
+      const res = await fetch(`${API.AUTH}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data?.isEmailVerified) {
+        await onVerified(); 
+        setOpen(false);      
+      } else {
+        alert("Email not verified yet. Please click the link in your inbox first.");
+      }
+    } catch {
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  if (user?.isEmailVerified && !userLoading) {
     return (
-      <div
-        style={{
-          padding:"8px 14px",
-          borderRadius:999,
-          background:"#ECFDF3",
-          color:"#027A48",
-          fontSize:13,
-          fontWeight:600
-        }}
-      >
+      <div style={{ padding: "8px 14px", borderRadius: 999, background: "#ECFDF3", color: "#027A48", fontSize: 13, fontWeight: 600 }}>
         ✓ Verified
       </div>
     );
@@ -61,102 +67,51 @@ const VerifyEmailButton = ({ user, token,userLoading }) => {
     <>
       <button
         onClick={() => setOpen(true)}
-        style={{
-          border:"none",
-          background:"#FFF7E6",
-          color:"#B54708",
-          padding:"10px 16px",
-          borderRadius:999,
-          fontWeight:600,
-          cursor:"pointer"
-        }}
+        style={{ border: "none", background: "#FFF7E6", color: "#B54708", padding: "10px 16px", borderRadius: 999, fontWeight: 600, cursor: "pointer" }}
       >
-     {userLoading?"....": "Verify Email" }  
+        {userLoading ? "...." : "Verify Email"}
       </button>
 
       {open && (
         <div
           onClick={() => setOpen(false)}
-          style={{
-            position:"fixed",
-            inset:0,
-            background:"rgba(0,0,0,.45)",
-            display:"flex",
-            alignItems:"center",
-            justifyContent:"center",
-            zIndex:9999
-          }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}
         >
           <div
-            onClick={(e)=>e.stopPropagation()}
-            style={{
-              width:480,
-              background:"#fff",
-              borderRadius:20,
-              padding:28
-            }}
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: 480, background: "#fff", borderRadius: 20, padding: 28 }}
           >
-
-            <h2
-              style={{
-                marginBottom:10,
-                color:"#111827"
-              }}
-            >
-              Verify your email
-            </h2>
-
-            <p
-              style={{
-                color:"#6B7280",
-                lineHeight:1.7,
-                marginBottom:20
-              }}
-            >
+            <h2 style={{ marginBottom: 10, color: "#111827" }}>Verify your email</h2>
+            <p style={{ color: "#6B7280", lineHeight: 1.7, marginBottom: 20 }}>
               To create listings, reveal owner contact details and send property inquiries, please verify your email address.
             </p>
-
-            <div
-              style={{
-                background:"#F9FAFB",
-                padding:14,
-                borderRadius:12,
-                marginBottom:20
-              }}
-            >
+            <div style={{ background: "#F9FAFB", padding: 14, borderRadius: 12, marginBottom: 20 }}>
               {user?.email}
             </div>
 
-            {sent ? (
-              <div
-                style={{
-                  background:"#ECFDF3",
-                  color:"#027A48",
-                  padding:12,
-                  borderRadius:12,
-                  marginBottom:16
-                }}
-              >
-                Verification email sent successfully. Check your inbox and click the verification link.
+            {sent && (
+              <div style={{ background: "#EFF6FF", color: "#1D4ED8", padding: 12, borderRadius: 12, marginBottom: 16, fontSize: 14 }}>
+                📬 Verification email sent! Click the link in your inbox, then come back and click the button below.
               </div>
-            ) : null}
+            )}
 
             <button
               onClick={sendVerification}
-              disabled={loading}
-              style={{
-                width:"100%",
-                border:"none",
-                background:"#111827",
-                color:"#fff",
-                padding:"14px",
-                borderRadius:12,
-                cursor:"pointer",
-                fontWeight:600
-              }}
+              disabled={loading || sent}
+              style={{ width: "100%", border: "none", background: "#111827", color: "#fff", padding: "14px", borderRadius: 12, cursor: loading || sent ? "not-allowed" : "pointer", fontWeight: 600, opacity: sent ? 0.5 : 1, marginBottom: sent ? 10 : 0 }}
             >
-              {loading ? "Sending..." : "Send Verification Email"}
+              {loading ? "Sending..." : sent ? "Email Sent" : "Send Verification Email"}
             </button>
+
+            {sent && (
+              <button
+                onClick={handleConfirmVerified}
+                disabled={checking}
+                style={{ width: "100%", border: "2px solid #111827", background: "#fff", color: "#111827", padding: "14px", borderRadius: 12, cursor: checking ? "not-allowed" : "pointer", fontWeight: 600 }}
+              >
+                {checking ? "Checking..." : "I've verified my email ✓"}
+              </button>
+            )}
 
           </div>
         </div>
