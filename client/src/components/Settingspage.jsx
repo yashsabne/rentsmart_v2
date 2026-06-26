@@ -9,8 +9,8 @@ import {
   deleteAccount,
   resendVerification,
 } from "../services/settingsApi";
-
-/* ── constants ──────────────────────────────────────────────────────────────── */
+import { useNavigate } from "react-router-dom";
+ 
 const PROPERTY_TYPES = ["1 BHK", "2 BHK", "3 BHK", "Villa", "Studio", "Commercial"];
 
 const TABS = [
@@ -19,8 +19,7 @@ const TABS = [
   { id: "security", emoji: "🔒", label: "Security" },
   { id: "preferences", emoji: "⚙️", label: "Preferences" },
 ];
-
-/* ── tiny helpers ────────────────────────────────────────────────────────────── */
+ 
 const initials = (first = "", last = "") =>
   `${first[0] || ""}${last[0] || ""}`.toUpperCase() || "?";
 
@@ -28,9 +27,9 @@ const T = {
   cream: "#F5F0E8",
   white: "#FFFFFF",
   dark: "#1C1C2E",
-  accent: "#C8A96E",   // gold from your sidebar button
+  accent: "#C8A96E",    
   accentHover: "#B8914A",
-  purple: "#6B4EFF",   // used in some badges
+  purple: "#6B4EFF",    
   border: "#E8E0D0",
   text: "#1a1a2e",
   muted: "#888",
@@ -40,8 +39,7 @@ const T = {
   cardBg: "#FFFFFF",
   rowHover: "#FAF7F2",
 };
-
-/* ── reusable styled pieces ─────────────────────────────────────────────────── */
+ 
 const Label = ({ children }) => (
   <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 6 }}>
     {children}
@@ -132,8 +130,7 @@ const FormActions = ({ children }) => (
     {children}
   </div>
 );
-
-/* ── Toast ───────────────────────────────────────────────────────────────────── */
+ 
 const useToast = () => {
   const [toast, setToast] = useState(null);
   const show = useCallback((msg, type = "success") => {
@@ -143,10 +140,9 @@ const useToast = () => {
   return { toast, show };
 };
 
-/* ════════════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
-   ════════════════════════════════════════════════════════════════════════════ */
-const SettingsPage = ({ token, onLogout }) => {
+const SettingsPage = ({ token, onLogout,onProfileUpdated }) => {
+    const navigate = useNavigate();  
+
   const { toast, show: showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState("profile");
@@ -154,10 +150,8 @@ const SettingsPage = ({ token, onLogout }) => {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState(null);
 
-  /* profile */
   const [profile, setProfile] = useState({ firstName: "", lastName: "", phone: "", city: "" });
 
-  /* notifications */
   const [notifs, setNotifs] = useState({
     emailNotifications: true, smsNotifications: true, whatsappNotifications: false,
   });
@@ -177,8 +171,7 @@ const SettingsPage = ({ token, onLogout }) => {
 
   /* resend */
   const [resending, setResending] = useState(false);
-
-  /* ── load ──────────────────────────────────────────────────────────────── */
+ 
   useEffect(() => {
     (async () => {
       try {
@@ -191,13 +184,28 @@ const SettingsPage = ({ token, onLogout }) => {
       finally { setLoading(false); }
     })();
   }, [token]);
-
-  /* ── handlers ──────────────────────────────────────────────────────────── */
+ 
   const handleSaveProfile = async () => {
     setSaving(true);
-    try { await saveProfile(token, profile); setSettings(s => ({ ...s, ...profile })); showToast("Profile saved"); }
-    catch (e) { showToast(e.message, "error"); }
-    finally { setSaving(false); }
+    try {
+      await saveProfile(token, profile);
+      setSettings(s => ({ ...s, ...profile }));
+      showToast("Profile saved");
+
+        await onProfileUpdated?.();   
+
+
+      const redirect = localStorage.getItem("rentsmart_post_phone_redirect");
+      if (redirect && profile.phone) {
+        localStorage.removeItem("rentsmart_post_phone_redirect");
+        setTimeout(() => navigate(redirect), 1000);  
+      }
+
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSaveNotifs = async () => {
