@@ -20,9 +20,7 @@ import { trackInteraction } from "../controllers/interactionController.js";
 import { optionalAuth } from "../middleware/optionalAuth.js";
 
 const router = express.Router();
-
-// PHOTO UPLOAD — standalone endpoint
-// POST /api/property/upload-photos
+ 
 router.post(
   "/upload-photos",
   authMiddleware,
@@ -30,8 +28,7 @@ router.post(
   upload.array("photos", 8),
   uploadPhotos
 );
-
-// CREATE LISTING
+ 
 router.post("/", authMiddleware, requireVerifiedEmail, createListing);
  
 
