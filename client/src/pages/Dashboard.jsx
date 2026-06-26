@@ -1,4 +1,3 @@
-// Dashboard.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SavedPropertiesPage from "./SavedList";
@@ -20,29 +19,42 @@ const todayStr = () =>
   });
 
 export default function Dashboard() {
-  const [activeNav, setActiveNav] = useState(
-    () => sessionStorage.getItem("activeNav") || "overview"
-  );
+  const [activeNav, setActiveNav] = useState(() => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("nav") || sessionStorage.getItem("activeNav") || "overview";
+});
   const [sidebarHover, setSidebarHover] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // ── User ──
+ 
   const [user, setUser] = useState(null);
   const [userLoading, setUserLoading] = useState(true);
-
-  // ── Paginated properties (for overview card + table) ──
+ 
   const [properties, setProperties] = useState([]);
   const [propsLoading, setPropsLoading] = useState(false);
   const [statsData, setStatsData] = useState({ total: 0, active: 0, rent: 0, buy: 0 });
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-
-  // ── Activities ──
+ 
   const [activities, setActivities] = useState([]);
 
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+
+  const fetchUser = async () => {
+    try {
+      const res = await fetch(`${API.AUTH}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        localStorage.removeItem("token");
+        navigate("/login?reason=token_expired", { replace: true });
+        return;
+      }
+      const userData = await res.json();
+      setUser(userData);
+    } catch { }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -51,21 +63,13 @@ export default function Dashboard() {
       try {
         setUserLoading(true);
         setPropsLoading(true);
- 
-        const [userRes, propsRes] = await Promise.all([
-          fetch(`${API.AUTH}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
+
+        const [_, propsRes] = await Promise.all([
+          fetchUser(),
           fetch(`${API.PROPERTY}/api/property/my?page=1`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
-        if (!userRes.ok) {
-          localStorage.removeItem("token");
-          navigate("/login?reason=token_expired", { replace: true });
-          return;
-        }
-
-        const [userData, propsData] = await Promise.all([userRes.json(), propsRes.json()]);
-
-        setUser(userData);
+        const propsData = await propsRes.json();
         setProperties(propsData.listings || []);
         setHasMore(propsData.hasMore);
         setStatsData({ total: propsData.total, active: propsData.active, rent: propsData.rent, buy: propsData.buy });
@@ -79,7 +83,7 @@ export default function Dashboard() {
       }
     };
     init();
-  }, []); 
+  }, []);
 
   useEffect(() => {
     if (!user?._id) return;
@@ -92,7 +96,12 @@ export default function Dashboard() {
   // ── Nav persistence ──
   useEffect(() => {
     const currentNav = navItems.find(item => item.id === activeNav);
-    if (!currentNav?.tab) sessionStorage.setItem("activeNav", activeNav);
+    if (!currentNav?.tab) {
+      sessionStorage.setItem("activeNav", activeNav);
+      const params = new URLSearchParams(window.location.search);
+      params.set("nav", activeNav);
+      window.history.replaceState(null, "", `?${params.toString()}`);
+    }
   }, [activeNav]);
 
   const handleNavClick = (item) => {
@@ -113,6 +122,7 @@ export default function Dashboard() {
   };
 
   const initials = userInitials(user);
+ 
 
   return (
     <>
@@ -189,7 +199,7 @@ export default function Dashboard() {
               <p className="topbar-date">{todayStr()}</p>
             </div>
             <div className="topbar-right">
-              <VerifyEmailButton user={user} token={token} userLoading={userLoading} />
+              <VerifyEmailButton user={user} token={token} userLoading={userLoading} onVerified={fetchUser} />
               <div className="topbar-avatar-chip">
                 <div className="topbar-avatar">{initials}</div>
                 <span className="topbar-username">{userLoading ? "..." : user?.firstName}</span>
@@ -199,7 +209,11 @@ export default function Dashboard() {
 
           <div className="dashboard-content">
 
-            {/* ── TOP STAT CARDS ── */}
+            {!userLoading && !user?.phone && (
+              <div style={{ padding: "12px 16px", marginBottom: 16, background: "#FFF7ED", border: "1px solid #FDBA74", borderLeft: "4px solid #F97316", borderRadius: 10, color: "#9A3412", fontWeight: 500, fontSize: 14 }}>
+                ⚠️ Complete your profile by adding your phone number. Navigate to <b>Settings → Profile → Update Profile</b>.
+              </div>
+            )}
             <div className="stats-grid">
               {[
                 { label: "Total Listings", value: statsData.total, icon: "🏠", colorVar: "--color-blue", bgVar: "--color-blue-bg" },
@@ -219,6 +233,7 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+
 
             {/* ── MAIN TWO-COLUMN GRID ── */}
             <div className="dashboard-grid">
@@ -317,7 +332,7 @@ export default function Dashboard() {
 
                 {activeNav === "recent" && <RecentlyViewed token={token} />}
 
-                {activeNav === "settings" && <SettingsPage token={token} onLogout={handleLogout} />}
+                {activeNav === "settings" && <SettingsPage token={token} onLogout={handleLogout} onProfileUpdated={fetchUser}  />}
 
               </div>
 
