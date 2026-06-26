@@ -4,22 +4,12 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { logActivity } from "../utils/activityLogger.js";
 import { redisPost, redisDelete } from "../utils/redisClient.js";
+import { generateToken } from "../utils/generateToken.js";
 
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173";
 
  
-function generateToken(user) {
-  return jwt.sign({
-    id: user._id,
-    city: user.city || null,
-    preferences: user.preferences || [],
-  }, process.env.JWT_SECRET, { expiresIn: "5d" });
-}
 
-/**
- * Sends a postMessage to the opener popup window and closes it.
- * Mirrors the same popup flow used in authService.js on the frontend.
- */
 function sendPopupMessage(res, type, payload) {
   const data = JSON.stringify({ type, ...payload });
   return res.send(`<!DOCTYPE html><html><body><script>
@@ -30,19 +20,17 @@ function sendPopupMessage(res, type, payload) {
 
  
 async function handleSocialCallback(req, res, provider) {
-  const profile = req.user; // set by Passport strategy
+  const profile = req.user;  
 
   try {
-    const providerIdField = `${provider}Id`; // "googleId" 
-
-    // ── 1. Find existing user by provider ID or email ─────────────────────
+    const providerIdField = `${provider}Id`;  
+ 
     let user = await User.findOne({ [providerIdField]: profile.id });
 
     if (!user && profile.email) {
       user = await User.findOne({ email: profile.email });
     }
-
-    // ── 2. Create user if not found ───────────────────────────────────────
+ 
     if (!user) {
       user = new User({
         [providerIdField]: profile.id,
@@ -85,8 +73,7 @@ async function handleSocialCallback(req, res, provider) {
       ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
     });
 
-    // ── 7. Generate JWT ───────────────────────────────────────────────────
-    const token = generateToken(user._id);
+    const token = generateToken(user);
 
     return sendPopupMessage(res, "OAUTH_SUCCESS", {
       payload: { message: "Login successful", token },
