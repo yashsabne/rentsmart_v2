@@ -34,8 +34,6 @@ const buildFilterCacheKey = (query) => {
   ].join(":");
 };
 
-
-
 export const uploadPhotos = async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
@@ -63,6 +61,8 @@ export const uploadPhotos = async (req, res) => {
 export const createListing = async (req, res) => {
   try {
     const creatorId = req.user.id;
+
+
 
     const {
       type, purpose, title, description,
@@ -160,7 +160,7 @@ export const getFilteredListings = async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
     const now = new Date();
 
-    const isGuest = !req.user?.id; 
+    const isGuest = !req.user?.id;
 
     let userPrefs = null;
 
@@ -403,8 +403,6 @@ export const getSimilarListings = async (req, res) => {
   }
 };
 
-
-
 export const getListingById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -519,7 +517,6 @@ export const getMyListings = async (req, res) => {
     if (cached?.success && cached?.data) return res.status(200).json(cached.data);
 
     if (page === 1) {
-      // Page 1: fetch listings + stats together
       const [listings, stats] = await Promise.all([
         Listing.find({ creatorId: userId }, { creatorId: 0, __v: 0 })
           .sort({ createdAt: -1 })
@@ -551,7 +548,7 @@ export const getMyListings = async (req, res) => {
         hasMore: skip + listings.length < statsData.total,
         currentPage: page,
       };
- 
+
       Promise.all([
         redisPost("/cache", { key: cacheKey, data: responseData, ttl: 600 }),
         redisPost("/cache", { key: statsCacheKey, data: statsData, ttl: 600 }),
@@ -559,7 +556,7 @@ export const getMyListings = async (req, res) => {
 
       return res.json(responseData);
 
-    } else { 
+    } else {
       const [listings, cachedStats] = await Promise.all([
         Listing.find({ creatorId: userId }, { creatorId: 0, __v: 0 })
           .sort({ createdAt: -1 })
@@ -568,7 +565,7 @@ export const getMyListings = async (req, res) => {
           .lean(),
         redisGet(`/cache/${encodeURIComponent(statsCacheKey)}`),
       ]);
- 
+
       const statsData = cachedStats?.success && cachedStats?.data
         ? cachedStats.data
         : { total: await Listing.countDocuments({ creatorId: userId }), active: 0, rent: 0, buy: 0 };
@@ -582,7 +579,7 @@ export const getMyListings = async (req, res) => {
         hasMore: skip + listings.length < statsData.total,
         currentPage: page,
       };
- 
+
       redisPost("/cache", { key: cacheKey, data: responseData, ttl: 600 })
         .catch(err => console.error("Cache write failed:", err));
 
@@ -743,10 +740,9 @@ export const getNotLoggedRecommended = async (req, res) => {
   }
 };
 
-
 export const hideListingsByOwner = async (req, res) => {
-   try {
-    const { userId } = req.params; 
+  try {
+    const { userId } = req.params;
     await Listing.updateMany(
       { creatorId: userId },
       { isHidden: true, hiddenAt: new Date(), status: "DELETED", statusChangedAt: new Date() }
