@@ -7,6 +7,7 @@ import { logActivity } from "../utils/activityLogger.js";
 import { redisPost, redisGet, redisDelete } from "../utils/redisClient.js";
 import { verifyInternalSecret } from "../middleware/verifyInternalSecret.js";
 import { sendForgotPasswordEmail } from "../services/sendForgotPasswordEmail.js";
+import { generateToken } from "../utils/generateToken.js";
 
 
 export const register = async (req, res) => {
@@ -62,13 +63,7 @@ export const register = async (req, res) => {
       console.error("Verification email failed:", error);
     });
 
-
-    const token = jwt.sign({
-      id: user._id,
-      city: user.city || null,
-      preferences: user.preferences || [],
-    }, process.env.JWT_SECRET, { expiresIn: "5d" });
-
+    const token = generateToken(user);
 
     const userResponse = user.toObject();
 
@@ -136,11 +131,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({
-      id: user._id,
-      city: user.city || null,
-      preferences: user.preferences || [],
-    }, process.env.JWT_SECRET, { expiresIn: "5d" });
+    const token = generateToken(user);
 
 
     const userAgent = req.headers["user-agent"] || "";
@@ -273,7 +264,8 @@ export const verifyEmail = async (req, res) => {
 
     await user.save();
 
-    await redisDelete(`/cache/user:${user._id}`);
+    await redisDelete(`/cache/${encodeURIComponent(`user:${user._id}`)}`);
+    
 
     await logActivity(user._id, "EMAIL_VERIFIED", { email: user.email });
 
@@ -329,13 +321,13 @@ export const resendVerificationEmail = async (req, res) => {
 
 export const checkVerification = async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).select("isEmailVerified");
+    const user = await User.findById(req.params.userId).select("isEmailVerified phone");
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.json({ success: true, verified: user.isEmailVerified });
+    res.json({ success: true, verified: user.isEmailVerified,phone: user.phone || null  });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
