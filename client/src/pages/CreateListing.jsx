@@ -8,23 +8,23 @@ import DraftRestoredBanner from "../components/DraftRestoredBanner";
 import { loadDraft, clearDraft, useListingDraft } from "../draft/useListingDraft.js";
 
 const STEPS = [
-  { label: "Basic Info",  desc: "Type, purpose & title" },
-  { label: "Location",    desc: "Address & city" },
-  { label: "Details",     desc: "Size, rooms & features" },
-  { label: "Pricing",     desc: "Price & availability" },
-  { label: "Photos",      desc: "Upload images" },
-  { label: "Review",      desc: "Preview & publish" },
+  { label: "Basic Info", desc: "Type, purpose & title" },
+  { label: "Location", desc: "Address & city" },
+  { label: "Details", desc: "Size, rooms & features" },
+  { label: "Pricing", desc: "Price & availability" },
+  { label: "Photos", desc: "Upload images" },
+  { label: "Review", desc: "Preview & publish" },
 ];
 
 const PROPERTY_TYPES = ["Apartment", "Villa", "Bungalow", "Studio", "Penthouse", "Commercial", "Plot"];
-const PURPOSES       = ["Rent", "Sell", "Lease"];
-const FURNISHINGS    = ["Unfurnished", "Semi-Furnished", "Fully Furnished"];
-const FACINGS        = ["East", "West", "North", "South", "North-East", "North-West", "South-East", "South-West"];
-const AMENITY_LIST   = ["Parking", "Lift", "Swimming Pool", "Gym", "Security", "Power Backup", "Garden", "Clubhouse", "Wi-Fi", "Air Conditioning", "Pet Friendly", "Laundry"];
+const PURPOSES = ["Rent", "Sell", "Lease"];
+const FURNISHINGS = ["Unfurnished", "Semi-Furnished", "Fully Furnished"];
+const FACINGS = ["East", "West", "North", "South", "North-East", "North-West", "South-East", "South-West"];
+const AMENITY_LIST = ["Parking", "Lift", "Swimming Pool", "Gym", "Security", "Power Backup", "Garden", "Clubhouse", "Wi-Fi", "Air Conditioning", "Pet Friendly", "Laundry"];
 
 const ALLOWED_MIME = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const MAX_PHOTOS    = 8;
+const MAX_PHOTOS = 8;
 
 const INITIAL_FORM = {
   type: "", purpose: "", title: "", description: "",
@@ -36,7 +36,6 @@ const INITIAL_FORM = {
   available: "", negotiable: false,
 };
 
-// ─── Image compression (resizes + compresses before upload) ──────────────────
 const compressImage = (file, quality = 0.78) =>
   new Promise((resolve) => {
     const img = new Image();
@@ -48,14 +47,14 @@ const compressImage = (file, quality = 0.78) =>
       if (width > MAX_DIM || height > MAX_DIM) {
         if (width > height) {
           height = Math.round((height / width) * MAX_DIM);
-          width  = MAX_DIM;
+          width = MAX_DIM;
         } else {
-          width  = Math.round((width / height) * MAX_DIM);
+          width = Math.round((width / height) * MAX_DIM);
           height = MAX_DIM;
         }
       }
       const canvas = document.createElement("canvas");
-      canvas.width  = width;
+      canvas.width = width;
       canvas.height = height;
       canvas.getContext("2d").drawImage(img, 0, 0, width, height);
       canvas.toBlob(
@@ -73,7 +72,6 @@ const compressImage = (file, quality = 0.78) =>
     img.src = url;
   });
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function Label({ children }) {
   return (
@@ -194,49 +192,40 @@ function Counter({ label, value, onChange, min = 0, max = 20, disabled = false }
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function CreateListing() {
   const navigate = useNavigate();
 
-  // ── Draft (loaded once at mount) ──────────────────────────────────────────
-  const [savedDraft]      = useState(() => loadDraft());
+  const [savedDraft] = useState(() => loadDraft());
   const [showDraftBanner, setShowDraftBanner] = useState(!!savedDraft);
 
-  // ── Wizard ────────────────────────────────────────────────────────────────
-  const [step,         setStep]         = useState(savedDraft?.step ?? 0);
-  const [errors,       setErrors]       = useState({});
-  const [published,    setPublished]    = useState(false);
+  const [step, setStep] = useState(savedDraft?.step ?? 0);
+  const [errors, setErrors] = useState({});
+  const [published, setPublished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [publishError, setPublishError] = useState("");
 
-  // ── Photos ────────────────────────────────────────────────────────────────
-  const [photoFiles,     setPhotoFiles]     = useState([]);
+  const [photoFiles, setPhotoFiles] = useState([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [photoError,     setPhotoError]     = useState("");
-  const [isDragOver,     setIsDragOver]     = useState(false);
-  const [compressing,    setCompressing]    = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [compressing, setCompressing] = useState(false);
 
-  // ── Eager upload ──────────────────────────────────────────────────────────
   const [eagerUploadedUrls, setEagerUploadedUrls] = useState(null);
   const eagerUploadedIdsRef = useRef(new Set());
-  const eagerXhrRef         = useRef(null);
+  const eagerXhrRef = useRef(null);
 
-  // ── Form ──────────────────────────────────────────────────────────────────
   const [form, setForm] = useState(savedDraft?.form ?? INITIAL_FORM);
-  const set  = (k) => (v)  => setForm(f => ({ ...f, [k]: v }));
-  const setE = (k) => (e)  => set(k)(e.target.value);
+  const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
+  const setE = (k) => (e) => set(k)(e.target.value);
 
-  // ── Auto-save draft ───────────────────────────────────────────────────────
   useListingDraft(form, step);
 
-  // ── Cleanup on unmount ────────────────────────────────────────────────────
   useEffect(() => {
     return () => { eagerXhrRef.current?.abort(); };
   }, []);
 
-  // ── Discard draft ─────────────────────────────────────────────────────────
   const handleDiscardDraft = () => {
     clearDraft();
     setForm(INITIAL_FORM);
@@ -244,7 +233,6 @@ export default function CreateListing() {
     setShowDraftBanner(false);
   };
 
-  // ── Eager upload (background upload as soon as photos are picked) ─────────
   const triggerEagerUpload = useCallback((newItems) => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -261,26 +249,59 @@ export default function CreateListing() {
     const xhr = new XMLHttpRequest();
     eagerXhrRef.current = xhr;
 
-    xhr.onload = () => {
-      if (xhr.status < 200 || xhr.status >= 300) { setEagerUploadedUrls(null); return; }
-      let data;
-      try { data = JSON.parse(xhr.responseText); } catch { setEagerUploadedUrls(null); return; }
-      fresh.forEach(item => eagerUploadedIdsRef.current.add(item.id));
-      setEagerUploadedUrls(prev => {
-        const existing = Array.isArray(prev) ? prev : [];
-        return [...existing, ...data.urls];
-      });
-    };
+ xhr.onload = () => {
+  if (xhr.status === 401) {
+    navigate("/login?reason=session_expired");
+    setEagerUploadedUrls(null);
+    return;
+  }
 
-    xhr.onerror   = () => setEagerUploadedUrls(null);
+  let data;
+  try {
+    data = JSON.parse(xhr.responseText);
+  } catch {
+    setEagerUploadedUrls(null);
+    return;
+  }
+       
+
+  if (xhr.status === 403 && data.code === "EMAIL_NOT_VERIFIED") {
+    setEagerUploadedUrls(null);
+    setPhotoError("Please verify your email first.");
+    localStorage.setItem("rentsmart_post_phone_redirect", "/create");
+
+    setTimeout(() => navigate("/dashboard?verifying-email=true"), 2000);
+    return;
+  }
+
+  if (xhr.status === 403 && data.code === "PHONE_MISSING") {
+    setEagerUploadedUrls(null);
+    setPhotoError("Please add your phone number before creating a property.");
+    localStorage.setItem("rentsmart_post_phone_redirect", "/create");
+    setTimeout(() => navigate("/dashboard?nav=settings&reason=phone_required"), 2000);
+    return;
+  }
+
+  if (xhr.status < 200 || xhr.status >= 300) {
+    setEagerUploadedUrls(null);
+    return;
+  }
+
+  fresh.forEach(item => eagerUploadedIdsRef.current.add(item.id));
+  setEagerUploadedUrls(prev => {
+    const existing = Array.isArray(prev) ? prev : [];
+    return [...existing, ...data.urls];
+  });
+};
+
+    xhr.onerror = () => setEagerUploadedUrls(null);
     xhr.ontimeout = () => setEagerUploadedUrls(null);
-    xhr.timeout   = 120_000;
+    xhr.timeout = 120_000;
     xhr.open("POST", `${API.PROPERTY}/api/property/upload-photos`);
     xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.send(formData);
   }, []);
 
-  // ── Photo handlers ────────────────────────────────────────────────────────
   const processFiles = async (rawFiles) => {
     setPhotoError("");
     let files = rawFiles;
@@ -321,9 +342,9 @@ export default function CreateListing() {
   };
 
   const handleFileSelect = (e) => { processFiles(Array.from(e.target.files)); e.target.value = ""; };
-  const handleDrop       = (e) => { e.preventDefault(); setIsDragOver(false); processFiles(Array.from(e.dataTransfer.files)); };
-  const handleDragOver   = (e) => { e.preventDefault(); setIsDragOver(true); };
-  const handleDragLeave  = ()  => setIsDragOver(false);
+  const handleDrop = (e) => { e.preventDefault(); setIsDragOver(false); processFiles(Array.from(e.dataTransfer.files)); };
+  const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };
+  const handleDragLeave = () => setIsDragOver(false);
 
   const removePhotoFile = (id) => {
     setPhotoFiles(prev => {
@@ -340,10 +361,10 @@ export default function CreateListing() {
     setPhotoError("");
   };
 
-  // ── XHR upload fallback (used only if eager upload didn't finish) ─────────
   const uploadAllPhotos = () =>
     new Promise((resolve) => {
       if (photoFiles.length === 0) { resolve([]); return; }
+
 
       setUploadingPhotos(true);
       setUploadProgress(0);
@@ -353,11 +374,63 @@ export default function CreateListing() {
         setUploadingPhotos(false);
       };
 
-      const token    = localStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const formData = new FormData();
       photoFiles.forEach(({ file }) => formData.append("photos", file));
 
       const xhr = new XMLHttpRequest();
+
+
+      console.log(xhr)
+      
+      xhr.onload = () => {
+        if (xhr.status === 401) {
+          teardown();
+          navigate("/login?reason=session_expired");
+          resolve(null);
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch {
+          teardown();
+          setPhotoError("Server returned an unexpected response. Please try again.");
+          resolve(null);
+          return;
+        }
+
+        if (xhr.status === 403 && data.code === "EMAIL_NOT_VERIFIED") {
+          teardown();
+          setPhotoError("Please verify your email first.");
+          setTimeout(() => navigate("/dashboard?verifying-email=true"), 2000);
+          resolve(null);
+          return;
+        }
+
+        if (xhr.status === 403 && data.code === "PHONE_MISSING") {
+          teardown();
+          setPhotoError("Please add your phone number before creating a property.");
+          localStorage.setItem("rentsmart_post_phone_redirect", "/create");
+          setTimeout(() => navigate("/dashboard?nav=settings&reason=phone_required"), 2000);
+          resolve(null);
+          return;
+        }
+
+        if (xhr.status < 200 || xhr.status >= 300) {
+          teardown();
+          setPhotoError(data.message || "Upload failed. Please try again.");
+          resolve(null);
+          return;
+        }
+
+        setUploadProgress(100);
+        setTimeout(() => {
+          teardown();
+          resolve(data.urls);
+        }, 600);
+      };
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
@@ -365,39 +438,26 @@ export default function CreateListing() {
         }
       };
 
-      xhr.onload = () => {
-        if (xhr.status === 401) { teardown(); navigate("/login?reason=session_expired"); resolve(null); return; }
-        let data;
-        try { data = JSON.parse(xhr.responseText); } catch {
-          teardown(); setPhotoError("Server returned an unexpected response. Please try again."); resolve(null); return;
-        }
-        if (xhr.status < 200 || xhr.status >= 300) {
-          teardown(); setPhotoError(data.message || "Upload failed. Please try again."); resolve(null); return;
-        }
-        setUploadProgress(100);
-        setTimeout(() => { teardown(); resolve(data.urls); }, 600);
-      };
 
-      xhr.onerror   = () => { teardown(); setPhotoError("Network error during upload. Please check your connection and try again."); resolve(null); };
+      xhr.onerror = () => { teardown(); setPhotoError("Network error during upload. Please check your connection and try again."); resolve(null); };
       xhr.ontimeout = () => { teardown(); setPhotoError("Upload timed out. Please try again with a faster connection."); resolve(null); };
-      xhr.timeout   = 120_000;
+      xhr.timeout = 120_000;
       xhr.open("POST", `${API.PROPERTY}/api/property/upload-photos`);
       xhr.setRequestHeader("Authorization", `Bearer ${token}`);
       xhr.send(formData);
     });
 
-  // ── Step validation ───────────────────────────────────────────────────────
   const validateStep = () => {
     const e = {};
     if (step === 0) {
-      if (!form.type)              e.type        = "Select a property type";
-      if (!form.purpose)           e.purpose     = "Select a purpose";
-      if (!form.title.trim())      e.title       = "Enter a title";
+      if (!form.type) e.type = "Select a property type";
+      if (!form.purpose) e.purpose = "Select a purpose";
+      if (!form.title.trim()) e.title = "Enter a title";
       if (!form.description.trim()) e.description = "Enter a description";
     }
     if (step === 1) {
       if (!form.address.trim()) e.address = "Enter an address";
-      if (!form.city.trim())    e.city    = "Enter a city";
+      if (!form.city.trim()) e.city = "Enter a city";
     }
     if (step === 3) {
       if (!String(form.price).trim() || Number(form.price) <= 0)
@@ -416,7 +476,6 @@ export default function CreateListing() {
 
   const back = () => { setErrors({}); setPublishError(""); setStep(s => Math.max(s - 1, 0)); };
 
-  // ── Publish ───────────────────────────────────────────────────────────────
   const handlePublish = async () => {
     if (isSubmitting || uploadingPhotos) return;
 
@@ -427,7 +486,7 @@ export default function CreateListing() {
       try {
         localStorage.setItem("rentsmart_create_listing_draft", JSON.stringify({ form, step }));
         localStorage.setItem("rentsmart_post_login_redirect", "/create");
-      } catch {}
+      } catch { }
       navigate("/login?reason=session_expired");
       return;
     }
@@ -469,13 +528,36 @@ export default function CreateListing() {
       });
 
       if (res.status === 401) {
-        try { localStorage.setItem("rentsmart_post_login_redirect", "/create"); } catch {}
+        try { localStorage.setItem("rentsmart_post_login_redirect", "/create"); } catch { }
         navigate("/login?reason=session_expired");
         return;
       }
 
       const data = await res.json();
-      if (!res.ok) { setPublishError(data.message || "Failed to create listing. Please try again."); return; }
+
+
+      if (!res.ok) {
+
+        if (res.status === 403 && data.code === "EMAIL_NOT_VERIFIED") {
+          setPublishError("Please verify your email first...");  
+          setTimeout(() => {
+            navigate("/dashboard?verifying-email=true");
+          }, 2000);
+          return;
+        }
+        if (res.status === 403 && data.code === "PHONE_MISSING") {
+          console.log("we are hitting")
+          setPublishError("Please add your phone number first...");
+          localStorage.setItem("rentsmart_post_phone_redirect", "/create");
+          setTimeout(() => {
+            navigate("/dashboard?nav=settings&reason=phone_required");
+          }, 2000);
+          return;
+        }
+        setPublishError(data.message || "Failed to create listing. Please try again.");
+        return;
+      }
+
 
       clearDraft();
       localStorage.removeItem("rentsmart_post_login_redirect");
@@ -509,7 +591,6 @@ export default function CreateListing() {
 
   const busy = uploadingPhotos || isSubmitting || compressing;
 
-  // ── Published screen ──────────────────────────────────────────────────────
   if (published) {
     return (
       <div style={{
@@ -539,10 +620,10 @@ export default function CreateListing() {
             padding: "20px", marginBottom: 28, textAlign: "left",
           }}>
             {[
-              ["Type",    form.type    || "—"],
+              ["Type", form.type || "—"],
               ["Purpose", form.purpose || "—"],
-              ["City",    form.city    || "—"],
-              ["Price",   form.price ? `₹${Number(form.price).toLocaleString("en-IN")}` : "—"],
+              ["City", form.city || "—"],
+              ["Price", form.price ? `₹${Number(form.price).toLocaleString("en-IN")}` : "—"],
             ].map(([k, v]) => (
               <div key={k} style={{
                 display: "flex", justifyContent: "space-between", padding: "9px 0",
@@ -634,7 +715,7 @@ export default function CreateListing() {
               letterSpacing: "1px", textTransform: "uppercase", marginBottom: 24,
             }}>Progress</p>
             {STEPS.map((s, i) => {
-              const done    = i < step;
+              const done = i < step;
               const current = i === step;
               return (
                 <div key={i} style={{ display: "flex", gap: 14, marginBottom: 24, opacity: i > step ? 0.4 : 1 }}>
@@ -719,7 +800,7 @@ export default function CreateListing() {
                         lineHeight: 1.6, transition: "border-color .2s",
                       }}
                       onFocus={e => e.currentTarget.style.borderColor = C.ink}
-                      onBlur={e  => e.currentTarget.style.borderColor = errors.description ? C.red : C.border}
+                      onBlur={e => e.currentTarget.style.borderColor = errors.description ? C.red : C.border}
                     />
                     {errors.description && (
                       <p style={{ fontSize: 12, color: C.red, marginTop: 4 }}>{errors.description}</p>
@@ -768,8 +849,8 @@ export default function CreateListing() {
                   <div style={{ marginBottom: 22 }}>
                     <Label>Rooms</Label>
                     <div className="counter-row">
-                      <Counter label="Bedrooms"  value={form.beds}      onChange={set("beds")}      min={0} />
-                      <Counter label="Bathrooms" value={form.baths}     onChange={set("baths")}     min={0} />
+                      <Counter label="Bedrooms" value={form.beds} onChange={set("beds")} min={0} />
+                      <Counter label="Bathrooms" value={form.baths} onChange={set("baths")} min={0} />
                       <Counter label="Balconies" value={form.balconies} onChange={set("balconies")} min={0} />
                     </div>
                   </div>
@@ -1028,11 +1109,11 @@ export default function CreateListing() {
                         display: "flex", gap: 16, flexWrap: "wrap",
                         borderTop: `1px solid ${C.border}`, paddingTop: 12,
                       }}>
-                        {form.beds      > 0 && <span style={{ fontSize: 12, color: C.muted }}>{form.beds} Bed</span>}
-                        {form.baths     > 0 && <span style={{ fontSize: 12, color: C.muted }}>{form.baths} Bath</span>}
-                        {form.area          && <span style={{ fontSize: 12, color: C.muted }}>{form.area} sqft</span>}
-                        {form.furnishing    && <span style={{ fontSize: 12, color: C.muted }}>{form.furnishing}</span>}
-                        {form.negotiable    && <span style={{ fontSize: 12, color: C.green, fontWeight: 500 }}>Negotiable</span>}
+                        {form.beds > 0 && <span style={{ fontSize: 12, color: C.muted }}>{form.beds} Bed</span>}
+                        {form.baths > 0 && <span style={{ fontSize: 12, color: C.muted }}>{form.baths} Bath</span>}
+                        {form.area && <span style={{ fontSize: 12, color: C.muted }}>{form.area} sqft</span>}
+                        {form.furnishing && <span style={{ fontSize: 12, color: C.muted }}>{form.furnishing}</span>}
+                        {form.negotiable && <span style={{ fontSize: 12, color: C.green, fontWeight: 500 }}>Negotiable</span>}
                       </div>
                     </div>
                   </div>
