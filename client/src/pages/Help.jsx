@@ -16,7 +16,9 @@ export default function Help() {
 
       {/* HERO */}
       <section style={styles.hero}>
-        <p style={styles.heroBadge}>Help Centre</p>
+        <p style={styles.heroBadge}>Help Centre</p> <br />
+        
+        <p style={styles.heroBadge}>currently this page is static only !!</p>
         <h1 style={styles.heroHeading}>How can we help you?</h1>
         <p style={styles.heroSub}>
           Explore guides, FAQs, and support resources for buying, renting, selling, and managing properties on RentSmart.
