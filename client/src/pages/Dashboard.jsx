@@ -58,7 +58,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const init = async () => {
-      if (!token) { navigate("/login", { replace: true }); return; }
+      if (!token) { navigate("/login?reason=token_expired", { replace: true }); return; }
 
       try {
         setUserLoading(true);
