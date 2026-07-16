@@ -36,8 +36,9 @@ const MessageBox = ({ property }) => {
           avatar: property.owner.avatar || "",
         },
         text: trimmed,
-      });
-      navigate(`/dashboard/messages/${result.conversationSlug}`);
+      }); 
+      
+      navigate(`/dashboard/messages/${result.conversationSlug}?nav=messages`);
     } catch (err) {
       console.error("[MessageBox] Error:", err);
       setError("Failed to send message. Please try again.");
