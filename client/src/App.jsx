@@ -18,6 +18,8 @@ import ResetPasswordPage from './pages/ResetPassword';
 import ScrollToTop from './components/ScrollToTop';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/Privacypolicy';
+import AboutPage from './pages/AboutPage';
+import BlogPage from './pages/BlogPage';
 
 
 function App() {
@@ -49,6 +51,8 @@ function App() {
 
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/blog" element={<BlogPage />} />
 
 
 
@@ -57,4 +61,4 @@ function App() {
   )
 }
 
-export default App
+export default App;
