@@ -31,10 +31,8 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path='/register' element={<RegisterPage />} />
-
         <Route path='/login' element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
-
         <Route path="/saved-properties" element={<SavedPropertiesPage />} />
         <Route path='/details/:id' element={<ListingDetails />} />
         <Route path='/search-for-property/:type' element={<PropertyBuyPage />} />
@@ -45,16 +43,12 @@ function App() {
         <Route path="/dashboard/messages" element={<Dashboard initialSection="messages" />} />
         <Route path="/dashboard/messages/:slug" element={<Dashboard initialSection="messages" />} />
         <Route path='/help' element={<Help />} />
-
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/blog" element={<BlogPage />} />
-
-
 
       </Routes>
     </Router>

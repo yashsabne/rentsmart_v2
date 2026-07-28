@@ -64,7 +64,7 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <div style={{ backgroundColor: C.bg, minHeight: "100vh", fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
+    <div style={{ backgroundColor: C.bg,width: "100%", overflowX: "hidden", boxSizing: "border-box" , fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
 
       {/* HERO */}
       <section style={{ maxWidth: 900, margin: "0 auto", padding: "80px 24px 60px" }}>
@@ -95,11 +95,19 @@ export default function AboutPage() {
       </section>
 
       {/* MISSION */}
-      <section style={{ maxWidth: 900, margin: "0 auto", padding: "72px 24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
+      <section style={{ maxWidth: 1000, margin: "0 auto", padding: "72px 24px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: 60,
+            alignItems: "center",
+        
+          }}
+        >
           <div>
             <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: C.gold, marginBottom: 16 }}>Our Mission</p>
-            <h2 style={{ fontSize: 32, fontWeight: 700, color: C.dark, lineHeight: 1.25, margin: "0 0 20px", fontFamily: "Georgia, serif" }}>
+            <h2 style={{fontWeight: 700, color: C.dark, lineHeight: 1.25, margin: "0 0 20px", fontFamily: "Georgia, serif" }}>
               Make renting as simple as it should be
             </h2>
             <p style={{ fontSize: 15, color: C.muted, lineHeight: 1.8, margin: "0 0 16px" }}>
@@ -158,15 +166,26 @@ export default function AboutPage() {
           <h2 style={{ fontSize: 32, fontWeight: 700, color: C.dark, margin: "0 0 48px", fontFamily: "Georgia, serif" }}>Built by</h2>
           {team.map((member, i) => (
             <div key={i} style={{ display: "flex", gap: 32, alignItems: "flex-start", flexWrap: "wrap" }}>
-              <a target="_blank" href={member.img}>
-              <div style={{width:200,height: 200,borderRadius: "50%",backgroundColor: C.gold,display: "flex",alignItems: "center",justifyContent: "center",overflow: "hidden",}}>
-                  <img
-                    src={member.img}
-                    alt={member.name ?? ""}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
+
+<div
+  style={{
+    width: "clamp(140px, 40vw, 300px)",
+    height: "clamp(140px, 40vw, 300px)",
+    borderRadius: "50%",
+    backgroundColor: C.gold,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    flexShrink: 0,
+  }}
+>                <img
+                  src={member.img}
+                  alt={member.name ?? ""}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
               </div>
-              </a>
+
               <div>
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: C.dark, margin: "0 0 4px" }}>{member.name}</h3>
                 <p style={{ fontSize: 13, color: C.gold, margin: "0 0 12px", fontWeight: 500 }}>{member.role}</p>

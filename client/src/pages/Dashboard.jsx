@@ -92,8 +92,7 @@ export default function Dashboard() {
       .then(data => setActivities(data.activities || []))
       .catch(console.error);
   }, [user]);
-
-  // ── Nav persistence ──
+ 
   useEffect(() => {
     const currentNav = navItems.find(item => item.id === activeNav);
     if (!currentNav?.tab) {

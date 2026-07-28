@@ -1,4 +1,5 @@
 import express from "express";
+import os from "os";
 const router = express.Router();
 
 import {
@@ -27,7 +28,7 @@ router.post("/logout", authMiddleware, logout);
 router.get("/me", authMiddleware, getMe);
 
 router.get("/user/:id", getUserById);
-
+ 
 
 router.get("/internal/user/:id", verifyInternalSecret, async (req, res) => {
  
