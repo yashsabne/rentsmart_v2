@@ -313,6 +313,8 @@ const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => 
                 {loading.status ? "…" : statusLabel}
               </button>
             </div>
+
+            
           </div>
 
           <button onClick={() => navigate(`/edit-property/${property._id}`)}
