@@ -140,8 +140,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
-
-      {/* VALUES */}
+ 
       <section style={{ backgroundColor: C.bgCard, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "72px 24px" }}>
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: C.gold, marginBottom: 16 }}>What We Stand For</p>
