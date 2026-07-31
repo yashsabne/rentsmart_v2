@@ -1,70 +1,121 @@
-# RentSmart — Testing & Quality
+# RentSmart v2 — Testing & Quality
 
 ---
 
-## Current State
+## Testing Overview
 
-| Type | Status |
-|---|---|
-| Unit tests | ❌ None |
-| Integration tests | ❌ None |
-| E2E tests | ❌ None |
-| Load tests | ✅ k6 (documented in `/testreport.md`) |
-| Linting / formatting | ❌ No ESLint or Prettier configured |
-| Pre-commit hooks | ❌ None |
-
-> The one form of testing present is a real k6 load test run against the deployed system — a genuine operational signal most portfolio projects don't have.
-
----
-
-## Load Test Results
-
-**Tool:** k6  
-**Target:** Render-hosted search endpoints  
-**Profile:** Ramp from 2 → 500 virtual users over ~10 minutes, then hold
-
-| Metric | Value |
-|---|---|
-| Total requests | 20,235 |
-| HTTP failure rate | 0.97% (197 failed) |
-| Average response | 7.96s |
-| Median (P50) | 3.88s |
-| P95 | ~13.8s |
-| P99 | ~15.0s |
-| Requests > 5s | ~52% |
-
-**Interpretation:** The service is resilient under load (no crash, 99% success rate) but slow. The P95/P99 latency is a consequence of a 512MB Render free-tier instance under 500 concurrent users, not a code bug. Caching search results per query signature would be the highest-leverage fix.
+| Category | Status |
+|----------|--------|
+| Unit Tests | ❌ Not implemented |
+| Integration Tests | ❌ Not implemented |
+| End-to-End (E2E) Tests | ❌ Not implemented |
+| Load Testing | ✅ Implemented using k6 |
+| API Validation | ✅ Mongoose + Controller Validation |
+| Performance Benchmarking | ✅ Railway vs Render Comparison |
+| CI/CD | ✅ GitHub Actions |
 
 ---
 
-## Validation Approaches
+# Load Testing
 
-### Mongoose Schema Validation
-Provides a baseline across all services:
-- `required` — prevents missing fields
-- `enum` — enforces valid status values (`AVAILABLE`, `RENTED`, `SOLD`, `DELETED`)
-- `unique` — email uniqueness, saved-property deduplication
-- `min/max` — numeric constraints
+The Property Service has been stress-tested using **k6** against deployed production environments.
 
-### Controller-Level Validation
-Each controller uses inline presence checks and type guards. Not standardized across services — no shared library like `zod` or `joi`.
+Testing characteristics:
 
-### Dedicated Validators (chat-service only)
-`conversationValidator.js` and `messageValidator.js` check required fields and shapes using express-validator-style functions. The only service with a dedicated validation layer.
+- Randomized property search queries
+- 500 concurrent virtual users
+- Mixed Rent/Sell requests
+- Random price ranges
+- Random pagination
+- Production MongoDB Atlas database
+- Redis cache enabled
+
+Detailed benchmark results are available in:
+
+- [load-testing.md](./load-testing.md)
+- [performance-comparison.md](./performance-comparison.md)
+
+---
+
+# Validation
+
+## Mongoose Schema Validation
+
+Every service validates incoming data through Mongoose schemas.
+
+Validation includes:
+
+- Required fields
+- Enum validation
+- Default values
+- Numeric constraints
+- Unique indexes
+- ObjectId validation
+
+---
+
+## Controller Validation
+
+Controllers validate:
+
+- Required request fields
+- User authorization
+- Resource ownership
+- Pagination parameters
+- Search filters
+
+---
+
+## Authentication Validation
+
+Authentication requests validate:
+
+- JWT tokens
+- Google OAuth authentication
+- Password hashing using bcrypt
+- Session validation
 
 ---
 
 ## Error Handling
 
-All controllers follow this pattern:
+Controllers follow a consistent error-handling strategy.
 
 ```javascript
 try {
-  // business logic
-  res.json({ success: true, data: result });
-} catch (err) {
-  console.error(err);
-  res.status(500).json({ success: false, message: 'Internal server error' });
-} 
+    // business logic
 
+    return res.status(200).json({
+        success: true,
+        data,
+    });
+
+} catch (error) {
+
+    console.error(error);
+
+    return res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+    });
+
+}
 ```
+
+---
+
+# Future Improvements
+
+Planned additions include:
+
+- Jest unit testing
+- Supertest integration testing
+- Cypress E2E testing
+- GitHub Actions automated test execution
+- ESLint
+- Prettier
+- Husky pre-commit hooks
+
+---
+
+The application has been validated through real-world deployment and production load testing under sustained concurrent traffic.
