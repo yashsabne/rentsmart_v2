@@ -1,12 +1,8 @@
 import React, { useState } from "react"
 import { C, stats, properties } from "../constants";
-import { useNavigate } from "react-router-dom";
-
+import PropertySearch from "./PropertySearch";
 const Hero = () => {
-
-  const [searchType, setSearchType] = useState("Rent");
-  const [searchQuery, setSearchQuery] = useState("");
-  const navigate = useNavigate();
+ 
 
   return (
     <section style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", padding: "80px 48px 60px", overflow: "hidden" }}>
@@ -38,53 +34,9 @@ const Hero = () => {
         </p>
 
         {/* Search Bar */}
-        <div className="a4 hero-search-bar" style={{ background: C.white, borderRadius: 18, boxShadow: "0 8px 40px rgba(0,0,0,0.11)", padding: 8, display: "flex", alignItems: "center", gap: 6, maxWidth: 580 }}>
-
-          {/* Type switcher */}
-          <div className="hero-type-switcher" style={{ display: "flex", background: "#F5F5F2", borderRadius: 12, padding: 3, gap: 2, flexShrink: 0 }}>
-            {["Rent", "Sell"].map((t) => (
-              <button key={t} onClick={() => setSearchType(t)}
-                style={{ padding: "7px 16px", borderRadius: 9, border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all .2s", background: searchType === t ? C.white : "transparent", color: searchType === t ? C.ink : C.inkMuted, boxShadow: searchType === t ? "0 1px 6px rgba(0,0,0,0.08)" : "none" }}>
-                {t}
-              </button>
-            ))}
-          </div>
-
-          {/* Input */}
-          <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search city, locality or project..."
-            style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 13, color: C.ink, padding: "10px 8px", minWidth: 0 }} />
-
-          {/* Search button */}
-          <button
-  className="hero-search-btn"
-  style={{
-    background: C.ink,
-    color: "#fff",
-    border: "none",
-    padding: "11px 22px",
-    borderRadius: 12,
-    fontSize: 13,
-    fontWeight: 500,
-    flexShrink: 0,
-    transition: "background .2s",
-    display: "flex",
-    alignItems: "center",
-    gap: 4
-  }}
-
-  onClick={() => {
-navigate(
-  `/search-for-property/${searchType.toLowerCase()}?type=${searchType.toLowerCase()}&search=${encodeURIComponent(searchQuery)}`
-);
-  }}
-
-  onMouseEnter={e => e.currentTarget.style.background = C.gold}
-  onMouseLeave={e => e.currentTarget.style.background = C.ink}
->
-  🔍 Search
-</button>
-        </div>
+      <div className="a4">
+  <PropertySearch />
+</div>
 
         {/* Stats */}
         <div className="a5 hero-stats" style={{ display: "flex", gap: 0, marginTop: 44, flexWrap: "wrap" }}>
