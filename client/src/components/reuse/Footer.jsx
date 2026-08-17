@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { C, footerCols } from "../../constants";
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
   const routeMap = {
     "About Us": "/about",
     Careers: "/careers",
@@ -178,7 +179,7 @@ const Footer = () => {
         </div>
 
         <div className="footer-bottom">
-          <span>© 2025 RentSmart. All rights reserved.</span>
+          <span>© {currentYear} RentSmart. All rights reserved.</span>
           <span>Made with ♥ for India 🇮🇳</span>
         </div>
       </footer>
