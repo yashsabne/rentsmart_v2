@@ -1,0 +1,10 @@
+
+FROM nginx:alpine
+
+# Copy production NGINX configuration
+COPY nginx/nginx.render.conf /etc/nginx/nginx.conf
+
+# Render web service port
+EXPOSE 10000
+
+CMD ["nginx", "-g", "daemon off;"]
