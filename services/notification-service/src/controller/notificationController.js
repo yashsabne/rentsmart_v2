@@ -1,5 +1,12 @@
 import sendEmail from "../services/sendEmail.js";
 
+const logEmail = (event, data = {}) => {
+  console.log(`[EMAIL_SERVICE] ${event}`, {
+    timestamp: new Date().toISOString(),
+    ...data
+  });
+};
+
  
 export const paymentSuccess = async (req, res) => {
   const requestId = Date.now();
