@@ -27,6 +27,7 @@ export const sendBrevoEmail = async ({ to, name = "", subject, html }) => {
  
 
     const data = await response.json();
+    console.log(data,"brevo response");
  
     
 
