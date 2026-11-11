@@ -266,14 +266,14 @@ export const createListing = async (req, res) => {
 
       aiEvaluation: aiEvaluation
         ? {
-            success: true,
-            evaluationId: aiEvaluation.evaluationId,
-            evaluation: aiEvaluation.evaluation
-          }
+          success: true,
+          evaluationId: aiEvaluation.evaluationId,
+          evaluation: aiEvaluation.evaluation
+        }
         : {
-            success: false,
-            message: "Listing created, but AI evaluation is currently unavailable."
-          }
+          success: false,
+          message: "Listing created, but AI evaluation is currently unavailable."
+        }
     });
 
   } catch (err) {
@@ -949,18 +949,27 @@ export const getPropertyEvaluationHistory = async (req, res) => {
       }
     );
 
-    const data = await response.json().catch(() => null);
+    const responseText = await response.text();
 
-    if (!response.ok) {
-      return res.status(response.status).json(
-        data || {
-          success: false,
-          message: "Failed to fetch AI evaluation history",
-        }
-      );
+    console.log("AI SERVICE STATUS:", response.status);
+    console.log("AI SERVICE RESPONSE:", responseText);
+
+    let data;
+
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      data = { message: responseText };
     }
 
-    // 5. Return evaluation history
+    if (!response.ok) {
+      return res.status(response.status).json({
+        success: false,
+        message: "AI service history request failed",
+        details: data,
+      });
+    }
+
     return res.status(200).json(data);
 
   } catch (error) {
