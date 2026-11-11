@@ -14,6 +14,7 @@ import {
   getSimilarListings,
   getNotLoggedRecommended,
   hideListingsByOwner,
+  getPropertyEvaluationHistory
 } from "../controllers/propertyController.js";
 import { verifyInternalSecret } from "../middleware/verifyInternalSecret.js";
 import { trackInteraction } from "../controllers/interactionController.js";
@@ -33,6 +34,7 @@ router.post("/", authMiddleware, requireVerifiedEmail, createListing);
  
 
 router.get("/filter", optionalAuth, getFilteredListings);
+router.get( "/evaluations/:propertyId/history", authMiddleware, getPropertyEvaluationHistory);
 
 router.post("/interactions", authMiddleware, trackInteraction);
 
