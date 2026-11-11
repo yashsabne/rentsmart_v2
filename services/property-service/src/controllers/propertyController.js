@@ -1,9 +1,11 @@
+import mongoose from "mongoose";
 import Listing from "../models/Listings.js";
 import { cloudinary } from "../config/cloudinary.js";
 import { logActivity } from "../utils/activityLogger.js";
 import { redisPost, redisGet, redisDelete } from "../utils/redisClient.js";
 import { POPULAR_LOCATIONS } from "../../const/popularCities.js";
 import { buildUserPreferences } from "../utils/preferenceBuilder.js";
+import { evaluateListingWithAI } from "../services/propertyIntelligence.service.js";
 
 // import { recalculateRankScore } from "../utils/rankScore.js";
 
@@ -58,11 +60,97 @@ export const uploadPhotos = async (req, res) => {
   }
 };
 
+// export const createListing = async (req, res) => {
+//   try {
+//     const creatorId = req.user.id;
+
+
+
+//     const {
+//       type, purpose, title, description,
+//       address, city, locality, pincode,
+//       beds, baths, area, balconies, floors, totalFloors,
+//       furnishing, facing, propertyAge, parking,
+//       amenities, price, photos,
+//       deposit, maintenance, available, negotiable,
+//     } = req.body;
+
+//     const newListing = new Listing({
+//       creatorId,
+//       category: type,
+//       type,
+//       buyOrSell: purpose,
+//       address: {
+//         street: address,
+//         aptSuite: locality,
+//         city,
+//         pincode,
+//         country: "India",
+//       },
+//       details: {
+//         guestCount: beds,
+//         bedroomCount: beds,
+//         bedCount: beds,
+//         bathroomCount: baths,
+//         area,
+//         balconyCount: balconies,
+//         floorNumber: floors,
+//         totalFloors,
+//         furnishing,
+//         facing,
+//         propertyAge,
+//         parking: parking || { car: 0, bike: 0 },
+//       },
+//       amenities: amenities || [],
+//       listingPhotos: Array.isArray(photos) && photos.length > 0 ? photos : [],
+//       title,
+//       description,
+//       highlight: title,
+//       highlightDesc: description,
+//       price,
+//       deposit: deposit || null,
+//       maintenance: maintenance || null,
+//       available: available || null,
+//       negotiable: negotiable || false,
+//       paymentType: purpose === "Sell" ? "one-time" : "monthly",
+//     });
+
+//     await newListing.save();
+
+//     // await recalculateRankScore(newListing._id);
+
+//     await Promise.all([
+//       redisPost("/cache/flush", { pattern: "listings:filtered*" }),
+//       redisPost("/cache/flush", { pattern: `listings:my:${creatorId}*` }),
+//       redisPost("/cache/flush", { pattern: "listings:recommended*" }),
+//     ]);
+
+//     await logActivity(creatorId, "PROPERTY_CREATED", {
+//       propertyId: newListing._id,
+//       propertyTitle: newListing.title,
+//       purpose: newListing.buyOrSell,
+//       price: newListing.price,
+//     });
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Listing created successfully",
+//       listing: newListing,
+//     });
+//   } catch (err) {
+//     console.error("CREATE LISTING ERROR:", err);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to create listing",
+//       error: err.message,
+//     });
+//   }
+// };
+
+
 export const createListing = async (req, res) => {
   try {
     const creatorId = req.user.id;
-
-
 
     const {
       type, purpose, title, description,
@@ -78,6 +166,7 @@ export const createListing = async (req, res) => {
       category: type,
       type,
       buyOrSell: purpose,
+
       address: {
         street: address,
         aptSuite: locality,
@@ -85,6 +174,7 @@ export const createListing = async (req, res) => {
         pincode,
         country: "India",
       },
+
       details: {
         guestCount: beds,
         bedroomCount: beds,
@@ -99,30 +189,67 @@ export const createListing = async (req, res) => {
         propertyAge,
         parking: parking || { car: 0, bike: 0 },
       },
+
       amenities: amenities || [],
-      listingPhotos: Array.isArray(photos) && photos.length > 0 ? photos : [],
+
+      listingPhotos: Array.isArray(photos) && photos.length > 0
+        ? photos
+        : [],
+
       title,
       description,
+
       highlight: title,
       highlightDesc: description,
+
       price,
+
       deposit: deposit || null,
       maintenance: maintenance || null,
       available: available || null,
       negotiable: negotiable || false,
+
       paymentType: purpose === "Sell" ? "one-time" : "monthly",
     });
 
+    // 1. Save listing first.
     await newListing.save();
 
-    // await recalculateRankScore(newListing._id);
+    // 2. Trigger AI evaluation.
+    // AI failure must not prevent listing creation.
+    let aiEvaluation = null;
 
+    try {
+      aiEvaluation = await evaluateListingWithAI(newListing);
+
+      console.log(
+        "AI evaluation completed:",
+        aiEvaluation.evaluationId
+      );
+
+    } catch (aiError) {
+      console.error(
+        "AI EVALUATION FAILED:",
+        aiError.message
+      );
+    }
+
+    // 3. Flush Redis caches.
     await Promise.all([
-      redisPost("/cache/flush", { pattern: "listings:filtered*" }),
-      redisPost("/cache/flush", { pattern: `listings:my:${creatorId}*` }),
-      redisPost("/cache/flush", { pattern: "listings:recommended*" }),
+      redisPost("/cache/flush", {
+        pattern: "listings:filtered*"
+      }),
+
+      redisPost("/cache/flush", {
+        pattern: `listings:my:${creatorId}*`
+      }),
+
+      redisPost("/cache/flush", {
+        pattern: "listings:recommended*"
+      }),
     ]);
 
+    // 4. Log activity.
     await logActivity(creatorId, "PROPERTY_CREATED", {
       propertyId: newListing._id,
       propertyTitle: newListing.title,
@@ -130,20 +257,37 @@ export const createListing = async (req, res) => {
       price: newListing.price,
     });
 
-    res.status(201).json({
+    // 5. Return listing and AI evaluation.
+    return res.status(201).json({
       success: true,
       message: "Listing created successfully",
+
       listing: newListing,
+
+      aiEvaluation: aiEvaluation
+        ? {
+            success: true,
+            evaluationId: aiEvaluation.evaluationId,
+            evaluation: aiEvaluation.evaluation
+          }
+        : {
+            success: false,
+            message: "Listing created, but AI evaluation is currently unavailable."
+          }
     });
+
   } catch (err) {
     console.error("CREATE LISTING ERROR:", err);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Failed to create listing",
       error: err.message,
     });
   }
 };
+
+
 
 export const getFilteredListings = async (req, res) => {
 
@@ -638,6 +782,8 @@ export const getRecommended = async (req, res) => {
 };
 
 
+
+
 export const getNotLoggedRecommended = async (req, res) => {
   try {
     const { limit = 20 } = req.query;
@@ -750,5 +896,79 @@ export const hideListingsByOwner = async (req, res) => {
     res.status(200).json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+export const getPropertyEvaluationHistory = async (req, res) => {
+  try {
+    const { propertyId } = req.params;
+    const userId = req.user.id;
+
+    // 1. Validate property ID
+    if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid property ID",
+      });
+    }
+
+    // 2. Verify property ownership
+    const listing = await Listing.findOne({
+      _id: propertyId,
+      creatorId: userId,
+    }).select("_id");
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+
+    // 3. Get AI service configuration
+    const AI_URL = process.env.PROPERTY_INTELLIGENCE_URL;
+    const SERVICE_KEY = process.env.PROPERTY_INTELLIGENCE_API_KEY;
+
+    if (!AI_URL || !SERVICE_KEY) {
+      return res.status(503).json({
+        success: false,
+        message: "Property Intelligence service is not configured",
+      });
+    }
+
+    // 4. Fetch evaluation history from AI microservice
+    const response = await fetch(
+      `${AI_URL.replace(/\/+$/, "")}/api/evaluations/${propertyId}/history`,
+      {
+        method: "GET",
+        headers: {
+          "x-service-key": SERVICE_KEY,
+        },
+        signal: AbortSignal.timeout(20000),
+      }
+    );
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return res.status(response.status).json(
+        data || {
+          success: false,
+          message: "Failed to fetch AI evaluation history",
+        }
+      );
+    }
+
+    // 5. Return evaluation history
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error("PROPERTY EVALUATION HISTORY ERROR:", error);
+
+    return res.status(502).json({
+      success: false,
+      message: "Unable to retrieve property evaluation history",
+    });
   }
 };
