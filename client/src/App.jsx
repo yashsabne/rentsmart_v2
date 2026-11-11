@@ -20,7 +20,7 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/Privacypolicy';
 import AboutPage from './pages/AboutPage';
 import BlogPage from './pages/BlogPage';
-
+import PropertyReviewPage from './pages/PropertyReviewPage';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -49,6 +49,10 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/blog" element={<BlogPage />} />
+        <Route
+  path="/owner/property-review/:propertyId"
+  element={<PropertyReviewPage />}
+/>
 
       </Routes>
     </Router>

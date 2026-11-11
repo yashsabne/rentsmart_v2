@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { API } from "../../apis";
-import { convertProcessSignalToExitCode } from "util";
+// import { convertProcessSignalToExitCode } from "util";
 import Footer from "../components/reuse/Footer";
 import { C } from "../constants";
 
