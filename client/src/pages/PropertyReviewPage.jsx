@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { fetchEvaluationHistory } from "../services/propertyReviewApi";
+import {
+  fetchEvaluationHistory,
+  evaluatePropertyWithAI,
+} from "../services/propertyReviewApi";
 
 /* ───────── tokens ───────── */
 const C = {
@@ -560,6 +563,8 @@ export default function PropertyReviewPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [tab, setTab] = useState("overview");
   const [copied, setCopied] = useState(false);
+  const [evaluating, setEvaluating] = useState(false);
+  const [evaluationError, setEvaluationError] = useState("");
 
   const load = useCallback(async signal => {
     setState(s => ({ ...s, loading: true, error: "" }));
@@ -570,9 +575,41 @@ export default function PropertyReviewPage() {
       setSelectedId(cur => (records.some(r => r.id === cur) ? cur : records[0]?.id ?? null));
     } catch (error) {
       if (error.name === "AbortError") return;
-      setState({ loading: false, records: [], error: error.message || "Unable to load the property evaluation." });
+
+      // The history endpoint returns 404 when this property has never
+      // been evaluated. Keep that separate from genuine API/server errors.
+      const noEvaluation =
+        /no evaluation history found|no evaluation found/i.test(error.message || "");
+
+      setState({
+        loading: false,
+        records: [],
+        error: noEvaluation ? "" : (error.message || "Unable to load the property evaluation."),
+      });
     }
   }, [propertyId]);
+
+  const handleEvaluate = async () => {
+    if (evaluating) return;
+
+    setEvaluating(true);
+    setEvaluationError("");
+
+    try {
+      await evaluatePropertyWithAI(propertyId);
+      await load();
+    } catch (error) {
+      // If the backend reports that an evaluation already exists,
+      // refresh history instead of leaving the user on the empty state.
+      if (/already has an ai evaluation|evaluation already exists/i.test(error.message || "")) {
+        await load();
+      } else {
+        setEvaluationError(error.message || "Unable to evaluate this property. Please try again.");
+      }
+    } finally {
+      setEvaluating(false);
+    }
+  };
 
   useEffect(() => {
     const c = new AbortController();
@@ -607,17 +644,111 @@ export default function PropertyReviewPage() {
   }
 
   if (state.error || !rec) {
+    const hasNoEvaluation = !state.error;
+
     return (
       <main className="pr-page"><style>{CSS}</style>
-        <header className="top"><div className="top-in">{backLink}</div></header>
-        <div className="shell" style={{ display: "block", maxWidth: 640 }}>
-          <Card className="panel" style={{ textAlign: "center", padding: "clamp(28px,6vw,56px)" }}>
-            <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 6px" }}>{state.error ? "Evaluation unavailable" : "No evaluation found"}</h2>
-            <p style={muted}>{state.error || "There is no saved AI evaluation for this property yet."}</p>
-            <div style={{ marginTop: 20, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-              <button className="btn" onClick={() => load()}>Try again</button>
-              <Link to="/owner/my-listings" className="btn">Back to listings</Link>
+        <header className="top">
+          <div className="top-in">{backLink}</div>
+        </header>
+
+        <div className="shell" style={{ display: "block", maxWidth: 680 }}>
+          <Card
+            className="panel"
+            style={{
+              textAlign: "center",
+              padding: "clamp(28px,6vw,56px)",
+            }}
+          >
+            <div
+              style={{
+                width: 58,
+                height: 58,
+                margin: "0 auto 18px",
+                borderRadius: 16,
+                display: "grid",
+                placeItems: "center",
+                background: hasNoEvaluation ? "#EFF6FF" : "#FEF2F2",
+                color: hasNoEvaluation ? C.blue : C.red,
+                fontSize: 27,
+                fontWeight: 700,
+              }}
+            >
+              {hasNoEvaluation ? "✦" : "!"}
             </div>
+
+            <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 8px" }}>
+              {hasNoEvaluation ? "Your property hasn't been evaluated yet" : "Evaluation unavailable"}
+            </h2>
+
+            <p style={{ ...muted, lineHeight: 1.7, maxWidth: 480, margin: "0 auto" }}>
+              {state.error ||
+                "Get an AI-powered review of your property listing. We'll assess the listing details and available photos, then generate a quality score with suggestions for improvement."}
+            </p>
+
+            {evaluationError && (
+              <p
+                role="alert"
+                style={{
+                  color: C.red,
+                  background: "#FEF2F2",
+                  border: "1px solid #FECACA",
+                  borderRadius: 9,
+                  padding: "10px 12px",
+                  margin: "18px 0 0",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                }}
+              >
+                {evaluationError}
+              </p>
+            )}
+
+            <div
+              style={{
+                marginTop: 24,
+                display: "flex",
+                gap: 10,
+                justifyContent: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              {hasNoEvaluation ? (
+                <button
+                  className="btn"
+                  onClick={handleEvaluate}
+                  disabled={evaluating}
+                  style={{
+                    background: C.blue,
+                    borderColor: C.blue,
+                    color: C.white,
+                    minHeight: 44,
+                    padding: "11px 20px",
+                    opacity: evaluating ? 0.7 : 1,
+                  }}
+                >
+                  {evaluating ? "Evaluating property…" : evaluationError ? "Retry evaluation" : "Evaluate Property with AI"}
+                </button>
+              ) : (
+                <button
+                  className="btn"
+                  onClick={() => load()}
+                  disabled={state.loading}
+                >
+                  {state.loading ? "Retrying…" : "Try again"}
+                </button>
+              )}
+
+              <Link to="/owner/my-listings" className="btn" style={{ minHeight: 44 }}>
+                Back to listings
+              </Link>
+            </div>
+
+            {evaluating && (
+              <p style={{ ...muted, margin: "16px 0 0" }}>
+                This may take a little while. Please keep this page open.
+              </p>
+            )}
           </Card>
         </div>
       </main>
