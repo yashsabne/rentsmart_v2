@@ -981,3 +981,110 @@ export const getPropertyEvaluationHistory = async (req, res) => {
     });
   }
 };
+
+
+export const evaluateExistingListingWithAI = async (req, res) => {
+  try {
+    const { propertyId } = req.params;
+    const userId = req.user.id;
+
+    // 1. Validate property ID
+    if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid property ID"
+      });
+    }
+
+    // 2. Verify property ownership
+    const listing = await Listing.findOne({
+      _id: propertyId,
+      creatorId: userId
+    });
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found"
+      });
+    }
+
+    // 3. Check AI service configuration
+    const AI_URL = process.env.PROPERTY_INTELLIGENCE_URL;
+    const SERVICE_KEY = process.env.PROPERTY_INTELLIGENCE_API_KEY;
+
+    if (!AI_URL || !SERVICE_KEY) {
+      return res.status(503).json({
+        success: false,
+        message: "Property Intelligence service is not configured"
+      });
+    }
+
+    // 4. Check whether an evaluation already exists
+    const historyResponse = await fetch(
+      `${AI_URL.replace(/\/+$/, "")}/api/evaluations/${propertyId}/history`,
+      {
+        method: "GET",
+        headers: {
+          "x-service-key": SERVICE_KEY
+        },
+        signal: AbortSignal.timeout(20000)
+      }
+    );
+
+    const historyText = await historyResponse.text();
+
+    let historyData;
+
+    try {
+      historyData = JSON.parse(historyText);
+    } catch {
+      historyData = { message: historyText };
+    }
+
+    if (historyResponse.ok) {
+      return res.status(409).json({
+        success: false,
+        message: "This property already has an AI evaluation",
+        evaluationHistory: historyData
+      });
+    }
+
+    const noHistory =
+      historyResponse.status === 404 &&
+      historyData?.message === "No evaluation history found";
+
+    if (!noHistory) {
+      return res.status(502).json({
+        success: false,
+        message: "Unable to check existing AI evaluation",
+        details: historyData
+      });
+    }
+
+    // 5. Generate a new evaluation
+    const aiEvaluation = await evaluateListingWithAI(listing);
+
+    console.log(
+      "ON-DEMAND AI EVALUATION COMPLETED:",
+      aiEvaluation.evaluationId
+    );
+
+    // 6. Return evaluation
+    return res.status(200).json({
+      success: true,
+      message: "Property evaluated successfully",
+      evaluationId: aiEvaluation.evaluationId,
+      evaluation: aiEvaluation.evaluation
+    });
+
+  } catch (error) {
+    console.error("ON-DEMAND PROPERTY EVALUATION ERROR:", error);
+
+    return res.status(502).json({
+      success: false,
+      message: "Unable to evaluate property with AI",
+      error: error.message
+    });
+  }
+};
