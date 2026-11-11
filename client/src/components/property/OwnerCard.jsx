@@ -317,6 +317,33 @@ const OwnerCard = ({ token, owner, property, stats = {}, onPropertyUpdate }) => 
             
           </div>
 
+           <button
+              onClick={() =>
+                navigate(`/owner/property-review/${property._id}`)
+              }
+              style={{
+                width: "100%",
+                marginTop: 10,
+                marginBottom: 10,
+                padding: "12px 14px",
+                borderRadius: 10,
+                border: "1px solid #DDD6FE",
+                background: "#F5F3FF",
+                color: "#6D28D9",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8
+              }}
+            >
+              AI Powered Property Review
+              
+            </button>
+              
+
           <button onClick={() => navigate(`/edit-property/${property._id}`)}
             style={{ width: "100%", padding: "10px", borderRadius: 10, border: "0.5px solid rgba(0,0,0,0.1)", background: "#fff", color: "#374151", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             ✏️ Edit property

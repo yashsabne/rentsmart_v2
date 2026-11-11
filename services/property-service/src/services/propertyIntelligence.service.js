@@ -1,3 +1,4 @@
+import { response } from "express";
 
 const PROPERTY_INTELLIGENCE_URL =
   process.env.PROPERTY_INTELLIGENCE_URL;
@@ -43,13 +44,17 @@ export const evaluateListingWithAI = async (listing) => {
         "x-service-key": PROPERTY_INTELLIGENCE_API_KEY
       },
 
+
       body: JSON.stringify(payload),
  
       signal: AbortSignal.timeout(60000)
     }
   );
+  
 
   const result = await response.json().catch(() => null);
+
+  console.log(result,'ai evaluate')
 
   if (!response.ok) {
     throw new Error(
