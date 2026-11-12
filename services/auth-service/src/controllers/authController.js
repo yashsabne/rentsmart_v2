@@ -52,16 +52,27 @@ export const register = async (req, res) => {
 
     await user.save();
 
-    const verifyLink = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+    // const verifyLink = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
 
-    // Fire and forget
-    sendVerificationEmail(
-      user.email,
-      user.firstName,
-      verifyLink
-    ).catch((error) => {
-      console.error("Verification email failed:", error);
-    });
+    // // Fire and forget
+    // sendVerificationEmail(
+    //   user.email,
+    //   user.firstName,
+    //   verifyLink
+    // ).catch((error) => {
+    //   console.error("Verification email failed:", error);
+    // });
+
+    try {
+      await sendVerificationEmail(
+        user.email,
+        user.firstName,
+        verificationToken,
+        `verification-${user._id}-${new Date(user.emailVerificationExpiry).getTime()}`
+      );
+    } catch (error) {
+      console.error("[AUTH] Verification email enqueue failed:", error.message);
+    }
 
     const token = generateToken(user);
 
@@ -265,7 +276,7 @@ export const verifyEmail = async (req, res) => {
     await user.save();
 
     await redisDelete(`/cache/${encodeURIComponent(`user:${user._id}`)}`);
-    
+
 
     await logActivity(user._id, "EMAIL_VERIFIED", { email: user.email });
 
@@ -306,11 +317,14 @@ export const resendVerificationEmail = async (req, res) => {
     user.emailVerificationToken = verificationToken;
     user.emailVerificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await user.save();
 
-    const verifyLink = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
 
-    await sendVerificationEmail(user.email, user.firstName, verifyLink);
+    await sendVerificationEmail(
+      user.email,
+      user.firstName,
+      verificationToken,
+      `verification-${user._id}-${user.emailVerificationExpiry.getTime()}`
+    );
 
     return res.status(200).json({ success: true, message: "Verification email sent" });
   } catch (err) {
@@ -327,7 +341,7 @@ export const checkVerification = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.json({ success: true, verified: user.isEmailVerified,phone: user.phone || null  });
+    res.json({ success: true, verified: user.isEmailVerified, phone: user.phone || null });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -372,11 +386,12 @@ export const forgotPassword = async (req, res) => {
     user.resetTokenExpiry = Date.now() + 60 * 60 * 1000;
     await user.save();
 
-    const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-
-    sendForgotPasswordEmail(user.email, user.firstName, resetLink).catch((err) => {
-      console.error("Reset email failed:", err);
-    });
+    await sendForgotPasswordEmail(
+      user.email,
+      user.firstName,
+      resetToken,
+      `password-reset-${user._id}-${user.resetTokenExpiry.getTime()}`
+    );
 
     return res.status(200).json({
       success: true,
