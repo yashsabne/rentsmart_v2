@@ -6,9 +6,6 @@ supports property discovery, owner-managed listings, paid contact
 unlocking, listing promotion, user activity, and real-time conversations
 between property seekers and owners.
 
-This README describes the implementation found in the repository source
-code. It intentionally does not rely on the previous README.
-
 ## Contents
 
 -   [Features](#features)
