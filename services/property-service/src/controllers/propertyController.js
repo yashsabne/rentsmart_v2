@@ -1081,10 +1081,13 @@ export const evaluateExistingListingWithAI = async (req, res) => {
   } catch (error) {
     console.error("ON-DEMAND PROPERTY EVALUATION ERROR:", error);
 
-    return res.status(502).json({
-      success: false,
-      message: "Unable to evaluate property with AI",
-      error: error.message
-    });
+     return res.status(error.status || 502).json({
+    success: false,
+    message: error.status === 400 || error.status === 422
+      ? error.message
+      : "Unable to evaluate property with AI",
+    code: error.code,
+    errors: error.details
+  });
   }
 };

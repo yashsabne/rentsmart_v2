@@ -54,19 +54,24 @@ export const evaluateListingWithAI = async (listing) => {
 
   const result = await response.json().catch(() => null);
 
-  console.log(response,'ai evaluate')
-
+ 
   if (!response.ok) {
-    throw new Error(
-      result?.message ||
-      result?.error ||
-      `AI service returned HTTP ${response.status}`
-    );
-  }
+  const error = new Error(
+    result?.message ||
+    result?.error ||
+    `AI service returned HTTP ${response.status}`
+  );
 
-  if (!result?.success) {
-    throw new Error("AI service did not complete the evaluation");
-  }
+  error.status = response.status;
+  error.code = result?.code;
+  error.details = result?.errors || null;
+
+  throw error;
+}
+
+if (!result?.success) {
+  throw new Error("AI service did not complete the evaluation");
+}
 
   return result;
 };
