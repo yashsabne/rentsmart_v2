@@ -743,7 +743,7 @@ export default function PropertyReviewPage() {
                 </button>
               )}
 
-              <Link to="/owner/my-listings" className="btn" style={{ minHeight: 44 }}>
+              <Link to="/dashboard?nav=listings" className="btn" style={{ minHeight: 44 }}>
                 Back to listings
               </Link>
             </div>
