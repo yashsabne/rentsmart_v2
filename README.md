@@ -1,760 +1,1066 @@
-# 🏠 RentSmart v2
-
-![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=flat&logo=node.js&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)
-![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat&logo=mongodb&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-Cache-DC382D?style=flat&logo=redis&logoColor=white)
-![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=flat&logo=githubactions&logoColor=white)
-![Deployed on Render](https://img.shields.io/badge/Backend-Render-46E3B7?style=flat&logo=render&logoColor=white)
-![Frontend on Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?style=flat&logo=vercel&logoColor=white)
-
-**RentSmart v2** is a production-ready property rental and sale platform rebuilt from the ground up on a **containerized microservices architecture** using Docker. It is a complete redesign of RentSmart v1 (monolithic), with each business domain running as an independent service — enabling isolated deployments, fault containment, and real-world scalability.
-
-🔗 **Live:** [rentsmart.fun](https://rentsmart.fun)
-📦 **Repo:** [github.com/yashsabne/rentsmart_v2](https://github.com/yashsabne/rentsmart_v2)
-
----
-
-## 📌 Table of Contents
-
-- [Why v2?](#-why-v2)
-- [Architecture](#-architecture)
-- [Tech Stack](#-tech-stack)
-- [Services](#-services)
-  - [Auth Service](#-auth-service-port-5000)
-  - [Property Service](#-property-service-port-5001)
-  - [Payment Service](#-payment-service-port-5002)
-  - [Notification Service](#-notification-service-port-5003)
-  - [Activity Service](#-activity-service-port-5004)
-  - [Chat Service](#-chat-service-port-5005)
-  - [Redis Service](#-redis-service-port-5006)
-- [Frontend](#-frontend-client)
-- [CI/CD Pipeline](#-cicd-pipeline)
-- [Performance & Load Testing](#-performance--load-testing)
-- [Docker Setup](#-docker-setup)
-- [Environment Variables](#-environment-variables)
-- [Project Structure](#-project-structure)
-- [Security](#-security)
-- [Roadmap](#-current-status--roadmap)
-- [Getting Started](#-getting-started)
-
----
-
-## 💡 Why v2?
-
-RentSmart v1 was a traditional Express monolith. It worked — but as features grew, so did the pain:
-
-- **One deploy = all-or-nothing.** A bug in the chat module could take down payments and auth with it.
-- **No independent scaling.** The property filter endpoint took the most load but couldn't be scaled without scaling everything else.
-- **Tight coupling made iteration slow.** Auth logic was entangled with property logic, making changes risky.
-
-v2 separates every domain into its own service. Auth, property, payments, chat, notifications, activity, and Redis each run in their own container, own database namespace, and own deploy lifecycle. A crash in the notification service doesn't affect a user creating a listing.
-
----
-
-## 🏗 Architecture
-
-```
-┌──────────────────────────────────────────────────┐
-│              React + Vite (Client)               │
-│              Deployed on: Vercel                  │
-└────────────────────┬─────────────────────────────┘
-                     │ REST / Socket.IO
-        ┌────────────┼────────────────────┐
-        ▼            ▼                    ▼
-┌─────────────┐ ┌──────────────┐ ┌─────────────────┐
-│ Auth Service│ │Property Serv.│ │ Payment Service │
-│  Port 5000  │ │  Port 5001   │ │   Port 5002     │
-│  MongoDB    │ │  MongoDB +   │ │  Razorpay +     │
-│             │ │  Cloudinary  │ │  MongoDB        │
-└─────────────┘ └──────────────┘ └─────────────────┘
-        ▼            ▼                    ▼
-┌─────────────┐ ┌──────────────┐ ┌─────────────────┐
-│Notification │ │ Activity Svc │ │  Chat Service   │
-│  Port 5003  │ │  Port 5004   │ │  Port 5005      │
-│  Brevo API  │ │  MongoDB     │ │  Socket.IO +    │
-│             │ │              │ │  MongoDB        │
-└─────────────┘ └──────────────┘ └─────────────────┘
-                     ▲
-              ┌──────┴──────┐
-              │Redis Service│
-              │  Port 5006  │
-              │  (Shared    │
-              │  HTTP API)  │
-              └─────────────┘
-```
-
-All persistent services share a single MongoDB Atlas cluster. Redis is abstracted as its own dedicated microservice — rather than each service holding a direct Redis connection, all caching, rate limiting, and session calls go through `redis-service` over a clean internal HTTP API. Inter-service calls are authenticated via an `x-internal-secret` header.
-
----
-
-## 🛠 Tech Stack
-
-### Frontend
-
-| Technology | Purpose |
-|---|---|
-| React 19 | UI framework |
-| Vite | Build tool & dev server |
-| React Router DOM v7 | Client-side routing |
-| Tailwind CSS v4 | Utility-first styling |
-| Socket.IO Client | Real-time chat |
-| react-hot-toast | Notifications/toasts |
-| crypto-js | Client-side encryption helpers |
-| @vercel/analytics | Analytics |
-
-### Backend (per service)
-
-| Technology | Purpose |
-|---|---|
-| Node.js + Express 5 | HTTP server |
-| MongoDB + Mongoose | Primary database |
-| JWT (jsonwebtoken) | Stateless authentication |
-| Redis (via redis-service) | Rate limiting, caching, session store |
-| bcryptjs | Password hashing |
-| Socket.IO | Real-time chat |
-| Cloudinary + Multer | Image storage |
-| Razorpay | Payment gateway (HMAC-SHA256 verified) |
-| Nodemailer / Brevo API | Email delivery |
-| Passport.js | Google OAuth |
-| Morgan | HTTP request logging |
-
-### Infrastructure
-
-| Technology | Purpose |
-|---|---|
-| Docker + Docker Compose | Containerization & orchestration |
-| GitHub Actions | CI/CD — path-filtered per-service deployments |
-| Vercel | Frontend hosting |
-| Render | Backend service hosting |
-
----
-
-## 🔧 Services
-
-### 🔐 Auth Service (Port 5000)
-
-Handles all authentication and user identity management.
-
-**Key Features:**
-- User registration with email verification
-- Login with JWT issuance (JWT blacklisting on logout via redis-service)
-- Forgot password / reset password via secure email token
-- Rate-limited registration (5 attempts/hr) and login (10 attempts/15 min) via redis-service
-- Google OAuth via Passport.js
-- Internal user lookup endpoint (protected by internal secret)
-- Recently viewed properties tracking per user
-
-**API Routes (`/api/auth/...`):**
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/register` | ❌ | Register new user |
-| POST | `/login` | ❌ | Login and receive JWT |
-| POST | `/logout` | ✅ | Logout + blacklist JWT |
-| GET | `/me` | ✅ | Get current user |
-| GET | `/user/:id` | ❌ | Get user by ID |
-| GET | `/internal/user/:id` | 🔒 Internal | Fetch user for other services |
-| GET | `/verify-email/:token` | ❌ | Verify email |
-| POST | `/resend-verification` | ✅ | Resend verification email |
-| GET | `/check-verification/:userId` | ❌ | Check email verified status |
-| POST | `/forgot-password` | ❌ | Send password reset email |
-| POST | `/reset-password/:token` | ❌ | Reset password |
-| PATCH | `/recently-viewed` | ✅ | Add to recently viewed |
-| GET | `/recently-viewed` | ✅ | Get recently viewed |
-
----
-
-### 🏘 Property Service (Port 5001)
-
-Manages all property listing CRUD, image uploads, filtering, search, saved properties, and recommendations.
-
-**Key Features:**
-- Create, update, delete property listings (verified email required)
-- Upload up to 8 photos per listing via Cloudinary
-- MongoDB Atlas full-text `$search` with fuzzy matching on title, description, and address
-- Personalized search ranking weighted by user preferences and interaction history (views, saves, contacts, shares — decayed by recency)
-- Promoted listings (`isPromoted: true`) boosted in search ranking
-- Saved properties / wishlist (userId ↔ propertyId join)
-- Listing sharing with trackable links
-- Interaction tracking for future personalization
-- Internal endpoint to hide listings by owner (e.g. account suspension)
-
-**API Routes (`/api/property/...`):**
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/upload-photos` | ✅ + Verified | Upload listing photos to Cloudinary |
-| POST | `/` | ✅ + Verified | Create a new listing |
-| GET | `/filter` | ❌ | Filter + full-text search listings |
-| GET | `/similar` | ❌ | Get similar listings |
-| GET | `/recommended` | ❌ | Personalized recommendations |
-| GET | `/search-notlogged` | ❌ | Latest listings for unauthenticated users |
-| GET | `/my` | ✅ | Get my listings |
-| GET | `/details/:id` | ❌ | Get listing details |
-| PUT | `/:id` | ✅ | Update listing |
-| DELETE | `/:id` | ✅ | Delete listing |
-| POST | `/internal/users/:userId/hide-listings` | 🔒 Internal | Hide all listings of a user |
-
----
-
-### 💳 Payment Service (Port 5002)
-
-Handles all Razorpay-powered payment flows for property contact unlock and listing promotion.
-
-**Key Features:**
-- Server-side price enforcement (client cannot alter the amount)
-- HMAC-SHA256 Razorpay signature verification on all payments
-- Contact unlock flow — sets `accessGranted: true`, triggers email notification to both parties via notification-service
-- Promote listing flow — sets `isPromoted: true` on the listing with an expiry
-- Payment history and spend summary per user
-
-**API Routes (`/api/payment/...`):**
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/create-order` | ✅ + Verified | Create a Razorpay order |
-| POST | `/verify-payment` | ✅ + Verified | Verify Razorpay signature + grant access |
-| GET | `/check-access` | ✅ | Check if user has paid for a property |
-| POST | `/promote/order` | ✅ | Create a promo boost order |
-| POST | `/promote/verify` | ✅ | Verify promo payment + activate boost |
-| GET | `/history` | ✅ | Get payment history & spend summary |
-
----
-
-### 🔔 Notification Service (Port 5003)
-
-Lightweight, stateless email delivery service using the Brevo (Sendinblue) transactional email API. Decoupled from auth so email failures never block registration or login flows.
-
-**Key Features:**
-- Verification, password reset, payment receipt, and contact-reveal emails
-- Called internally by other services — no direct user-facing endpoints
-- No database — stateless send-and-forget
-
----
-
-### 📊 Activity Service (Port 5004)
-
-Centralized service for logging and retrieving all user activity events across the platform.
-
-**Key Features:**
-- Ingests events from all other services (logins, listing changes, payments, chat events)
-- Retrieve activity history per user
-- Used for analytics, audit trails, and future trust scoring
-
-**API Routes (`/api/activity/...`):**
-
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/` | Log a new activity event |
-| GET | `/:userId` | Get activity log for a user |
-
----
-
-### 💬 Chat Service (Port 5005)
-
-Real-time, socket-powered messaging between property seekers and owners.
-
-**Key Features:**
-- Socket.IO-based real-time messaging
-- Conversation creation and management
-- Message delivery state tracking (`sent` → `delivered` → `read`)
-- Typing indicators
-- Online user tracking (Map-based in-memory)
-- JWT-authenticated socket connections
-- Slug-based conversation identifiers via nanoid
-
-**Socket Events:**
-
-| Event | Direction | Description |
-|---|---|---|
-| `USER_ONLINE` | Emit | Broadcasts when a user connects |
-| `JOIN_CONVERSATION` | Listen | Join a socket room by conversation slug |
-| `LEAVE_CONVERSATION` | Listen | Leave a room |
-| `MESSAGE_DELIVERED` | Emit | Broadcast delivery status updates |
-| `ONLINE_USERS` | Emit | Emit current online users list |
-
-**REST Routes:**
-- `/conversations` — CRUD for conversations
-- `/messages` — message history per conversation
-- `/health` — service health check
-
----
-
-### 🗄 Redis Service (Port 5006)
-
-Redis abstracted as a dedicated microservice. Rather than each service holding its own Redis client, all Redis access goes through a single internal HTTP API — effectively "Redis-as-a-microservice."
-
-**Key Features:**
-- Cache: `get`, `set`, `delete`, pattern-delete
-- Session: `create`, `get`, `destroy` (used for JWT blacklisting on logout)
-- Rate limiting: `check` / `reset` per key
-- Called by all other services via a shared `redisClient.js` (axios) helper — no direct `ioredis`/`node-redis` connections elsewhere
-- No external endpoints — internal-secret protected
-
----
-
-## 🖥 Frontend (Client)
-
-A React 19 SPA built with Vite, deployed on Vercel.
-
-### Listing Draft Auto-Save
-
-The create-listing flow includes a client-side draft system that preserves form state across sessions without any backend round-trips:
-
-- `loadDraft()` — reads the saved draft from `localStorage` on mount
-- `saveDraft(form, step)` — writes current form state and multi-step progress
-- `clearDraft()` — called after a successful publish to wipe the saved draft
-- `useListingDraft(form, step)` — React hook that debounces auto-saves by 600ms on every form/step change
-
-If a user navigates away mid-creation and returns, their progress is automatically restored.
-
-### Pages & Routes
-
-| Route | Page | Description |
-|---|---|---|
-| `/` | HomePage | Landing, search, personalized or latest listings |
-| `/register` | RegisterPage | User registration with preferences |
-| `/login` | LoginPage | JWT login |
-| `/dashboard` | Dashboard | User dashboard with listing stats |
-| `/dashboard/messages` | Dashboard (Messages) | Chat inbox |
-| `/dashboard/messages/:slug` | Dashboard (Chat) | Individual chat conversation |
-| `/saved-properties` | SavedPropertiesPage | Bookmarked / wishlisted listings |
-| `/details/:id` | ListingDetails | Full property detail + unlock contact flow |
-| `/search-for-property/:type` | PropertyBuyPage | Filtered property search |
-| `/create` | CreateListing | Create a new property listing (with draft auto-save) |
-| `/edit-property/:id` | EditListing | Edit existing listing |
-| `/verify-email/:token` | VerifyEmailPage | Email verification handler |
-| `/forgot-password` | ForgotPasswordPage | Request password reset |
-| `/reset-password/:token` | ResetPasswordPage | Set new password |
-| `/developer` | RentSmartDev | Developer/about page |
-| `/help` | Help | Help & support page |
-
-### Client Architecture
-
-- **`client/apis.js`** — Centralized API base URL map (`API.AUTH`, `API.PROPERTY`, `API.PAYMENT`, etc.)
-- **`client/src/pages/`** — Page-level components
-- **`client/src/components/`** — Reusable components (Navbar, Footer, Hero, Messages)
-- **`client/src/constants/`** — App-wide constants and stats
-- **`client/src/const_func/`** — Utility functions (e.g. `formattedPrice`, `loadDraft`, `saveDraft`, `clearDraft`)
-- Token stored in `localStorage`, sent as `Authorization: Bearer <token>` header
-
----
-
-## ⚙ CI/CD Pipeline
-
-RentSmart v2 uses a **path-filtered GitHub Actions pipeline** that triggers only on pushes to `main`. Instead of redeploying all services on every commit, the pipeline detects which service directories actually changed and fires Render deploy hooks only for those services — keeping deploys fast and avoiding unnecessary cold starts.
-
-### How It Works
-
-```
-push to main
-      │
-      ▼
-detect-changes (dorny/paths-filter)
-      │
-      ├─ services/auth-service/**      → deploy-auth
-      ├─ services/property-service/**  → deploy-property
-      ├─ services/payment-service/**   → deploy-payment
-      ├─ services/notification-service/** → deploy-notification
-      ├─ services/activity-service/**  → deploy-activity
-      └─ services/chat-service/**      → deploy-chat
-                                              │
-                                              ▼
-                                   summary job (always runs)
-                                   prints per-service change
-                                   + deploy status table
+# RentSmart v2
+
+RentSmart is a property rental and sales platform built around a React
+frontend and a set of independently running Node.js backend services. It
+supports property discovery, owner-managed listings, paid contact
+unlocking, listing promotion, user activity, and real-time conversations
+between property seekers and owners.
+
+## Contents
+
+-   [Features](#features)
+-   [Architecture](#architecture)
+-   [Technology stack](#technology-stack)
+-   [Repository structure](#repository-structure)
+-   [How the main flows work](#how-the-main-flows-work)
+-   [Local development](#local-development)
+-   [Environment variables](#environment-variables)
+-   [API overview](#api-overview)
+-   [Deployment](#deployment)
+-   [Implementation notes](#implementation-notes)
+
+## Features
+
+### Property discovery
+
+-   Browse rental and sale listings.
+-   Search by city and text.
+-   Filter by price, property type, bedrooms, bathrooms, furnishing,
+    parking, and amenities.
+-   Sort by price or listing recency.
+-   View listing details, photos, location, owner information, and
+    similar properties.
+-   See promoted listings with higher placement in search results.
+-   Track authenticated user interactions to help personalize listing
+    order.
+
+### Owner listing management
+
+-   Create, edit, and delete property listings.
+-   Upload up to eight listing photos to Cloudinary.
+-   Save an in-progress listing draft in browser local storage.
+-   View listings and listing statistics in the owner dashboard.
+-   Hide or unhide a listing.
+-   Change listing status (`AVAILABLE`, `RENTED`, or `SOLD`).
+-   Refresh a listing, subject to a three-day cooldown.
+-   Promote a listing through a Razorpay payment flow.
+-   Request an AI-powered property evaluation and view its evaluation
+    history.
+
+### Accounts and preferences
+
+-   Register and log in with email/phone and password.
+-   Verify email addresses and request password-reset links.
+-   Sign in through the configured Google OAuth flow.
+-   Update profile details, property preferences, and notification
+    preferences.
+-   Change a password or request account deletion.
+-   View recently viewed properties.
+-   Save properties to a user account; guest save state is stored in
+    browser local storage.
+
+### Contact unlocking and payments
+
+-   Create a Razorpay order to unlock an owner's contact details.
+-   Verify the Razorpay payment signature on the backend.
+-   Return the unlocked contact information after successful
+    verification.
+-   Promote a listing for 30 days after successful payment verification.
+-   View contact-payment history, promotion history, and a payment
+    summary.
+
+### Messaging and activity
+
+-   Start and archive buyer-owner conversations associated with a
+    property.
+-   Send and retrieve messages through authenticated HTTP endpoints.
+-   Use Socket.IO for live conversation updates, typing indicators,
+    online presence, and delivery/read events.
+-   Store user activity records such as logins, property actions, and
+    payment events.
+
+### Email notifications
+
+The Notification Service sends transactional emails through the Brevo
+SMTP API for payment success, contact unlock, owner contact-view, and
+listing-promotion events. The Auth Service also uses Brevo for email
+verification and password-reset messages.
+
+## Architecture
+
+The repository contains a React client and seven backend services.
+RentSmart also integrates with a separately developed RAG-based chatbot
+service, whose implementation is maintained in its own repository.
+MongoDB and Redis are infrastructure dependencies used by the services;
+the Redis Service exposes Redis operations through an internal HTTP API.
+
+``` mermaid
+flowchart TB
+    Browser[React + Vite client]
+    Auth[Auth Service]
+    Property[Property Service]
+    Payment[Payment Service]
+    Notification[Notification Service]
+    Activity[Activity Service]
+    Chat[Chat Service + Socket.IO]
+    RedisAPI[Redis Service]
+    Mongo[(MongoDB)]
+    Redis[(Redis / Upstash)]
+    Cloudinary[Cloudinary]
+    Razorpay[Razorpay]
+    Brevo[Brevo Email API]
+    AI[External Property Intelligence API]
+    RAG[External RAG Chatbot<br/>(separate project)]
+
+    Browser --> Auth
+    Browser --> Property
+    Browser --> Payment
+    Browser --> Activity
+    Browser --> Chat
+    Browser --> RAG
+    Auth --> Mongo
+    Property --> Mongo
+    Payment --> Mongo
+    Activity --> Mongo
+    Chat --> Mongo
+    Auth --> RedisAPI
+    Property --> RedisAPI
+    Payment --> RedisAPI
+    Activity --> RedisAPI
+    Chat --> RedisAPI
+    RedisAPI --> Redis
+    Property --> Cloudinary
+    Payment --> Razorpay
+    Payment --> Notification
+    Notification --> Brevo
+    Auth --> Brevo
+    Property --> AI
+    Payment --> Auth
+    Payment --> Property
+    Auth --> Activity
+    Property --> Activity
+    Payment --> Activity
 ```
 
-### Pipeline Jobs
+The RAG Chatbot is an additional external integration, not an eighth
+backend service inside this repository. Its implementation is maintained
+in a separate project. It uses Retrieval-Augmented Generation (RAG) to
+retrieve relevant context and use that context when generating
+responses. The chatbot is part of the broader RentSmart experience,
+while its application code and deployment are managed separately from
+the seven backend services shown above.
 
-| Job | Trigger condition | What it does |
-|---|---|---|
-| `detect-changes` | Always | Uses `dorny/paths-filter` to output a boolean per service |
-| `deploy-auth` | `auth == 'true'` | Calls `RENDER_DEPLOY_HOOK_AUTH` |
-| `deploy-property` | `property == 'true'` | Calls `RENDER_DEPLOY_HOOK_PROPERTY` |
-| `deploy-payment` | `payment == 'true'` | Calls `RENDER_DEPLOY_HOOK_PAYMENT` |
-| `deploy-notification` | `notification == 'true'` | Calls `RENDER_DEPLOY_HOOK_NOTIFICATION` |
-| `deploy-activity` | `activity == 'true'` | Calls `RENDER_DEPLOY_HOOK_ACTIVITY` |
-| `deploy-chat` | `chat == 'true'` | Calls `RENDER_DEPLOY_HOOK_CHAT` |
-| `summary` | Always (after all) | Posts a service/changed/status table to GitHub Actions summary |
+### Backend services
 
-### Required Secrets
+  ---------------------------------------------------------------------
+  Service                             Default port Responsibility
+  -------------------- --------------------------- --------------------
+  Auth Service                              `5000` Registration, login,
+                                                   JWT authentication,
+                                                   Google OAuth, email
+                                                   verification,
+                                                   password reset,
+                                                   profile/settings,
+                                                   recently viewed
+                                                   properties
 
-Add these to your GitHub repository's **Settings → Secrets and variables → Actions**:
+  Property Service                          `5001` Listing CRUD,
+                                                   filtering/search,
+                                                   recommendations,
+                                                   saved properties,
+                                                   interactions,
+                                                   sharing, owner
+                                                   actions, Cloudinary
+                                                   uploads, AI
+                                                   evaluation
+                                                   integration
 
-| Secret | Description |
-|---|---|
-| `RENDER_DEPLOY_HOOK_AUTH` | Render deploy hook URL for auth-service |
-| `RENDER_DEPLOY_HOOK_PROPERTY` | Render deploy hook URL for property-service |
-| `RENDER_DEPLOY_HOOK_PAYMENT` | Render deploy hook URL for payment-service |
-| `RENDER_DEPLOY_HOOK_NOTIFICATION` | Render deploy hook URL for notification-service |
-| `RENDER_DEPLOY_HOOK_ACTIVITY` | Render deploy hook URL for activity-service |
-| `RENDER_DEPLOY_HOOK_CHAT` | Render deploy hook URL for chat-service |
+  Payment Service                           `5002` Razorpay order
+                                                   creation and
+                                                   signature
+                                                   verification,
+                                                   contact access,
+                                                   listing promotion,
+                                                   payment history
 
-The workflow file lives at `.github/workflows/deploy.yml`.
+  Notification Service                      `5003` Internal
+                                                   transactional email
+                                                   endpoints backed by
+                                                   Brevo
 
----
+  Activity Service                          `5004` Store and retrieve
+                                                   user activity
+                                                   records
 
-## 📈 Performance & Load Testing
+  Chat Service                              `5005` Conversation and
+                                                   message APIs,
+                                                   Socket.IO
+                                                   connections, online
+                                                   presence and chat
+                                                   events
 
-The property filter/search endpoint (`GET /api/property/filter`) was load tested using **k6** against the deployed Render instance.
+  Redis Service                             `5006` HTTP interface for
+                                                   cache, sessions,
+                                                   token blacklist,
+                                                   OTP, rate limits,
+                                                   queues, and Pub/Sub
+                                                   operations
+  ---------------------------------------------------------------------
 
-### Test Configuration
+The services connect to MongoDB using their configured `MONGO_URI`. They
+use separate Mongoose models/collections, but the code does not
+establish a separate MongoDB deployment per service.
 
-| Parameter | Value |
-|---|---|
-| Tool | k6 |
-| Target endpoint | `GET /api/property/filter` |
-| Virtual users (VUs) | 500 |
-| Test duration | 10 minutes |
-| Request timeout | 30s |
-| Infrastructure | Render free tier — 512 MB RAM |
+### Request routing
 
-### Results
+In the current production setup, the frontend calls the backend services
+using their configured service base URLs. The backend services are
+deployed independently on Render; NGINX is not currently in the
+production request path.
 
-| Metric | Value |
-|---|---|
-| Total requests | 20,235 |
-| Throughput | 32.87 req/s |
-| Success rate | 99.03% (20,038 / 20,235) |
-| Failed requests | 0.97% (197) — all timeouts |
-| Avg response time | 7.96s |
-| Median (p50) | 3.87s |
-| p90 | 20.13s |
-| p95 | 20.90s |
-| p99 | 22.83s |
-| Max | 30.00s |
+An NGINX reverse-proxy configuration and Dockerfile are present in the
+repository as groundwork for a future gateway-based architecture. That
+configuration is planned work and should not be treated as a deployed
+production component.
 
-The median at **3.87s is acceptable** for a free-tier instance under 500 concurrent users. The jump from **p50 → p90 (3.87s → 20.13s)** signals the instance hitting its CPU/RAM ceiling and queuing requests. This is an infrastructure constraint, not a code problem — the microservices architecture means the property service can be scaled independently without touching auth, payments, or chat.
+### Data and integrations
 
----
+-   **MongoDB:** Stores users, listings, saved-property records,
+    interactions, payments, conversations, messages, shares, and
+    activity records.
+-   **Redis:** Stores cache entries, sessions, token blacklist entries,
+    OTP values, rate-limit counters, and queue data.
+-   **Cloudinary:** Stores listing photos. The upload middleware accepts
+    JPG, PNG, and WEBP images, up to 5 MB per image, with a maximum of
+    eight images per upload.
+-   **Razorpay:** Handles payment checkout. The backend verifies the
+    returned signature using HMAC-SHA256 and the configured Razorpay
+    secret.
+-   **Brevo:** Sends transactional emails.
+-   **Property Intelligence API:** An external service called by the
+    Property Service for listing evaluation and evaluation-history
+    retrieval. Its implementation is not contained in this repository.
 
-## 🐳 Docker Setup
+## Technology stack
 
-The project includes a full `docker-compose.yml` at the root that orchestrates all services.
+  ---------------------------------------------------------------------
+  Layer                              Technologies
+  ---------------------------------- ----------------------------------
+  Frontend                           React 19, Vite, React Router,
+                                     Tailwind CSS 4
 
-### Services in Docker Compose
+  Backend                            Node.js, Express
 
-| Service | Port | Depends On |
-|---|---|---|
-| auth-service | 5000 | mongo, redis-service |
-| property-service | 5001 | mongo, redis-service |
-| payment-service | 5002 | mongo, redis-service |
-| notification-service | 5003 | — |
-| activity-service | 5004 | mongo |
-| chat-service | 5005 | mongo |
-| redis-service | 5006 | redis |
-| mongo | 27017 | — |
-| redis | 6379 | — |
+  Database                           MongoDB, Mongoose
 
-### Running with Docker
+  Cache and supporting data          Redis, ioredis
 
-```bash
-# Clone the repository
-git clone https://github.com/yashsabne/rentsmart_v2.git
-cd rentsmart_v2
+  Real-time communication            Socket.IO and socket.io-client
 
-# Create .env files for each service (see Environment Variables section)
+  Authentication                     JWT, bcryptjs, Passport Google
+                                     OAuth
 
-# Start all services
+  Payments                           Razorpay
+
+  Image storage                      Cloudinary, Multer
+
+  Email                              Brevo API
+
+  Planned reverse proxy              NGINX (configuration only; not
+                                     deployed in production)
+
+  Containers                         Docker, Docker Compose
+
+  Frontend hosting / analytics       Vercel configuration, Vercel
+                                     Analytics and Speed Insights
+
+  Backend deployment                 Render deploy hooks through GitHub
+                                     Actions
+  ---------------------------------------------------------------------
+
+## Repository structure
+
+``` text
+rentsmart_v2/
+├── client/                         # React + Vite frontend
+│   ├── src/
+│   │   ├── chat/                   # Socket context and chat hooks
+│   │   ├── components/             # Shared UI, dashboard, payments, chat
+│   │   ├── pages/                  # Application pages
+│   │   ├── services/               # Frontend API clients
+│   │   ├── draft/                  # Listing draft persistence
+│   │   └── utils/
+│   ├── apis.js                     # Frontend API base URLs
+│   └── vercel.json                 # SPA rewrite configuration
+├── services/
+│   ├── auth-service/
+│   ├── property-service/
+│   ├── payment-service/
+│   ├── notification-service/
+│   ├── activity-service/
+│   ├── chat-service/
+│   └── redis-service/
+│
+│   # The RAG chatbot is maintained in a separate repository.
+├── nginx/
+│   └── nginx.render.conf           # Planned NGINX gateway configuration
+├── postman/
+│   ├── RentSmart.postman_collection.json
+│   └── RentSmart_Local.postman_environment.json
+├── .github/
+│   └── workflows/
+│       └── deploy.yml              # Changed-service Render deploy workflow
+├── docker-compose.yml              # Local backend + MongoDB + Redis
+└── Dockerfile.nginx
+```
+
+## How the main flows work
+
+### 1. Creating a property listing
+
+1.  The owner completes the multi-step listing form in the frontend.
+2.  The draft form and current step can be saved in browser local
+    storage.
+3.  The frontend uploads photos to the Property Service.
+4.  The Property Service uses Multer and Cloudinary Storage to upload
+    the images.
+5.  The frontend submits the listing data to the Property Service.
+6.  The Property Service saves the listing in MongoDB.
+7.  It then calls the external Property Intelligence API to evaluate the
+    new listing.
+8.  If the AI evaluation fails, listing creation is still allowed to
+    complete; the response indicates that the evaluation was
+    unavailable.
+9.  The service invalidates relevant listing caches and records a
+    property-created activity.
+
+### 2. Searching and ranking properties
+
+The Property Service builds a MongoDB aggregation pipeline for filtered
+listing requests.
+
+-   When a text or city search is supplied, the service uses the Atlas
+    Search index named `default`.
+-   Search relevance boosts title matches above amenities, property
+    type/category, and description matches.
+-   Additional filters are applied for transaction type, property type,
+    price, bedrooms, bathrooms, furnishing, parking, and amenities.
+-   Promoted listings receive a higher sort priority while their
+    promotion is active.
+-   For authenticated users, the service builds preferences from profile
+    information and recent interactions. Interaction weights are
+    assigned to actions such as viewing, saving, contacting, and
+    sharing, with older interactions decaying over time.
+-   Guest filter results and individual listing details are cached
+    through the Redis Service.
+
+A MongoDB Atlas Search index named `default` must be configured for the
+listing fields used by the search aggregation (`title`, `amenities`,
+`type`, `category`, and `description`).
+
+### 3. Unlocking an owner's contact details
+
+1.  The frontend requests a payment order from the Payment Service.
+2.  The Payment Service retrieves the listing and buyer/owner details
+    from the Property and Auth Services.
+3.  It creates a Razorpay order and stores a pending payment record.
+4.  The user completes checkout through Razorpay.
+5.  The frontend sends the Razorpay order ID, payment ID, and signature
+    to the Payment Service.
+6.  The backend recomputes the HMAC-SHA256 signature and compares it
+    with the submitted signature.
+7.  After successful verification, the payment record is marked paid and
+    access is granted.
+8.  The Payment Service requests notification emails and records
+    activity events.
+9.  The verified response includes the owner's contact information.
+
+### 4. Promoting a listing
+
+1.  The owner requests a promotion order through the Payment Service.
+2.  The Payment Service creates a Razorpay order and a promotion-payment
+    record.
+3.  After checkout, the frontend submits the payment details for
+    verification.
+4.  The Payment Service verifies the signature and asks the Property
+    Service's internal promotion endpoint to activate the listing.
+5.  The Property Service marks the listing as promoted and sets a 30-day
+    expiry.
+6.  A promotion activity and confirmation email are requested.
+
+### 5. Real-time messaging
+
+-   The frontend obtains a JWT and connects to the Chat Service using
+    Socket.IO.
+-   The Chat Service authenticates the socket handshake using the JWT.
+-   Conversation and message data are stored in MongoDB.
+-   REST endpoints handle conversation creation, listing conversations,
+    message history, message sending, read state, and archiving.
+-   Socket.IO rooms are used for conversation-scoped events, including
+    incoming messages, typing state, online presence, and delivery/read
+    updates.
+
+### 6. AI property evaluation
+
+The Property Service calls an external Property Intelligence API using
+`PROPERTY_INTELLIGENCE_URL` and `PROPERTY_INTELLIGENCE_API_KEY`.
+
+-   New listings are evaluated after the listing record is saved.
+-   Owners can request an evaluation for an existing listing through an
+    authenticated endpoint.
+-   The existing-listing endpoint checks ownership and checks evaluation
+    history before requesting a new evaluation.
+-   Owners can retrieve evaluation history through a separate
+    authenticated endpoint.
+-   The frontend review page presents evaluation scores, text/image
+    evaluation summaries, issues, improvement suggestions, and saved
+    evaluation history when supplied by the external service.
+
+The evaluation engine itself is not implemented in this repository; it
+must be deployed separately and made reachable by the Property Service.
+
+## Local development
+
+### Prerequisites
+
+-   Node.js (use a current LTS release compatible with the Vite version
+    in `client/package.json`)
+-   npm
+-   Docker Desktop with Docker Compose
+-   A MongoDB connection (local MongoDB through Compose or a MongoDB
+    deployment)
+-   A Redis instance
+-   Credentials for the third-party services required by the features
+    you want to run
+
+### 1. Configure backend environment files
+
+Docker Compose expects an environment file for each backend service:
+
+``` text
+services/auth-service/.env
+services/property-service/.env
+services/payment-service/.env
+services/notification-service/.env
+services/activity-service/.env
+services/chat-service/.env
+services/redis-service/.env
+```
+
+These files are not included in the repository. Create them locally and
+populate the variables listed in [Environment
+variables](#environment-variables).
+
+For a Docker Compose network, service-to-service URLs should use the
+Compose service names, for example:
+
+``` env
+MONGO_URI=mongodb://mongo:27017/rentsmart
+REDIS_SERVICE_URL=http://redis-service:5006
+AUTH_SERVICE_URL=http://auth-service:5000
+PROPERTY_SERVICE_URL=http://property-service:5001
+ACTIVITY_SERVICE_URL=http://activity-service:5004
+NOTIFICATION_SERVICE_URL=http://notification-service:5003
+```
+
+Set the Redis Service to development mode and point it at the Compose
+Redis container:
+
+``` env
+VERSION=development
+REDIS_HOST=redis
+REDIS_PORT=6379
+```
+
+Only add the service URLs relevant to each service's code. For example,
+the Notification Service does not need a MongoDB connection.
+
+### 2. Start the backend services and infrastructure
+
+From the repository root:
+
+``` bash
 docker compose up --build
-
-# Run in detached mode
-docker compose up -d --build
 ```
 
-Each service has its own `Dockerfile` inside `./services/<service-name>/`.
+The Compose file starts the seven backend services, a MongoDB container,
+and a Redis container. MongoDB and Redis data are persisted using named
+Docker volumes.
 
----
+The Compose configuration uses `depends_on` with `service_started`; it
+does not define health checks or wait for database readiness. If a
+service starts before its dependency is ready, inspect its logs and
+restart it after the dependency is available.
 
-## ⚙ Environment Variables
+### 3. Start the frontend
 
-### Frontend (`client/.env`)
+Create `client/.env` and set the frontend API URLs. For local
+development where the backend ports are exposed by Docker Compose:
 
-```env
+``` env
 VITE_AUTH_API=http://localhost:5000
 VITE_PROPERTY_API=http://localhost:5001
 VITE_PAYMENT_API=http://localhost:5002
 VITE_NOTIF_API=http://localhost:5003
 VITE_ACTIVITY_API=http://localhost:5004
 VITE_CHAT_API=http://localhost:5005
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 ```
 
-### Auth Service (`services/auth-service/.env`)
+Then run:
 
-```env
-PORT=5000
-MONGO_URI=mongodb://mongo:27017/rentsmart-auth
-JWT_SECRET=your_jwt_secret
-CLIENT_URL=http://localhost:5173
-REDIS_SERVICE_URL=http://redis-service:5006
-INTERNAL_SECRET=your_internal_secret
-EMAIL_USER=your_email@example.com
-EMAIL_PASS=your_email_password
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+``` bash
+cd client
+npm install
+npm run dev
 ```
 
-### Property Service (`services/property-service/.env`)
+Vite prints the local development URL, normally `http://localhost:5173`.
 
-```env
-PORT=5001
-MONGO_URI=mongodb://mongo:27017/rentsmart-property
-JWT_SECRET=your_jwt_secret
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-INTERNAL_SECRET=your_internal_secret
-AUTH_SERVICE_URL=http://auth-service:5000
-REDIS_SERVICE_URL=http://redis-service:5006
+### 4. Frontend build and lint
+
+From `client/`:
+
+``` bash
+npm run build
+npm run lint
+npm run preview
 ```
 
-### Payment Service (`services/payment-service/.env`)
+The backend package manifests do not currently define a working
+automated test suite. Most backend packages contain a placeholder `test`
+script that exits with an error.
 
-```env
-PORT=5002
-MONGO_URI=mongodb://mongo:27017/rentsmart-payment
-JWT_SECRET=your_jwt_secret
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-INTERNAL_SECRET=your_internal_secret
-NOTIFICATION_SERVICE_URL=http://notification-service:5003
-ACTIVITY_SERVICE_URL=http://activity-service:5004
-```
+## Environment variables
 
-### Notification Service (`services/notification-service/.env`)
+Use secrets from your own accounts. Do not commit `.env` files or expose
+secret values in frontend variables. Only values prefixed with `VITE_`
+are intended to be exposed to the browser.
 
-```env
-PORT=5003
-BREVO_API_KEY=your_brevo_api_key
-INTERNAL_SECRET=your_internal_secret
-```
+### Frontend (`client/.env`)
 
-### Activity Service (`services/activity-service/.env`)
+  ---------------------------------------------------------------------
+  Variable                           Purpose
+  ---------------------------------- ----------------------------------
+  `VITE_AUTH_API`                    Auth Service base URL
 
-```env
-PORT=5004
-MONGO_URI=mongodb://mongo:27017/rentsmart-activity
-```
+  `VITE_PROPERTY_API`                Property Service base URL
 
-### Chat Service (`services/chat-service/.env`)
+  `VITE_PAYMENT_API`                 Payment Service base URL
 
-```env
-PORT=5005
-MONGO_URI=mongodb://mongo:27017/rentsmart-chat
-JWT_SECRET=your_jwt_secret
-FRONTEND_URL=http://localhost:5173
-```
+  `VITE_ACTIVITY_API`                Activity Service base URL
 
-### Redis Service (`services/redis-service/.env`)
+  `VITE_NOTIF_API`                   Notification Service base URL
+                                     (declared in the frontend API
+                                     configuration)
 
-```env
-PORT=5006
-REDIS_URL=redis://redis:6379
-INTERNAL_SECRET=your_internal_secret
-```
+  `VITE_CHAT_API`                    Chat Service base URL
 
-### Production (Render-hosted services)
+  `VITE_RAZORPAY_KEY_ID`             Public Razorpay checkout key ID
+  ---------------------------------------------------------------------
 
-```env
-VITE_AUTH_API=https://auth-service.onrender.com
-VITE_PROPERTY_API=https://property-service.onrender.com
-VITE_PAYMENT_API=https://payment-service.onrender.com
-VITE_NOTIF_API=https://notification-service.onrender.com
-VITE_ACTIVITY_API=https://activity-service.onrender.com
-VITE_CHAT_API=https://chat-service.onrender.com
-```
+### Auth Service
 
----
+  ---------------------------------------------------------------------
+  Variable                           Purpose
+  ---------------------------------- ----------------------------------
+  `PORT`                             Service port; defaults to `5000`
 
-## 📁 Project Structure
+  `MONGO_URI`                        MongoDB connection string
 
-```
-rentsmart_v2/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml              # Path-filtered CI/CD pipeline
-├── docker-compose.yml
-├── README.md
-├── showcase/                       # Screenshots / demo assets
-├── client/                         # React + Vite frontend
-│   ├── apis.js                     # Centralized API base URL map
-│   ├── package.json
-│   └── src/
-│       ├── App.jsx
-│       ├── pages/
-│       ├── components/
-│       │   ├── reuse/              # Navbar, Footer
-│       │   ├── messages/           # Chat UI
-│       │   └── Hero.jsx
-│       ├── constants/
-│       └── const_func/
-│           ├── formattedPrice.js
-│           └── draftUtils.js       # loadDraft, saveDraft, clearDraft, useListingDraft
-└── services/
-    ├── auth-service/
-    │   ├── Dockerfile
-    │   └── src/
-    │       ├── controllers/
-    │       ├── middleware/         # authMiddleware, rateLimitMiddleware, verifyInternalSecret
-    │       ├── models/             # User.js
-    │       ├── routes/
-    │       ├── services/           # sendVerificationEmail, sendForgotPasswordEmail
-    │       └── utils/              # activityLogger, redisClient
-    ├── property-service/
-    │   ├── Dockerfile
-    │   └── src/
-    │       ├── config/             # cloudinary.js, db.js
-    │       ├── controllers/
-    │       ├── middleware/
-    │       ├── models/             # Listing.js, SavedProperty.js, UserInteraction.js
-    │       └── routes/
-    ├── payment-service/
-    │   ├── Dockerfile
-    │   └── src/
-    │       ├── config/
-    │       ├── controller/
-    │       ├── middleware/
-    │       └── routes/
-    ├── notification-service/
-    │   ├── Dockerfile
-    │   └── src/routes/
-    ├── activity-service/
-    │   ├── Dockerfile
-    │   └── src/
-    │       ├── controllers/
-    │       └── routes/
-    ├── chat-service/
-    │   ├── Dockerfile
-    │   └── src/
-    │       ├── app.js              # Express + Socket.IO setup
-    │       ├── config/
-    │       ├── constants/          # events.js (socket event names)
-    │       ├── middleware/
-    │       ├── models/             # Conversation.js, Message.js
-    │       ├── routes/
-    │       └── sockets/            # chatSocket.js
-    └── redis-service/
-        ├── Dockerfile
-        └── src/
-            ├── app.js
-            ├── routes/             # cache, session, rateLimit
-            └── middleware/         # verifyInternalSecret
-```
+  `JWT_SECRET`                       JWT signing and verification
+                                     secret
 
----
+  `SESSION_SECRET`                   Express session secret used by the
+                                     OAuth setup
 
-## 🔒 Security
+  `CLIENT_URL`                       Frontend origin and email
+                                     verification/reset link base
 
-### Implemented
+  `BACKEND_URL_AUTH`                 Auth Service callback base URL for
+                                     Google OAuth
 
-- **JWT Authentication** — stateless, shared HS256 secret across all services; blacklisted on logout via redis-service
-- **Redis Rate Limiting** — registration (5/hr), login (10/15 min) via redis-service
-- **Email Verification** — required before creating listings or making payments
-- **Internal Secret Header** — `x-internal-secret` guards all service-to-service endpoints
-- **bcryptjs Password Hashing** — passwords never stored in plain text
-- **Razorpay HMAC-SHA256 Signature Verification** — payment authenticity validated server-side; price enforced server-side (client cannot alter amount)
-- **Environment-based Config** — secrets never hardcoded
-- **CORS Whitelisting** — each service allows only known origins
-- **Activity Logging** — all user actions tracked centrally
+  `GOOGLE_CLIENT_ID`                 Google OAuth client ID
 
-### Planned
+  `GOOGLE_CLIENT_SECRET`             Google OAuth client secret
 
-- Suspicious activity monitoring and alerts
-- User reporting and moderation system
-- Role-based access control (RBAC)
-- Fraud prevention and risk scoring
-- User trust and reputation scoring
-- Property verification workflow
-- Security audit logs
+  `BREVO_API_KEY`                    Brevo API key for verification and
+                                     reset emails
 
----
+  `OWNER_EMAIL`                      Sender email configured in Brevo
 
-## 🗺 Current Status & Roadmap
+  `REDIS_SERVICE_URL`                Redis Service base URL
 
-### ✅ Phase 1 — Complete
+  `ACTIVITY_SERVICE_URL`             Activity Service base URL
 
-- [x] Microservices architecture (7 services)
-- [x] Auth service (register, login, email verify, forgot/reset password, Google OAuth)
-- [x] Property service (CRUD, image upload, full-text search, filter, recommendations)
-- [x] Payment service (Razorpay contact-unlock + listing promotion, HMAC-verified)
-- [x] Chat service (real-time Socket.IO with delivery/read receipts and typing indicators)
-- [x] Activity service (logging & retrieval)
-- [x] Notification service (email via Brevo API)
-- [x] Redis service (dedicated HTTP microservice for cache, sessions, rate limiting)
-- [x] Saved properties / wishlist
-- [x] Listing draft auto-save (client-side, debounced 600ms, persists across sessions)
-- [x] Docker Compose setup
-- [x] Vercel frontend deployment
-- [x] Render backend deployment
-- [x] k6 load testing on property search endpoint
-- [x] CI/CD pipeline (GitHub Actions — path-filtered per-service deploys)
+  `PROPERTY_SERVICE_URL`             Property Service base URL for
+                                     account-deletion listing cleanup
 
-### 🔄 Phase 2 — In Progress
+  `INTERNAL_SECRET`                  Shared secret for internal service
+                                     requests
 
-- [ ] Microsoft OAuth login (backend ready, frontend integration pending)
-- [ ] Admin dashboard and moderation tools
-- [ ] Advanced property recommendation engine
-- [ ] Property analytics dashboard
+  `NODE_ENV`                         Controls secure session-cookie
+                                     behavior in production
+  ---------------------------------------------------------------------
 
-### 🔮 Phase 3 — Planned
+### Property Service
 
-- [ ] Suspicious activity monitoring
-- [ ] Trust and reputation scoring
-- [ ] Emergency contact and safety features
-- [ ] Rate limiting at API gateway level
-- [ ] Full observability (logging, metrics, tracing)
-- [ ] Production-grade Kubernetes deployment
-- [ ] Upgrade property service to dedicated paid instance and re-run load tests
+  ---------------------------------------------------------------------
+  Variable                           Purpose
+  ---------------------------------- ----------------------------------
+  `PORT`                             Service port; defaults to `5001`
 
----
+  `MONGO_URI`                        MongoDB connection string
 
-## 🚀 Getting Started
+  `JWT_SECRET`                       JWT verification secret
 
-### Prerequisites
+  `REDIS_SERVICE_URL`                Redis Service base URL
 
-- Node.js 20+
-- Docker and Docker Compose
-- MongoDB Atlas or local MongoDB
-- Redis instance (or use Docker)
-- Cloudinary account
-- Razorpay account
-- Brevo (Sendinblue) account for transactional email
+  `CLOUDINARY_CLOUD_NAME`            Cloudinary cloud name
 
-### Local Development (without Docker)
+  `CLOUDINARY_API_KEY`               Cloudinary API key
 
-```bash
-# 1. Clone the repo
-git clone https://github.com/yashsabne/rentsmart_v2.git
-cd rentsmart_v2
+  `CLOUDINARY_API_SECRET`            Cloudinary API secret
 
-# 2. Start each service
-cd services/redis-service && npm install && npm start
-cd services/auth-service && npm install && npm start
-cd services/property-service && npm install && npm start
-cd services/payment-service && npm install && npm start
-cd services/notification-service && npm install && npm start
-cd services/activity-service && npm install && npm start
-cd services/chat-service && npm install && node src/app.js
+  `ACTIVITY_SERVICE_URL`             Activity Service base URL
 
-# 3. Start the frontend
-cd client && npm install && npm run dev
-```
+  `AUTH_SERVICE_URL`                 Auth Service base URL for
+                                     verified-user checks
 
-### With Docker Compose
+  `INTERNAL_SECRET`                  Shared secret for internal
+                                     endpoints
 
-```bash
-docker compose up --build
+  `PROPERTY_INTELLIGENCE_URL`        External Property Intelligence API
+                                     base URL
 
-# Frontend runs separately on Vercel or:
-cd client && npm install && npm run dev
-```
+  `PROPERTY_INTELLIGENCE_API_KEY`    Key sent to the Property
+                                     Intelligence API
 
----
+  `CLIENT_URL`                       Frontend base URL used by
+                                     share-link redirects
 
-## 👨‍💻 Author
+  `SERVER_URL`                       Public backend base URL used when
+                                     creating share links
+  ---------------------------------------------------------------------
 
-**Yash Sabne**
-GitHub: [@yashsabne](https://github.com/yashsabne)
+### Payment Service
+
+  ---------------------------------------------------------------------
+  Variable                           Purpose
+  ---------------------------------- ----------------------------------
+  `PORT`                             Service port; defaults to `5002`
+
+  `MONGO_URI`                        MongoDB connection string
+
+  `JWT_SECRET`                       JWT verification secret
+
+  `RAZORPAY_KEY_ID`                  Razorpay key ID
+
+  `RAZORPAY_KEY_SECRET`              Razorpay secret used for order
+                                     signature verification
+
+  `AUTH_SERVICE_URL`                 Auth Service base URL
+
+  `PROPERTY_SERVICE_URL`             Property Service base URL
+
+  `NOTIFICATION_SERVICE_URL`         Notification Service base URL
+
+  `ACTIVITY_SERVICE_URL`             Activity Service base URL
+
+  `REDIS_SERVICE_URL`                Redis Service base URL
+
+  `INTERNAL_SECRET`                  Shared secret for internal service
+                                     requests
+  ---------------------------------------------------------------------
+
+### Notification Service
+
+  Variable            Purpose
+  ------------------- ------------------------------------------
+  `PORT`              Service port; defaults to `5003`
+  `INTERNAL_SECRET`   Protects internal notification endpoints
+  `BREVO_API_KEY`     Brevo API key
+  `OWNER_EMAIL`       Sender email configured in Brevo
+
+### Activity Service
+
+  Variable              Purpose
+  --------------------- ----------------------------------
+  `PORT`                Service port; defaults to `5004`
+  `MONGO_URI`           MongoDB connection string
+  `REDIS_SERVICE_URL`   Redis Service base URL
+
+### Chat Service
+
+  ---------------------------------------------------------------------
+  Variable                           Purpose
+  ---------------------------------- ----------------------------------
+  `PORT`                             Service port; defaults to `5005`
+
+  `MONGO_URI`                        MongoDB connection string
+
+  `JWT_SECRET`                       JWT verification secret for HTTP
+                                     and Socket.IO authentication
+
+  `REDIS_SERVICE_URL`                Redis Service base URL
+
+  `AUTH_SERVICE_URL`                 Auth Service base URL for fetching
+                                     the initiating user's profile
+
+  `FRONTEND_URL`                     Allowed frontend origin for HTTP
+                                     and Socket.IO CORS
+  ---------------------------------------------------------------------
+
+### Redis Service
+
+  ---------------------------------------------------------------------
+  Variable                           Purpose
+  ---------------------------------- ----------------------------------
+  `PORT`                             Service port; defaults to `5006`
+
+  `VERSION`                          Set to `development` to use
+                                     host/port configuration
+
+  `REDIS_HOST`                       Redis hostname in development
+
+  `REDIS_PORT`                       Redis port in development
+
+  `REDIS_PASSWORD`                   Redis password when required by
+                                     the configured connection
+
+  `REDIS_URL`                        Redis connection URL used outside
+                                     development mode
+
+  `CACHE_TTL`                        Default cache TTL in seconds
+
+  `SESSION_TTL`                      Default session and
+                                     token-blacklist TTL in seconds
+
+  `OTP_TTL`                          Default OTP TTL in seconds
+
+  `RATE_LIMIT_TTL`                   Default rate-limit window in
+                                     seconds
+
+  `RATE_LIMIT_MAX`                   Default maximum requests per
+                                     rate-limit window
+  ---------------------------------------------------------------------
+
+## API overview
+
+The following paths are mounted by the services. All URLs below are
+relative to the relevant service base URL. The NGINX gateway is not part
+of the current production deployment. Protected endpoints require a
+bearer token unless otherwise noted.
+
+### Auth Service
+
+Base path: `/api/auth`
+
+  -----------------------------------------------------------------------
+  Method             Path                            Purpose
+  ------------------ ------------------------------- --------------------
+  `POST`             `/register`                     Register an account
+
+  `POST`             `/login`                        Log in
+
+  `POST`             `/logout`                       Log out and
+                                                     blacklist the
+                                                     current token
+
+  `GET`              `/me`                           Get the
+                                                     authenticated user
+
+  `GET`              `/user/:id`                     Get a public user
+                                                     profile
+
+  `GET`              `/verify-email/:token`          Verify an email
+                                                     address
+
+  `POST`             `/resend-verification`          Resend verification
+                                                     email
+
+  `GET`              `/check-verification/:userId`   Check
+                                                     email-verification
+                                                     status
+
+  `POST`             `/forgot-password`              Request a
+                                                     password-reset link
+
+  `POST`             `/reset-password/:token`        Reset a password
+
+  `PATCH`            `/recently-viewed`              Add a recently
+                                                     viewed listing
+
+  `GET`              `/recently-viewed`              Get recently viewed
+                                                     listing IDs
+  -----------------------------------------------------------------------
+
+Settings are mounted at `/api/auth/settings`:
+
+-   `GET /` --- read settings
+-   `PATCH /profile` --- update profile
+-   `PATCH /notifications` --- update notification preferences
+-   `PATCH /preferences` --- update property preferences
+-   `PATCH /password` --- change password
+-   `DELETE /account` --- delete/deactivate account data
+
+Google OAuth routes are mounted under `/auth/social`:
+
+-   `GET /google`
+-   `GET /google/callback`
+
+### Property Service
+
+Base paths: `/api/property`, `/api/saved`, `/api/actions`,
+`/api/promote`, `/api/share`
+
+  -------------------------------------------------------------------------------
+  Method     Path                                              Purpose
+  ---------- ------------------------------------------------- ------------------
+  `POST`     `/api/property/upload-photos`                     Upload listing
+                                                               photos
+
+  `POST`     `/api/property/`                                  Create a listing
+
+  `GET`      `/api/property/filter`                            Search and filter
+                                                               listings
+
+  `GET`      `/api/property/recommended`                       Get
+                                                               preference-based
+                                                               recommendations
+
+  `GET`      `/api/property/search-notlogged`                  Get guest
+                                                               recommendations
+
+  `GET`      `/api/property/similar`                           Get similar
+                                                               listings
+
+  `GET`      `/api/property/my`                                Get the owner's
+                                                               listings
+
+  `GET`      `/api/property/details/:id`                       Get listing
+                                                               details
+
+  `PUT`      `/api/property/:id`                               Update a listing
+
+  `DELETE`   `/api/property/:id`                               Delete a listing
+
+  `POST`     `/api/property/interactions`                      Record a user
+                                                               interaction
+
+  `GET`      `/api/property/evaluations/:propertyId/history`   Get AI evaluation
+                                                               history
+
+  `POST`     `/api/property/evaluations/:propertyId`           Request an AI
+                                                               evaluation for an
+                                                               existing listing
+
+  `POST`     `/api/saved/:propertyId`                          Toggle a saved
+                                                               property
+
+  `GET`      `/api/saved/ids`                                  Get saved listing
+                                                               IDs
+
+  `GET`      `/api/saved/properties`                           Get saved property
+                                                               details
+
+  `PATCH`    `/api/actions/:id/hide`                           Toggle listing
+                                                               visibility
+
+  `PATCH`    `/api/actions/:id/refresh`                        Refresh a listing
+
+  `PATCH`    `/api/actions/:id/status`                         Update listing
+                                                               status
+
+  `GET`      `/api/actions/dashboard/owner`                    Get owner
+                                                               dashboard data
+
+  `POST`     `/api/promote/listings/promote/activate`          Internal promotion
+                                                               activation
+
+  `POST`     `/api/share/create-link`                          Create a share
+                                                               link
+
+  `GET`      `/api/share/open/:token`                          Track and open a
+                                                               share link
+  -------------------------------------------------------------------------------
+
+### Payment Service
+
+Base paths: `/api/payment` and `/api/payments`
+
+  ------------------------------------------------------------------------
+  Method          Path                                 Purpose
+  --------------- ------------------------------------ -------------------
+  `POST`          `/api/payment/create-order`          Create
+                                                       contact-unlock
+                                                       order
+
+  `POST`          `/api/payment/verify-payment`        Verify
+                                                       contact-unlock
+                                                       payment
+
+  `GET`           `/api/payment/check-access`          Check contact
+                                                       access for a
+                                                       listing
+
+  `POST`          `/api/payment/promote/order`         Create
+                                                       listing-promotion
+                                                       order
+
+  `POST`          `/api/payment/promote/verify`        Verify
+                                                       listing-promotion
+                                                       payment
+
+  `GET`           `/api/payments/history/contacts`     Get contact-payment
+                                                       history
+
+  `GET`           `/api/payments/history/promotions`   Get
+                                                       promotion-payment
+                                                       history
+
+  `GET`           `/api/payments/history/summary`      Get payment summary
+  ------------------------------------------------------------------------
+
+### Activity Service
+
+Base path: `/api/activities`
+
+  Method   Path                        Purpose
+  -------- --------------------------- -------------------------------
+  `POST`   `/api/activities/`          Create an activity record
+  `GET`    `/api/activities/:userId`   Get a user's activity records
+
+### Chat Service
+
+The Chat Service uses root-level HTTP paths rather than an `/api`
+prefix.
+
+  ----------------------------------------------------------------------
+  Method             Path                             Purpose
+  ------------------ -------------------------------- ------------------
+  `POST`             `/conversations/start`           Start or reuse a
+                                                      property
+                                                      conversation
+
+  `GET`              `/conversations`                 List conversations
+                                                      for the current
+                                                      user
+
+  `GET`              `/conversations/:slug`           Get a conversation
+
+  `PATCH`            `/conversations/archive/:slug`   Archive a
+                                                      conversation
+
+  `POST`             `/messages/send`                 Send a message
+
+  `GET`              `/messages/:slug`                Retrieve
+                                                      conversation
+                                                      messages
+
+  `PATCH`            `/messages/read`                 Mark received
+                                                      messages as read
+
+  `GET`              `/health`                        Chat Service
+                                                      health endpoint
+
+  Socket.IO          `/socket.io/`                    Real-time chat
+                                                      connection
+  ----------------------------------------------------------------------
+
+### Notification and Redis Services
+
+These are internal service APIs and should not be exposed as public
+application APIs.
+
+Notification Service base path: `/api/notify`
+
+-   `POST /payment-success`
+-   `POST /contact-revealed`
+-   `POST /owner-contact-revealed`
+-   `POST /promote-success`
+
+Redis Service base path: `/api/redis`
+
+-   `/cache`
+-   `/session`
+-   `/token/blacklist`
+-   `/otp`
+-   `/rate-limit`
+-   `/queue`
+-   `/pubsub/publish`
+
+The Redis Service route definitions specify the supported HTTP methods
+and parameters for each operation.
+
+## Deployment
+
+### Frontend
+
+The client contains a Vercel SPA rewrite configuration that sends
+application routes to `index.html`. Configure the `VITE_*` variables in
+the frontend hosting environment.
+
+### Backend
+
+The backend services have individual Dockerfiles and are deployed as
+separate Render services. The frontend is deployed separately on Vercel.
+The current production architecture does not use an NGINX gateway: the
+client communicates with the configured backend service URLs directly.
+
+An NGINX configuration and `Dockerfile.nginx` are present in the
+repository for a future reverse-proxy setup, but this work is not
+currently deployed to production.
+
+The GitHub Actions workflow runs on pushes to `main`. It uses path
+filters to detect changes in the Auth, Property, Payment, Notification,
+Activity, and Chat service directories, then triggers the corresponding
+Render deploy hook using repository secrets:
+
+-   `RENDER_DEPLOY_HOOK_AUTH`
+-   `RENDER_DEPLOY_HOOK_PROPERTY`
+-   `RENDER_DEPLOY_HOOK_PAYMENT`
+-   `RENDER_DEPLOY_HOOK_NOTIFICATION`
+-   `RENDER_DEPLOY_HOOK_ACTIVITY`
+-   `RENDER_DEPLOY_HOOK_CHAT`
+
+The workflow does not currently define a deploy job for the Redis
+Service or the frontend.
+
+## Implementation notes
+
+-   **Email delivery is synchronous, not queue-backed.** The Payment
+    Service calls the Notification Service during payment verification,
+    and the Notification Service waits for the Brevo API request. The
+    current implementation has no durable job queue, retry worker, or
+    outbox for email delivery. If the Notification Service is
+    unavailable or the request fails, the notification helper logs the
+    failure; it does not persist the email for later delivery.
+-   **The Property Intelligence engine is external.** This repository
+    contains the HTTP integration and frontend review experience, not
+    the evaluation engine itself.
+-   **The RAG Chatbot is a separate working project.** It is built using
+    Retrieval-Augmented Generation (RAG) and integrated with the broader
+    RentSmart experience. Its application source code and deployment are
+    maintained in a separate repository, not inside this seven-service
+    codebase. The small chatbot reference entry in this repository is
+    not the chatbot implementation.
+-   **The deployment workflow is selective.** It deploys six backend
+    services when their directories change. Redis Service and the
+    frontend are not included in that workflow.
+-   **NGINX is planned, not currently deployed.** The repository
+    contains gateway configuration from a separate development branch;
+    it is not part of the live production request flow.
+-   **Local Compose does not start the frontend or NGINX.** Start the
+    Vite client separately; the NGINX gateway remains future work.
+
+## Copyright & Contributions
+
+© 2026 Yash Navnath Sabne. All rights reserved.
+
+The source code, design, and original implementation of RentSmart are proprietary. Unauthorized copying, redistribution, or commercial use without prior written permission is prohibited.
+
+**Contributions are welcome!** If you have ideas, suggestions, bug fixes, or meaningful improvements that could make RentSmart better, feel free to open an issue or submit a pull request. All contributions are subject to review and approval by the project owner.
+
+No project license file was identified in the repository tree. Contact
+the repository owner before reusing or redistributing the code.
