@@ -951,8 +951,8 @@ export const getPropertyEvaluationHistory = async (req, res) => {
 
     const responseText = await response.text();
 
-    console.log("AI SERVICE STATUS:", response.status);
-    console.log("AI SERVICE RESPONSE:", responseText);
+    // console.log("AI SERVICE STATUS:", response.status);
+    // console.log("AI SERVICE RESPONSE:", responseText);
 
     let data;
 

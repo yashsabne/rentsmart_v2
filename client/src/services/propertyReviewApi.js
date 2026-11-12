@@ -26,10 +26,12 @@ export async function fetchEvaluationHistory(propertyId, signal) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      data.message || "Failed to fetch evaluation history"
-    );
-  }
+  throw new Error(
+    data.details?.message ||
+    data.message ||
+    "Failed to fetch evaluation history"
+  );
+}
 
   return data;
 }

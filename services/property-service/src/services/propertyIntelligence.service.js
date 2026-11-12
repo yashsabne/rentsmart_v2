@@ -54,7 +54,7 @@ export const evaluateListingWithAI = async (listing) => {
 
   const result = await response.json().catch(() => null);
 
-  console.log(result,'ai evaluate')
+  console.log(response,'ai evaluate')
 
   if (!response.ok) {
     throw new Error(
