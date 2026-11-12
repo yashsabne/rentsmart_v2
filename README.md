@@ -6,9 +6,6 @@ supports property discovery, owner-managed listings, paid contact
 unlocking, listing promotion, user activity, and real-time conversations
 between property seekers and owners.
 
-This README describes the implementation found in the repository source
-code. It intentionally does not rely on the previous README.
-
 ## Contents
 
 -   [Features](#features)
@@ -1039,10 +1036,6 @@ Service or the frontend.
     outbox for email delivery. If the Notification Service is
     unavailable or the request fails, the notification helper logs the
     failure; it does not persist the email for later delivery.
--   **Redis queue primitives exist, but there is no notification worker
-    wired into the current flow.** The Redis Service exposes
-    enqueue/dequeue operations and contains a blocking dequeue helper,
-    but the email controllers do not use them.
 -   **The Property Intelligence engine is external.** This repository
     contains the HTTP integration and frontend review experience, not
     the evaluation engine itself.
@@ -1060,14 +1053,14 @@ Service or the frontend.
     it is not part of the live production request flow.
 -   **Local Compose does not start the frontend or NGINX.** Start the
     Vite client separately; the NGINX gateway remains future work.
--   **Atlas Search is required for text/city search.** A regular MongoDB
-    index alone does not replace the Atlas Search index referenced by
-    the aggregation.
--   **Automated backend tests are not configured.** The package scripts
-    currently contain placeholder test commands rather than executable
-    test suites.
 
-## License
+## Copyright & Contributions
+
+© 2026 Yash Navnath Sabne. All rights reserved.
+
+The source code, design, and original implementation of RentSmart are proprietary. Unauthorized copying, redistribution, or commercial use without prior written permission is prohibited.
+
+**Contributions are welcome!** If you have ideas, suggestions, bug fixes, or meaningful improvements that could make RentSmart better, feel free to open an issue or submit a pull request. All contributions are subject to review and approval by the project owner.
 
 No project license file was identified in the repository tree. Contact
 the repository owner before reusing or redistributing the code.
