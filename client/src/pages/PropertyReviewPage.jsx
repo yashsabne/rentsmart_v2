@@ -121,10 +121,10 @@ function normalizeEvaluation(ev) {
     issues: arr(ev.flags).map(i => typeof i === "string"
       ? { title: i, detail: "", severity: "other" }
       : {
-          title: i.title || i.message || i.description || "Issue detected",
-          detail: i.detail || i.details || i.explanation || "",
-          severity: sevKey(i.severity)
-        }),
+        title: i.title || i.message || i.description || "Issue detected",
+        detail: i.detail || i.details || i.explanation || "",
+        severity: sevKey(i.severity)
+      }),
     suggestions: arr(ev.suggestions).map(i => typeof i === "string"
       ? { title: i, detail: "" }
       : { title: i.title || i.suggestion || i.message || i.description || "Improvement", detail: i.detail || i.explanation || "" }),
@@ -579,8 +579,12 @@ export default function PropertyReviewPage() {
       // The history endpoint returns 404 when this property has never
       // been evaluated. Keep that separate from genuine API/server errors.
       const noEvaluation =
-        /no evaluation history found|no evaluation found/i.test(error.message || "");
-
+        /no evaluation history found|no evaluation found/i.test(
+          error.message || ""
+        ) ||
+        /no evaluation history found|no evaluation found/i.test(
+          error.details?.message || ""
+        );
       setState({
         loading: false,
         records: [],
