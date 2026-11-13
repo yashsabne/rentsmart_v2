@@ -366,7 +366,7 @@ export const verifyPromotePayment = async (req, res) => {
         {
           userId: payment.userId,
           email: payment.email,
-          name: payment.name,
+          ownerName: payment.name,
           propertyTitle: payment.propertyTitle,
         },
         `promotion-success-${payment._id}`
