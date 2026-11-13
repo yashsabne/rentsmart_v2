@@ -7,6 +7,7 @@ import cors from "cors";
 import connectDB from "./src/config/db.js";
 import paymentRoutes from "./src/routes/paymentRoutes.js";
 import paymentHistoryRoutes from "./src/routes/historyRoutes.js"
+import "./src/config/redis.js";
 
 dotenv.config();
 
