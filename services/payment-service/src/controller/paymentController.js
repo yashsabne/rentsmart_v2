@@ -5,6 +5,7 @@ import Payment from "../models/paymentModel.js";
 import PromotePayment from "../models/PromotePayment.js";
 import { logActivity } from "../utils/activityLogger.js";
 import { sendNotification } from "../utils/sendNotification.js";
+import { enqueueEmail } from "../queue/emailQueue.js";
 import crypto from "crypto";
 
 
@@ -87,6 +88,8 @@ export const createOrder = async (req, res) => {
     });
   }
 };
+
+
 export const verifyPayment = async (req, res) => {
   try {
     const {
@@ -124,27 +127,56 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    await sendNotification("contact-revealed", {
-      email: payment.buyerEmail,
-      tenantName: payment.buyerName,
-      ownerName: payment.ownerName,
-      ownerPhone: payment.ownerPhone,
-    });
+    // Queue email notifications
+    const emailJobs = [
+      {
+        event: "CONTACT_REVEALED",
+        payload: {
+          email: payment.buyerEmail,
+          tenantName: payment.buyerName,
+          ownerName: payment.ownerName,
+          ownerPhone: payment.ownerPhone,
+          propertyTitle: payment.propertyTitle,
+        },
+        key: `contact-revealed-${payment._id}`,
+      },
+      {
+        event: "PAYMENT_SUCCESS",
+        payload: {
+          email: payment.buyerEmail,
+          tenantName: payment.buyerName,
+          ownerName: payment.ownerName,
+          propertyTitle: payment.propertyTitle,
+        },
+        key: `payment-success-${payment._id}`,
+      },
+      {
+        event: "OWNER_CONTACT_REVEALED",
+        payload: {
+          email: payment.email,
+          ownerName: payment.ownerName,
+          buyerName: payment.buyerName,
+          buyerEmail: payment.buyerEmail,
+          buyerPhone: payment.buyerPhone,
+          propertyTitle: payment.propertyTitle,
+        },
+        key: `owner-contact-revealed-${payment._id}`,
+      },
+    ];
 
-    await sendNotification("payment-success", {
-      email: payment.buyerEmail,
-      tenantName: payment.buyerName,
-      ownerName: payment.ownerName,
-      propertyTitle: payment.propertyTitle,
-    });
+    const emailResults = await Promise.allSettled(
+      emailJobs.map(({ event, payload, key }) =>
+        enqueueEmail(event, payload, key)
+      )
+    );
 
-    await sendNotification("owner-contact-revealed", {
-      email: payment.email,
-      ownerName: payment.ownerName,
-      buyerName: payment.buyerName,
-      buyerEmail: payment.buyerEmail,
-      buyerPhone: payment.buyerPhone,
-      propertyTitle: payment.propertyTitle,
+    emailResults.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(
+          `[PAYMENT] Failed to queue ${emailJobs[index].event}:`,
+          result.reason.message
+        );
+      }
     });
 
     await logActivity(payment.userId, "PAYMENT_COMPLETED", {
@@ -176,12 +208,14 @@ export const verifyPayment = async (req, res) => {
 
   } catch (error) {
     console.error("verifyPayment error:", error);
+
     return res.status(500).json({
       success: false,
       message: "Verification failed",
     });
   }
 };
+
 
 
 export const checkAccess = async (req, res) => {
@@ -262,6 +296,7 @@ export const createPromoteOrder = async (req, res) => {
   }
 };
 
+
 export const verifyPromotePayment = async (req, res) => {
   try {
     const {
@@ -281,6 +316,7 @@ export const verifyPromotePayment = async (req, res) => {
         message: "Payment verification failed",
       });
     }
+
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
@@ -306,7 +342,6 @@ export const verifyPromotePayment = async (req, res) => {
       `${process.env.PROPERTY_SERVICE_URL}/api/promote/listings/promote/activate`,
       {
         method: "POST",
-
         headers: {
           "Content-Type": "application/json",
           "x-internal-secret": process.env.INTERNAL_SECRET,
@@ -324,6 +359,25 @@ export const verifyPromotePayment = async (req, res) => {
       console.error("Promotion activation failed");
     }
 
+    // Queue promotion confirmation email
+    try {
+      await enqueueEmail(
+        "PROMOTION_SUCCESS",
+        {
+          userId: payment.userId,
+          email: payment.email,
+          name: payment.name,
+          propertyTitle: payment.propertyTitle,
+        },
+        `promotion-success-${payment._id}`
+      );
+    } catch (error) {
+      console.error(
+        "[PAYMENT] Promotion email enqueue failed:",
+        error.message
+      );
+    }
+
     await logActivity(payment.userId, "LISTING_PROMOTED", {
       propertyTitle: payment.propertyTitle,
       listingId: payment.listingId,
@@ -332,21 +386,15 @@ export const verifyPromotePayment = async (req, res) => {
       expiresAt: payment.expiresAt,
     });
 
-    await sendNotification("promote-success", {
-      userId: payment.userId,
-      email: payment.email,
-      name: payment.name,
-      propertyTitle: payment.propertyTitle,
-    });
-
-
     return res.status(200).json({
       success: true,
       payment,
       promotedUntil: payment.expiresAt,
     });
+
   } catch (error) {
     console.error("[verifyPromotePayment]", error);
+
     return res.status(500).json({
       success: false,
       message: "Verification failed",
