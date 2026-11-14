@@ -81,67 +81,39 @@ between property seekers and owners.
 
 ### Email notifications
 
-RentSmart uses a centralized, asynchronous email notification architecture powered by a dedicated Notification Service, BullMQ, and Redis (Upstash). Instead of sending emails directly, producer services publish predefined notification events to a shared Redis-backed queue.
+RentSmart uses a centralized asynchronous notification system built with **BullMQ, Redis (Upstash), and Brevo**. Auth and Payment services publish encrypted email jobs, which are processed by the Notification Service.
 
-The Auth and Payment services act as producers, while the Notification Service acts as the consumer. Email payloads are encrypted using AES-256-GCM before being stored in Redis. Each event is assigned a deterministic job ID using SHA-256 to support duplicate job suppression.
-
-The Notification Service runs a BullMQ worker that consumes queued jobs, decrypts and validates payloads, generates event-specific email templates, and delivers transactional emails through the Brevo API.
-
-### Supported Notification Events
-
-| Event | Producer | Purpose |
-|---|---|---|
-| `AUTH_VERIFICATION` | Auth Service | Email verification |
-| `AUTH_PASSWORD_RESET` | Auth Service | Password reset |
-| `PAYMENT_SUCCESS` | Payment Service | Payment confirmation |
-| `CONTACT_REVEALED` | Payment Service | Notify the buyer when owner contact details are revealed |
-| `OWNER_CONTACT_REVEALED` | Payment Service | Notify the property owner when their contact details are viewed |
-| `PROMOTION_SUCCESS` | Payment Service | Listing promotion confirmation |
-| `NEW_MESSAGE` | Chat Service (planned integration) | New message notification |
-
-### Notification Processing Flow
-
-1. A business operation triggers a predefined notification event in a producer service.
-2. The producer encrypts the structured email payload using AES-256-GCM and adds it to the shared `rentsmart-emails` BullMQ queue.
-3. The producer sends an authenticated HTTP wake-up request to the Notification Service.
-4. The Notification Service worker retrieves waiting jobs from Redis, decrypts the payload, and resolves the corresponding email template.
-5. The generated email is delivered through Brevo's transactional email API.
-
-### Reliability and Security
-
-- **Asynchronous Processing:** Email delivery is decoupled from business operations, preventing producer services from depending on synchronous email delivery.
-- **Payload Encryption:** AES-256-GCM protects sensitive email payloads stored in Redis.
-- **Duplicate Job Suppression:** Deterministic SHA-256 job IDs reduce duplicate enqueueing while the corresponding BullMQ job remains stored.
-- **Retry Handling:** BullMQ uses up to five attempts with exponential backoff for retryable failures. Permanent errors, such as invalid payloads and non-retryable Brevo responses, are marked unrecoverable.
-- **Centralized Templates:** All email templates and Brevo integration logic are maintained within Notification Service.
-- **Authenticated Wake-up:** Producer services use an internal-secret-protected HTTP endpoint to wake the Notification Service when needed.
-
-### Deployment Consideration
-
-The Notification Service runs as a Render Free Web Service with its BullMQ worker integrated into the same Node.js process. Since free instances can sleep after inactivity, producer services trigger on-demand wake-up requests after enqueueing jobs. Pending jobs remain in Redis while the service is inactive and can be processed when the worker reconnects.
-
-This is a cost-conscious deployment approach rather than an always-on worker architecture. Delivery may be delayed if the wake-up request is rate-limited or fails.
-
-**Important:** Queue persistence and retry handling improve reliability, but exactly-once email delivery is not guaranteed.
-
+```mermaid
 flowchart TD
-    A[Auth Service] -->|Encrypted email job| R[(Redis / Upstash)]
-    P[Payment Service] -->|Encrypted email job| R
+    A["Auth Service"] -->|"Encrypted email job"| R[("Redis / Upstash")]
+    P["Payment Service"] -->|"Encrypted email job"| R
 
-    A -.->|Authenticated wake-up HTTP| N[Notification Service]
-    P -.->|Authenticated wake-up HTTP| N
+    A -.->|"Authenticated wake-up"| N["Notification Service"]
+    P -.->|"Authenticated wake-up"| N
 
-    R -->|BullMQ job consumption| N
+    R -->|"BullMQ"| W["Email Worker"]
+    N --> W
 
-    N --> W[Email Worker]
-    W --> D[Decrypt and Validate Payload]
-    D --> T[Event-specific Email Templates]
-    T --> B[Brevo API]
-    B --> E[Recipient Email]
+    W --> D["Decrypt & Validate"]
+    D --> T["Email Templates"]
+    T --> B["Brevo API"]
+    B --> E["Recipient Email"]
 
-    C[Chat Service] -.->|NEW_MESSAGE - Planned| R
+    C["Chat Service"] -.->|"Planned: NEW_MESSAGE"| R
+```
 
-    style C stroke-dasharray: 5 5
+**Key implementation details:**
+- AES-256-GCM encryption for queued payloads.
+- SHA-256 deterministic job IDs for duplicate job suppression.
+- Up to 5 retry attempts with exponential backoff.
+- Centralized email templates and delivery through Brevo.
+- Authenticated wake-up requests for the Render Free Service.
+
+**Deployment:** The Notification Service and BullMQ worker run in the same Render Web Service. Pending jobs remain in Redis while the service sleeps and are processed when it wakes up.
+
+*Exactly-once email delivery is not guaranteed.*
+```
+
 
 
 ## Architecture
