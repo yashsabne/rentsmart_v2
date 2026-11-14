@@ -112,8 +112,6 @@ flowchart TD
 **Deployment:** The Notification Service and BullMQ worker run in the same Render Web Service. Pending jobs remain in Redis while the service sleeps and are processed when it wakes up.
 
 *Exactly-once email delivery is not guaranteed.*
-```
-
 
 
 ## Architecture
