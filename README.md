@@ -81,36 +81,96 @@ between property seekers and owners.
 
 ### Email notifications
 
-The Notification Service sends transactional emails through the Brevo
-SMTP API for payment success, contact unlock, owner contact-view, and
-listing-promotion events. The Auth Service also uses Brevo for email
-verification and password-reset messages.
+RentSmart uses a centralized, asynchronous email notification architecture powered by a dedicated Notification Service, BullMQ, and Redis (Upstash). Instead of sending emails directly, producer services publish predefined notification events to a shared Redis-backed queue.
+
+The Auth and Payment services act as producers, while the Notification Service acts as the consumer. Email payloads are encrypted using AES-256-GCM before being stored in Redis. Each event is assigned a deterministic job ID using SHA-256 to support duplicate job suppression.
+
+The Notification Service runs a BullMQ worker that consumes queued jobs, decrypts and validates payloads, generates event-specific email templates, and delivers transactional emails through the Brevo API.
+
+### Supported Notification Events
+
+| Event | Producer | Purpose |
+|---|---|---|
+| `AUTH_VERIFICATION` | Auth Service | Email verification |
+| `AUTH_PASSWORD_RESET` | Auth Service | Password reset |
+| `PAYMENT_SUCCESS` | Payment Service | Payment confirmation |
+| `CONTACT_REVEALED` | Payment Service | Notify the buyer when owner contact details are revealed |
+| `OWNER_CONTACT_REVEALED` | Payment Service | Notify the property owner when their contact details are viewed |
+| `PROMOTION_SUCCESS` | Payment Service | Listing promotion confirmation |
+| `NEW_MESSAGE` | Chat Service (planned integration) | New message notification |
+
+### Notification Processing Flow
+
+1. A business operation triggers a predefined notification event in a producer service.
+2. The producer encrypts the structured email payload using AES-256-GCM and adds it to the shared `rentsmart-emails` BullMQ queue.
+3. The producer sends an authenticated HTTP wake-up request to the Notification Service.
+4. The Notification Service worker retrieves waiting jobs from Redis, decrypts the payload, and resolves the corresponding email template.
+5. The generated email is delivered through Brevo's transactional email API.
+
+### Reliability and Security
+
+- **Asynchronous Processing:** Email delivery is decoupled from business operations, preventing producer services from depending on synchronous email delivery.
+- **Payload Encryption:** AES-256-GCM protects sensitive email payloads stored in Redis.
+- **Duplicate Job Suppression:** Deterministic SHA-256 job IDs reduce duplicate enqueueing while the corresponding BullMQ job remains stored.
+- **Retry Handling:** BullMQ uses up to five attempts with exponential backoff for retryable failures. Permanent errors, such as invalid payloads and non-retryable Brevo responses, are marked unrecoverable.
+- **Centralized Templates:** All email templates and Brevo integration logic are maintained within Notification Service.
+- **Authenticated Wake-up:** Producer services use an internal-secret-protected HTTP endpoint to wake the Notification Service when needed.
+
+### Deployment Consideration
+
+The Notification Service runs as a Render Free Web Service with its BullMQ worker integrated into the same Node.js process. Since free instances can sleep after inactivity, producer services trigger on-demand wake-up requests after enqueueing jobs. Pending jobs remain in Redis while the service is inactive and can be processed when the worker reconnects.
+
+This is a cost-conscious deployment approach rather than an always-on worker architecture. Delivery may be delayed if the wake-up request is rate-limited or fails.
+
+**Important:** Queue persistence and retry handling improve reliability, but exactly-once email delivery is not guaranteed.
+
+flowchart TD
+    A[Auth Service] -->|Encrypted email job| R[(Redis / Upstash)]
+    P[Payment Service] -->|Encrypted email job| R
+
+    A -.->|Authenticated wake-up HTTP| N[Notification Service]
+    P -.->|Authenticated wake-up HTTP| N
+
+    R -->|BullMQ job consumption| N
+
+    N --> W[Email Worker]
+    W --> D[Decrypt and Validate Payload]
+    D --> T[Event-specific Email Templates]
+    T --> B[Brevo API]
+    B --> E[Recipient Email]
+
+    C[Chat Service] -.->|NEW_MESSAGE - Planned| R
+
+    style C stroke-dasharray: 5 5
+
 
 ## Architecture
 
-The repository contains a React client and seven backend services.
-RentSmart also integrates with a separately developed RAG-based chatbot
-service, whose implementation is maintained in its own repository.
-MongoDB and Redis are infrastructure dependencies used by the services;
-the Redis Service exposes Redis operations through an internal HTTP API.
+The repository contains a React client and seven backend services. RentSmart also integrates with a separately developed RAG-based chatbot service, whose implementation is maintained in its own repository.
 
-``` mermaid
+MongoDB and Redis are infrastructure dependencies used by the services. The Redis Service exposes Redis operations through an internal HTTP API, while Upstash Redis also acts as the shared BullMQ job store for asynchronous email notifications.
+
+```mermaid
 flowchart TB
-    Browser[React + Vite client]
-    Auth[Auth Service]
-    Property[Property Service]
-    Payment[Payment Service]
-    Notification[Notification Service]
-    Activity[Activity Service]
-    Chat[Chat Service + Socket.IO]
-    RedisAPI[Redis Service]
+    Browser[React + Vite Client]
+
+    subgraph Services["RentSmart Backend Services"]
+        Auth[Auth Service]
+        Property[Property Service]
+        Payment[Payment Service]
+        Notification[Notification Service<br/>Express + BullMQ Worker]
+        Activity[Activity Service]
+        Chat[Chat Service + Socket.IO]
+        RedisAPI[Redis Service<br/>Internal HTTP API]
+    end
+
     Mongo[(MongoDB)]
     Redis[(Redis / Upstash)]
     Cloudinary[Cloudinary]
     Razorpay[Razorpay]
-    Brevo[Brevo Email API]
+    Brevo[Brevo Transactional Email API]
     AI[External Property Intelligence API]
-    RAG[External RAG Chatbot<br/>(separate project)]
+    RAG[External RAG Chatbot<br/>Separate Repository]
 
     Browser --> Auth
     Browser --> Property
@@ -118,37 +178,51 @@ flowchart TB
     Browser --> Activity
     Browser --> Chat
     Browser --> RAG
+
     Auth --> Mongo
     Property --> Mongo
     Payment --> Mongo
     Activity --> Mongo
     Chat --> Mongo
+
     Auth --> RedisAPI
     Property --> RedisAPI
     Payment --> RedisAPI
     Activity --> RedisAPI
     Chat --> RedisAPI
     RedisAPI --> Redis
+
     Property --> Cloudinary
     Payment --> Razorpay
-    Payment --> Notification
-    Notification --> Brevo
-    Auth --> Brevo
     Property --> AI
+
     Payment --> Auth
     Payment --> Property
+
     Auth --> Activity
     Property --> Activity
     Payment --> Activity
+
+    Auth -->|Encrypted email jobs| Redis
+    Payment -->|Encrypted email jobs| Redis
+
+    Auth -.->|Authenticated wake-up HTTP| Notification
+    Payment -.->|Authenticated wake-up HTTP| Notification
+
+    Redis -->|BullMQ job consumption| Notification
+    Notification -->|Transactional email API| Brevo
 ```
 
-The RAG Chatbot is an additional external integration, not an eighth
-backend service inside this repository. Its implementation is maintained
-in a separate project. It uses Retrieval-Augmented Generation (RAG) to
-retrieve relevant context and use that context when generating
-responses. The chatbot is part of the broader RentSmart experience,
-while its application code and deployment are managed separately from
-the seven backend services shown above.
+The RAG Chatbot is an additional external integration, not an eighth backend service inside this repository. Its implementation is maintained in a separate project. It uses Retrieval-Augmented Generation (RAG) to retrieve relevant context and use that context when generating responses. The chatbot is part of the broader RentSmart experience, while its application code and deployment are managed separately from the seven backend services shown above.
+
+### Asynchronous Notification Infrastructure
+
+Auth and Payment services publish encrypted email jobs to a shared Redis-backed BullMQ queue. The Notification Service consumes these jobs, generates the appropriate email templates, and sends them through Brevo.
+
+The authenticated wake-up requests allow producer services to activate the Notification Service when its Render Free Web Service is sleeping. Redis retains pending jobs independently of the Notification Service process.
+
+The Redis Service and the BullMQ queue use the same Redis infrastructure but serve different application responsibilities: the Redis Service exposes internal application operations over HTTP, whereas BullMQ uses Redis directly for asynchronous job processing.
+
 
 ### Backend services
 
